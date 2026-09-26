@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adaroute"
+version = "0.1.0"
+description = "LLM Serving through Request Characterization and Policy Evaluation"
+requires-python = ">=3.9"
+dependencies = [
+    "pydantic>=2.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio",
+    "ruff",
+    "httpx",
+    "httpx2"
+]
+
+[tool.setuptools.packages.find]
+include = ["adaroute*"]
