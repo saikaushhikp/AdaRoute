@@ -4,14 +4,26 @@ A small, CPU-only experimental simulator for comparing LLM request-routing polic
 
 ## Quick start
 
-Requires Python 3.11 or newer. No runtime dependencies are needed.
+Requires Python 3.11 or newer. The simulator has no runtime dependencies.
+
+On Linux or macOS:
+
+```bash
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install -e .
+llm-serving-lab run --config configs/default.json --output results
+python -m unittest discover -s tests -p 'test_simulator.py' -v
+```
+
+On Windows PowerShell:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e .
 llm-serving-lab run --config configs/default.json --output results
-python -m unittest discover -s tests -v
+python -m unittest discover -s tests -p 'test_simulator.py' -v
 ```
 
 Run without installing the package:
@@ -20,6 +32,14 @@ Run without installing the package:
 $env:PYTHONPATH = "src"
 python -m llm_serving_lab.cli run --config configs/default.json --output results
 ```
+
+On Linux or macOS, use `PYTHONPATH=src` instead:
+
+```bash
+PYTHONPATH=src python -m llm_serving_lab.cli run --config configs/default.json --output results
+```
+
+The repository also contains older `adaroute` code and tests. Those tests are separate from this simulator and are not included in the command above.
 
 The run writes `summary.json`, `requests.csv`, `summary.csv`, and a dependency-free `comparison.svg` into the output directory. Use `--scenario bursty`, `--scenario heterogeneous`, or `--scenario fault_injected` to select a workload. The seed and request count can be overridden on the command line.
 
