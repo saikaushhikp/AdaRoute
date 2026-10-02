@@ -12,3 +12,6 @@ format:
 
 dev:
     pip install -e .[dev]
+
+benchmark:
+    docker run --rm -v "{{justfile_directory()}}/results:/app/results" adaroute python -m adaroute.experiments.runner
