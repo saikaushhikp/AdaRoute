@@ -37,7 +37,7 @@
   - Implemented bounded retries (max 2 attempts) for transient errors, with privacy-safe fallback.
 - **M6 SLO-Aware Dynamic Load Balancing**:
   - Deployed $\ge 2$ replicas for the local model (`local-r1`, `local-r2`) for within-model scheduling.
-  - Implemented dynamic workload-weighted queue tracking: $W_q = \sum (\text{prompt\_tokens} + \hat{L}_{\text{out}})$.
+  - Implemented dynamic workload-weighted queue tracking: $W_q = \sum(\text{prompt}\textunderscore\text{tokens} + \hat{L}_{\{\text{out}\}})$ .
   - Implemented `RoundRobinScheduler`, `LeastLoadedScheduler`, and `SLOAwareScheduler`.
 - **M7 Structured Observability & Correlation Traces**:
   - Implemented `RequestTracer` tracking request IDs, attempt-level records, latency, tokens, costs, and SLO attainment, with raw prompt redaction.
