@@ -1,0 +1,47 @@
+{
+  "seed": 17,
+  "request_count": 360,
+  "duration_seconds": 180,
+  "scenario": "heterogeneous",
+  "faults_enabled": false,
+  "models": [
+    {
+      "id": "small",
+      "quality": 0.72,
+      "cost_per_million_tokens": 0.35,
+      "prefill_tokens_per_second": 1800,
+      "decode_tokens_per_second": 75,
+      "max_context_tokens": 8192,
+      "privacy_levels": ["standard", "sensitive"],
+      "reliability": 0.995
+    },
+    {
+      "id": "balanced",
+      "quality": 0.86,
+      "cost_per_million_tokens": 1.8,
+      "prefill_tokens_per_second": 950,
+      "decode_tokens_per_second": 42,
+      "max_context_tokens": 32768,
+      "privacy_levels": ["standard", "sensitive"],
+      "reliability": 0.99
+    },
+    {
+      "id": "premium-local",
+      "quality": 0.96,
+      "cost_per_million_tokens": 5.5,
+      "prefill_tokens_per_second": 520,
+      "decode_tokens_per_second": 24,
+      "max_context_tokens": 65536,
+      "privacy_levels": ["standard", "sensitive", "local_only"],
+      "reliability": 0.985
+    }
+  ],
+  "replicas": [
+    {"id": "small-a", "model_id": "small", "speed_factor": 1.0, "capacity": 4, "reliability": 0.995},
+    {"id": "small-b", "model_id": "small", "speed_factor": 0.78, "capacity": 3, "reliability": 0.99},
+    {"id": "balanced-a", "model_id": "balanced", "speed_factor": 1.0, "capacity": 3, "reliability": 0.99},
+    {"id": "balanced-b", "model_id": "balanced", "speed_factor": 0.82, "capacity": 2, "reliability": 0.985},
+    {"id": "premium-a", "model_id": "premium-local", "speed_factor": 1.0, "capacity": 2, "reliability": 0.985}
+  ],
+  "adaptive_weights": {"quality": 0.42, "cost": 0.22, "latency": 0.24, "reliability": 0.12}
+}

@@ -1,0 +1,2 @@
+[console_scripts]
+llm-serving-lab = llm_serving_lab.cli:main

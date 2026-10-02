@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llm-serving-lab"
+version = "0.1.0"
+description = "A reproducible simulator for heterogeneous LLM serving policies"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+llm-serving-lab = "llm_serving_lab.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

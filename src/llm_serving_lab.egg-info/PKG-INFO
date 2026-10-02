@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: llm-serving-lab
+Version: 0.1.0
+Summary: A reproducible simulator for heterogeneous LLM serving policies
+Requires-Python: >=3.11
