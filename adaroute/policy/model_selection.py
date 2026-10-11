@@ -61,9 +61,9 @@ class StaticRulePolicy(BaseModelPolicy):
     STATIC_MAP = {
         "coding": "gpt-4o-external",
         "reasoning": "gpt-4o-external",
-        "summarization": "qwen-2.5-local",
-        "qa": "qwen-2.5-local",
-        "general": "qwen-2.5-local",
+        "summarization": "qwen2.5:1.5b",
+        "qa": "qwen2.5:1.5b",
+        "general": "qwen2.5:1.5b",
     }
 
     def select_model(self, request: RequestContext) -> tuple[ModelSpec | None, float, str | None]:
@@ -71,7 +71,7 @@ class StaticRulePolicy(BaseModelPolicy):
         if not eligible:
             return None, 0.0, "No eligible models satisfy hard constraints"
 
-        preferred_id = self.STATIC_MAP.get(request.task_type.lower(), "qwen-2.5-local")
+        preferred_id = self.STATIC_MAP.get(request.task_type.lower(), "qwen2.5:1.5b")
         for spec, cost in eligible:
             if spec.model_id == preferred_id:
                 return spec, cost, None

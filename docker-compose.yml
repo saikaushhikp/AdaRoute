@@ -1,0 +1,34 @@
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn adaroute.api:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+      start_period: 2s
+    networks:
+      - adaroute-net
+
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks:
+      - adaroute-net
+
+networks:
+  adaroute-net:
+    driver: bridge

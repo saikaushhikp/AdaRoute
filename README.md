@@ -115,4 +115,34 @@ just lint
 
 # Auto-format codebase
 just format
+
+# Build the UI container
+just ui-build
+
+# Run UI component and client tests
+just ui-test
+
+# Start Gateway and UI together via Docker Compose
+just up
+
+# Tear down Docker Compose services
+just down
 ```
+
+---
+
+## 5. AdaRoute Workbench Chat Interface (`ui/`)
+
+AdaRoute includes a dedicated, containerized end-user chat interface located in `ui/`. It exercises AdaRoute through its public HTTP API without importing any Python backend modules, maintaining a strict HTTP/TCP boundary.
+
+### Architecture & Production Deployment
+- **Frontend Stack**: React 19, TypeScript, Vite, custom high-contrast AI workbench design system.
+- **Server & Reverse Proxy**: Multi-stage Docker build utilizing `node:22-alpine` for asset compilation and `nginx:alpine` to serve static assets while reverse-proxying `/health` and `/v1/` to the `gateway:8000` service over the Docker bridge network.
+- **URL**: [http://localhost:8080](http://localhost:8080)
+
+### Key Capabilities
+1. **Focused Chat Experience**: Clean message hierarchy, multiline composer (`Enter` to send, `Shift+Enter` for newline), auto-scrolling, response copy actions, and failed message retry.
+2. **User-Facing Constraints**: Logical model capabilities (`General`, `Coding`, `Reasoning`), privacy classifications (`Public`, `Internal only`, `Confidential`, `Restricted`), budget limits, quality floors, latency targets, and token limits.
+3. **Advanced Test Controls**: Manual overrides for routing policies (`Adaptive`, `Strongest`, `Cheapest`, `Static`), schedulers (`SLO-aware`, `Least loaded`, `Round robin`), cache bypass (`no_cache`), and multi-tenant isolation IDs.
+4. **Live Routing Diagnostics**: Slide-over diagnostics panel displaying request correlation ID, chosen model, concrete replica, execution provider, latency, token costs, cache status, and SLO attainment without exposing sensitive prompts.
+5. **Gateway Health Monitoring**: Continuous and on-demand `/health` polling indicating cluster connectivity and available serving replicas.

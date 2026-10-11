@@ -8,7 +8,7 @@ from adaroute.schemas import RequestContext
 
 def test_tc_m6_01_multiple_replicas_exist_for_same_model():
     """[TC_M6_01] Milestone M6: At least two replicas exist for the local model to allow within-model scheduling."""
-    replicas = registry.get_replicas_for_model("qwen-2.5-local")
+    replicas = registry.get_replicas_for_model("qwen2.5:1.5b")
     assert len(replicas) >= 2
     replica_ids = [r.replica_id for r in replicas]
     assert "local-r1" in replica_ids
@@ -38,7 +38,7 @@ def test_tc_m6_02_dynamic_workload_weighted_queue_tracking():
 def test_tc_m6_03_least_loaded_and_slo_aware_selection():
     """[TC_M6_03] Milestone M6: Scheduler selects the least-loaded replica when one is busy."""
     scheduler = LeastLoadedScheduler(registry)
-    model_spec = registry.get_model("qwen-2.5-local")
+    model_spec = registry.get_model("qwen2.5:1.5b")
     req = RequestContext(task_type="qa")
 
     r1 = registry.get_replica("local-r1")

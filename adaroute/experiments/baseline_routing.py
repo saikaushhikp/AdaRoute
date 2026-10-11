@@ -25,7 +25,7 @@ class DeterministicRouter:
             "gpt-4o-external": 0.05,
             "llama-3": 0.001,
             "llama-3-8b": 0.001,
-            "qwen-2.5-local": 0.001,
+            "qwen2.5:1.5b": 0.001,
         }
         available = [b for b in available if cost_map.get(b.model, 0.001) <= request.budget]
 

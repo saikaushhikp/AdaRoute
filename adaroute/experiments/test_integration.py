@@ -46,7 +46,7 @@ async def test_tc_1_5_unified_api_routing_privacy_constraint(client):
     assert response.status_code == 200
     data = response.json()
     assert data["provider"] in ("mock-local", "local")
-    assert data["model"] in ("llama-3-8b", "qwen-2.5-local")
+    assert data["model"] in ("llama-3-8b", "qwen2.5:1.5b")
 
 
 @pytest.mark.asyncio

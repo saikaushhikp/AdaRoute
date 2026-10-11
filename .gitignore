@@ -23,4 +23,13 @@ coverage.xml
 
 # OS generated files
 .DS_Store
+
+# Node / Frontend
+node_modules/
+dist/
+.vite/
+
+# personal docs
 Docs/
+PLAN_*
+

@@ -29,7 +29,7 @@ class StrongestModelPolicy(PolicyEngine):
         "gpt-4": 95,
         "llama3": 70,
         "llama-3-8b": 70,
-        "qwen-2.5-local": 75,
+        "qwen2.5:1.5b": 75,
     }
 
     def route(self, request: RequestContext) -> BackendState | None:
@@ -47,7 +47,7 @@ class CheapestModelPolicy(PolicyEngine):
     COST_RANKS = {
         "llama3": 0.001,
         "llama-3-8b": 0.001,
-        "qwen-2.5-local": 0.001,
+        "qwen2.5:1.5b": 0.001,
         "gpt-4": 0.03,
         "gpt-4o": 0.03,
     }
