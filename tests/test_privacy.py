@@ -69,7 +69,7 @@ def test_tc_p2_03_unavailable_local_fails_closed_no_leak():
     backends = [
         BackendState(
             provider="local",
-            model="qwen-2.5-local",
+            model="qwen2.5:1.5b",
             replica_id="local-1",
             availability=False,  # Local is offline!
             queue_depth=0,

@@ -14,6 +14,7 @@ import uuid
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from adaroute.backends.local import LocalBackend
@@ -47,6 +48,14 @@ from adaroute.workloads.estimator import OutputLengthEstimator
 from adaroute.workloads.tokenizer import count_tokens
 
 app = FastAPI(title="AdaRoute Unified AI Gateway", version="2.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Core Engine Components
 registry = default_registry

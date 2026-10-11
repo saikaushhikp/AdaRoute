@@ -50,7 +50,7 @@ async def test_tc_p2_06_negative_budget_validation_error():
 
 def test_tc_p2_07_budget_differentiates_model_tier(eligibility_checker):
     """[TC_P2_07] Intermediate budget permits local cheap model but excludes expensive cloud model."""
-    local_spec = registry.get_model("qwen-2.5-local")
+    local_spec = registry.get_model("qwen2.5:1.5b")
     ext_spec = registry.get_model("gpt-4o-external")
 
     # Moderate budget sufficient for local ($0.001/k) but too low for GPT-4o ($0.015/k)

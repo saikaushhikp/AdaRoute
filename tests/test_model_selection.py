@@ -42,7 +42,7 @@ def test_tc_m3_01_strongest_distinct_from_cheapest(policies):
     # Invariant: Distinct models selected!
     assert strong_spec.model_id != cheap_spec.model_id
     assert strong_spec.model_id == "gpt-4o-external"
-    assert cheap_spec.model_id == "qwen-2.5-local"
+    assert cheap_spec.model_id == "qwen2.5:1.5b"
 
     # Invariant: Quality and cost orderings hold
     assert strong_cost > cheap_cost
@@ -73,7 +73,7 @@ def test_tc_m3_02_static_rule_follows_task_mapping(policies):
     spec_qa, _, _ = policies["static"].select_model(req_qa)
 
     assert spec_code.model_id == "gpt-4o-external"
-    assert spec_qa.model_id == "qwen-2.5-local"
+    assert spec_qa.model_id == "qwen2.5:1.5b"
 
 
 def test_tc_m3_03_adaptive_policy_balances_objectives(policies):
@@ -92,7 +92,7 @@ def test_tc_m3_03_adaptive_policy_balances_objectives(policies):
     # Cost-heavy adaptive policy favors cheap local model
     cost_heavy_adaptive = AdaptiveModelPolicy(registry, weights={"cost": 0.8, "quality": 0.1, "latency": 0.1, "slo": 0.0, "failure": 0.0})
     spec_cost, _, _ = cost_heavy_adaptive.select_model(req)
-    assert spec_cost.model_id == "qwen-2.5-local"
+    assert spec_cost.model_id == "qwen2.5:1.5b"
 
     # Quality-heavy adaptive policy favors strongest model
     quality_heavy_adaptive = AdaptiveModelPolicy(registry, weights={"cost": 0.1, "quality": 0.8, "latency": 0.1, "slo": 0.0, "failure": 0.0})

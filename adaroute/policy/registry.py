@@ -18,7 +18,7 @@ class ModelRegistry:
         # 1. Local Open Model (Llama-3-8B / Qwen2.5:1.5B class)
         # Allows all privacy levels (Internal, Confidential, Restricted, Public)
         local_model = ModelSpec(
-            model_id="qwen-2.5-local",
+            model_id="qwen2.5:1.5b",
             logical_capabilities=["general", "qa", "summarization", "coding", "reasoning"],
             provider="local",
             quality_scores={
@@ -48,7 +48,7 @@ class ModelRegistry:
         self.register_replica(
             ReplicaState(
                 replica_id="local-r1",
-                model_id="qwen-2.5-local",
+                model_id="qwen2.5:1.5b",
                 provider="local",
                 recent_latency_ms=45.0,
             )
@@ -56,7 +56,7 @@ class ModelRegistry:
         self.register_replica(
             ReplicaState(
                 replica_id="local-r2",
-                model_id="qwen-2.5-local",
+                model_id="qwen2.5:1.5b",
                 provider="local",
                 recent_latency_ms=50.0,
             )
