@@ -3,6 +3,7 @@
 Never leaks actual future generation length into the routing decision.
 Maintains running error statistics (MAE, signed error, per-task metrics).
 """
+
 from __future__ import annotations
 
 
@@ -71,9 +72,7 @@ class OutputLengthEstimator:
         mae = sum(self.error_history) / len(self.error_history)
         mean_signed = sum(self.signed_error_history) / len(self.signed_error_history)
 
-        per_task_mae = {
-            f"mae_{t}": sum(errs) / len(errs) for t, errs in self.task_errors.items() if errs
-        }
+        per_task_mae = {f"mae_{t}": sum(errs) / len(errs) for t, errs in self.task_errors.items() if errs}
 
         return {
             "mae": round(mae, 2),

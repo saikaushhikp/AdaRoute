@@ -3,6 +3,7 @@
 Simulates external APIs (e.g., GPT-4o), network latencies, fault injection,
 and records execution counts to prove safety invariants in tests.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -38,13 +39,15 @@ class MockBackend(BaseBackend):
         prompt_text: str,
     ) -> dict[str, Any]:
         self.call_count += 1
-        self.history.append({
-            "request_id": request.request_id,
-            "privacy_level": request.privacy_level.value,
-            "model_id": model_spec.model_id,
-            "replica_id": replica_id,
-            "time": time.time(),
-        })
+        self.history.append(
+            {
+                "request_id": request.request_id,
+                "privacy_level": request.privacy_level.value,
+                "model_id": model_spec.model_id,
+                "replica_id": replica_id,
+                "time": time.time(),
+            }
+        )
 
         if self.inject_timeout:
             raise TimeoutError("Simulated provider upstream timeout")

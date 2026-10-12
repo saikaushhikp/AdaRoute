@@ -3,6 +3,7 @@
 Generates ground-truth demand (prompt length, actual output demand, privacy,
 budget) completely independent of the router's pre-inference estimator.
 """
+
 from __future__ import annotations
 
 import random
@@ -57,7 +58,7 @@ class WorkloadGenerator:
     }
 
     TASK_DISTRIBUTIONS = {
-        "qa": (45, 15),           # (mean, std) for actual output tokens
+        "qa": (45, 15),  # (mean, std) for actual output tokens
         "coding": (310, 60),
         "summarization": (175, 40),
         "reasoning": (230, 50),
@@ -113,7 +114,7 @@ class WorkloadGenerator:
             current_time_ms += inter_arrival
 
             req = SyntheticRequest(
-                request_id=f"req-{i+1:04d}",
+                request_id=f"req-{i + 1:04d}",
                 task_type=task,
                 prompt=full_prompt,
                 prompt_tokens=p_tokens,

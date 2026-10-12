@@ -3,6 +3,7 @@
 Distinguishes token count from raw word count using tiktoken
 with a calibrated approximation fallback.
 """
+
 from __future__ import annotations
 
 _TIKTOKEN_ENCODER = None
@@ -13,6 +14,7 @@ def get_encoder():
     if _TIKTOKEN_ENCODER is None:
         try:
             import tiktoken
+
             _TIKTOKEN_ENCODER = tiktoken.get_encoding("cl100k_base")
         except Exception:
             _TIKTOKEN_ENCODER = False

@@ -46,6 +46,7 @@ def test_tc_m5_02_circuit_breaker_state_transitions():
 
     # After recovery timeout -> Transitions to HALF_OPEN
     import time
+
     time.sleep(0.25)
     assert cb.get_state(resource) == CircuitState.HALF_OPEN
     assert cb.allow_request(resource) is True

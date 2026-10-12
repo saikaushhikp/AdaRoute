@@ -1,13 +1,36 @@
-"""Request and Attempt Correlation Tracer.
+"""Request and Attempt Correlation Tracer (Hardened Week-3 Version).
 
-Provides full observability across routing stages, retry attempts,
-cache decisions, and economic metrics while strictly redacting secrets and raw prompts.
+Provides comprehensive observability across:
+1. Pre-validation and validation rejection traces.
+2. Full multi-attempt cost and token ledger (sum of all billable attempts).
+3. Secret and credential sanitization in error logs.
+4. Aligned cache metrics and SLO attainment calculation.
 """
+
 from __future__ import annotations
 
+import re
 import time
 
 from pydantic import BaseModel, Field
+
+
+def sanitize_message(text: str | None) -> str | None:
+    """Scrub potential API keys, secrets, or bearer tokens from telemetry logs."""
+    if not text:
+        return text
+    # Redact common key prefixes
+    patterns = [
+        r"(Bearer\s+)[A-Za-z0-9_\-\.]+",
+        r"(gsk_[A-Za-z0-9]{20,})",
+        r"(sk-[A-Za-z0-9_\-]{20,})",
+        r"(key=)[A-Za-z0-9_\-\.]+",
+        r"(AQ\.[A-Za-z0-9_\-]{20,})",
+    ]
+    sanitized = text
+    for pat in patterns:
+        sanitized = re.sub(pat, r"[REDACTED_SECRET]", sanitized, flags=re.IGNORECASE)
+    return sanitized
 
 
 class AttemptRecord(BaseModel):
@@ -15,22 +38,25 @@ class AttemptRecord(BaseModel):
     replica_id: str
     model_id: str
     provider: str
-    latency_ms: float
-    status: str  # "success", "failed", "timeout"
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    latency_ms: float = 0.0
+    cost: float = 0.0
+    status: str = "success"  # "success", "failed", "timeout", "rate_limited"
     error: str | None = None
 
 
 class RequestEvent(BaseModel):
     request_id: str
-    tenant_id: str
-    user_id: str
-    logical_model: str
-    task_type: str
-    privacy_level: str
-    budget: float
-    latency_slo: float | None
-    prompt_tokens: int
-    estimated_output_tokens: int
+    tenant_id: str = "default"
+    user_id: str = "anonymous"
+    logical_model: str = "general"
+    task_type: str = "general"
+    privacy_level: str = "public"
+    budget: float = 1.0
+    latency_slo: float | None = 2.0
+    prompt_tokens: int = 0
+    estimated_output_tokens: int = 50
     actual_output_tokens: int = 0
     selected_model: str | None = None
     selected_replica: str | None = None
@@ -40,7 +66,8 @@ class RequestEvent(BaseModel):
     estimated_cost: float = 0.0
     actual_cost: float = 0.0
     slo_attained: bool = True
-    final_status: str = "success"
+    final_status: str = "success"  # "success", "rejected", "failed", "validation_error"
+    error_detail: str | None = None
     timestamp: float = Field(default_factory=time.time)
 
 
@@ -51,15 +78,15 @@ class RequestTracer:
     def start_trace(
         self,
         request_id: str,
-        tenant_id: str,
-        user_id: str,
-        logical_model: str,
-        task_type: str,
-        privacy_level: str,
-        budget: float,
-        latency_slo: float | None,
-        prompt_tokens: int,
-        estimated_output_tokens: int,
+        tenant_id: str = "default",
+        user_id: str = "anonymous",
+        logical_model: str = "general",
+        task_type: str = "general",
+        privacy_level: str = "public",
+        budget: float = 1.0,
+        latency_slo: float | None = 2.0,
+        prompt_tokens: int = 0,
+        estimated_output_tokens: int = 50,
     ) -> RequestEvent:
         event = RequestEvent(
             request_id=request_id,
@@ -76,6 +103,21 @@ class RequestTracer:
         self._traces[request_id] = event
         return event
 
+    def record_validation_error(self, request_id: str, error_detail: str) -> None:
+        """Records validation failure occurring before pre-routing characterization."""
+        event = self._traces.get(request_id)
+        sanitized = sanitize_message(error_detail)
+        if event:
+            event.final_status = "validation_error"
+            event.error_detail = sanitized
+        else:
+            event = RequestEvent(
+                request_id=request_id,
+                final_status="validation_error",
+                error_detail=sanitized,
+            )
+            self._traces[request_id] = event
+
     def record_attempt(
         self,
         request_id: str,
@@ -83,10 +125,13 @@ class RequestTracer:
         replica_id: str,
         model_id: str,
         provider: str,
-        latency_ms: float,
-        status: str,
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+        latency_ms: float = 0.0,
+        cost: float = 0.0,
+        status: str = "success",
         error: str | None = None,
-    ):
+    ) -> None:
         event = self._traces.get(request_id)
         if event:
             event.attempts.append(
@@ -95,9 +140,12 @@ class RequestTracer:
                     replica_id=replica_id,
                     model_id=model_id,
                     provider=provider,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
                     latency_ms=latency_ms,
+                    cost=cost,
                     status=status,
-                    error=error,
+                    error=sanitize_message(error),
                 )
             )
 
@@ -109,9 +157,10 @@ class RequestTracer:
         actual_output_tokens: int,
         total_latency_ms: float,
         estimated_cost: float,
-        actual_cost: float,
+        actual_cost: float | None = None,
         cache_outcome: str = "miss",
         final_status: str = "success",
+        error_detail: str | None = None,
     ) -> RequestEvent | None:
         event = self._traces.get(request_id)
         if event:
@@ -120,9 +169,17 @@ class RequestTracer:
             event.actual_output_tokens = actual_output_tokens
             event.total_latency_ms = total_latency_ms
             event.estimated_cost = estimated_cost
-            event.actual_cost = actual_cost
             event.cache_outcome = cache_outcome
             event.final_status = final_status
+            event.error_detail = sanitize_message(error_detail)
+
+            # Reconcile actual cost: sum of all billable attempts, or explicit cost
+            if actual_cost is not None:
+                event.actual_cost = actual_cost
+            elif event.attempts:
+                event.actual_cost = sum(a.cost for a in event.attempts)
+            else:
+                event.actual_cost = 0.0
 
             if event.latency_slo:
                 event.slo_attained = (total_latency_ms / 1000.0) <= event.latency_slo
@@ -137,7 +194,7 @@ class RequestTracer:
     def get_all_traces(self) -> list[RequestEvent]:
         return list(self._traces.values())
 
-    def clear(self):
+    def clear(self) -> None:
         self._traces.clear()
 
 

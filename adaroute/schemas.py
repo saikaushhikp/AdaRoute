@@ -1,10 +1,22 @@
 from __future__ import annotations
 
+import re
 import time
+import unicodedata
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+
+def normalize_prompt_text(text: str) -> str:
+    """Normalizes prompt text canonically (NFKC, line endings, collapsed spaces)."""
+    if not text:
+        return ""
+    text = unicodedata.normalize("NFKC", text)
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    lines = [re.sub(r"[ \t]+", " ", line).strip() for line in text.split("\n")]
+    return "\n".join(lines).strip()
 
 
 class PrivacyLevel(str, Enum):
@@ -24,10 +36,7 @@ class PrivacyLevel(str, Enum):
             return cls.CONFIDENTIAL
         elif val == "restricted":
             return cls.RESTRICTED
-        raise ValueError(
-            f"Invalid privacy level '{value}'. Valid canonical options are: "
-            f"{[e.value for e in cls]}"
-        )
+        raise ValueError(f"Invalid privacy level '{value}'. Valid canonical options are: {[e.value for e in cls]}")
 
 
 class RequestContext(BaseModel):
@@ -38,11 +47,14 @@ class RequestContext(BaseModel):
     latency_slo: float = 2.0
     privacy_level: PrivacyLevel = PrivacyLevel.PUBLIC
     budget: float = 1.0
-    tenant_id: str = "default"
+    tenant_id: str = "user"
     request_id: str | None = None
-    user_id: str | None = "anonymous"
+    user_id: str | None = "user"
     no_cache: bool = False
     max_tokens: int | None = None
+    temperature: float = 0.7
+    is_authenticated: bool = True
+    user_private: bool = False
 
     @field_validator("privacy_level", mode="before")
     @classmethod
@@ -58,6 +70,13 @@ class RequestContext(BaseModel):
     def validate_budget(cls, v: float) -> float:
         if v < 0:
             raise ValueError("Budget must be non-negative")
+        return v
+
+    @field_validator("latency_slo")
+    @classmethod
+    def validate_slo(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("Latency SLO must be strictly positive")
         return v
 
 
@@ -86,8 +105,12 @@ class ReplicaState(BaseModel):
     availability: bool = True
     is_degraded: bool = False
 
-    def is_alive(self, max_staleness_sec: float = 3600.0) -> bool:
-        return not (not self.availability or self.consecutive_failures >= 3)
+    def is_alive(self, max_staleness_sec: float = 300.0) -> bool:
+        if not self.availability or self.consecutive_failures >= 3:
+            return False
+        if max_staleness_sec > 0 and (time.time() - self.last_heartbeat) > max_staleness_sec:
+            return False
+        return True
 
 
 class ModelSpec(BaseModel):
@@ -101,26 +124,66 @@ class ModelSpec(BaseModel):
     replicas: list[str] = Field(default_factory=list)
     max_context: int = 4096
     version: str = "v1"
+    is_external: bool = False
+
+    @property
+    def is_cloud(self) -> bool:
+        """Indicates whether this model is cloud-hosted (skips replica scheduling)."""
+        return self.is_external or self.provider in ("groq", "cohere", "litellm", "mock-external")
+
+    def calculate_max_cost(self, prompt_tokens: int, max_tokens: int | None = None) -> float:
+        """Calculates hard worst-case cost based on prompt tokens and max_tokens ceiling."""
+        out_tokens = max_tokens if max_tokens is not None and max_tokens > 0 else 256
+        return (prompt_tokens / 1000.0) * self.input_price_per_1k + (out_tokens / 1000.0) * self.output_price_per_1k
 
 
 class ChatMessage(BaseModel):
     role: str
     content: str
 
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, v: str) -> str:
+        role = v.strip().lower()
+        if role not in ("system", "user", "assistant", "function", "tool"):
+            raise ValueError(f"Invalid role: '{v}'")
+        return role
+
+    @field_validator("content")
+    @classmethod
+    def validate_content(cls, v: str) -> str:
+        if v is None:
+            raise ValueError("Message content cannot be None")
+        return v
+
 
 class ChatCompletionRequest(BaseModel):
-    model: str = "general"  # Logical capability alias (e.g., 'general', 'coding', 'reasoning')
+    model_config = ConfigDict(extra="forbid")  # Forbid unvalidated unknown fields
+
+    model: str = "general"
+    task_type: str | None = None
     messages: list[ChatMessage] = Field(default_factory=list)
     prompt: str | None = None
-    max_tokens: int | None = None
-    temperature: float = 0.7
-    budget: float | None = 1.0
+    max_tokens: int | None = Field(default=256, gt=0)
+    temperature: float | None = Field(default=0.7, ge=0.0, le=2.0)
+    stream: bool = False
+    budget: float = Field(default=1.0, ge=0.0)
     privacy_level: PrivacyLevel = PrivacyLevel.PUBLIC
     quality_requirement: str = "medium"
-    latency_slo: float | None = 2.0
-    tenant_id: str = "default"
-    user_id: str | None = "anonymous"
+    latency_slo: float = Field(default=2.0, gt=0.0)
+    tenant_id: str | None = "user"
+    user_id: str | None = "user"
     no_cache: bool = False
+    policy: str = "adaptive"
+    scheduler: str = "slo_aware"
+    user_private: bool = False
+
+    @field_validator("stream")
+    @classmethod
+    def validate_stream(cls, v: bool) -> bool:
+        if v:
+            raise ValueError("Streaming is not supported in current AdaRoute release.")
+        return v
 
     @field_validator("privacy_level", mode="before")
     @classmethod
@@ -131,10 +194,60 @@ class ChatCompletionRequest(BaseModel):
             return PrivacyLevel.from_str(v)
         raise ValueError(f"Invalid privacy level: {v}")
 
+    @field_validator("quality_requirement")
+    @classmethod
+    def validate_quality(cls, v: str) -> str:
+        val = v.strip().lower()
+        if val not in ("low", "medium", "high"):
+            raise ValueError(f"Invalid quality requirement: '{v}'. Must be low, medium, or high.")
+        return val
+
+    @field_validator("policy")
+    @classmethod
+    def validate_policy(cls, v: str) -> str:
+        val = v.strip().lower()
+        if val not in ("adaptive", "strongest", "cheapest", "static"):
+            raise ValueError(f"Invalid routing policy: '{v}'.")
+        return val
+
+    @field_validator("scheduler")
+    @classmethod
+    def validate_scheduler(cls, v: str) -> str:
+        val = v.strip().lower()
+        if val not in ("slo_aware", "least_loaded", "round_robin"):
+            raise ValueError(f"Invalid replica scheduler: '{v}'.")
+        return val
+
+    @model_validator(mode="after")
+    def validate_prompt_or_messages(self) -> ChatCompletionRequest:
+        if not self.messages and (not self.prompt or not self.prompt.strip()):
+            raise ValueError("Request must contain non-empty prompt or at least one message.")
+        return self
+
     def get_full_prompt(self) -> str:
-        if self.prompt:
-            return self.prompt
-        return "\n".join(f"{m.role}: {m.content}" for m in self.messages)
+        """Returns canonical normalized representation of prompt or messages."""
+        if self.prompt and self.prompt.strip():
+            return normalize_prompt_text(self.prompt)
+
+        valid_msgs = [m for m in self.messages if m.content and m.content.strip()]
+        if not valid_msgs:
+            return ""
+
+        # Single user message: treat identically to standalone prompt text
+        if len(valid_msgs) == 1 and valid_msgs[0].role.strip().lower() == "user":
+            return normalize_prompt_text(valid_msgs[0].content)
+
+        # Multi-turn messages: canonical normalized format
+        return "\n".join(f"{m.role.strip().lower()}: {normalize_prompt_text(m.content)}" for m in valid_msgs)
+
+    def get_latest_user_query(self) -> str:
+        """Extracts and normalizes the latest user query turn."""
+        if self.prompt and self.prompt.strip():
+            return normalize_prompt_text(self.prompt)
+        for m in reversed(self.messages):
+            if m.role.strip().lower() == "user" and m.content and m.content.strip():
+                return normalize_prompt_text(m.content)
+        return self.get_full_prompt()
 
 
 class ChatCompletionChoice(BaseModel):
@@ -147,6 +260,19 @@ class UsageInfo(BaseModel):
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
+
+
+class AttemptRecord(BaseModel):
+    attempt_number: int
+    replica_id: str
+    model_id: str
+    provider: str
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    latency_ms: float = 0.0
+    cost: float = 0.0
+    status: str = "success"  # "success" | "failed"
+    error_message: str | None = None
 
 
 class RoutingMetadata(BaseModel):
@@ -162,6 +288,8 @@ class RoutingMetadata(BaseModel):
     actual_cost: float = 0.0
     slo_attained: bool = True
     policy_name: str = "adaptive"
+    scheduler_name: str = "slo_aware"
+    attempt_history: list[AttemptRecord] = Field(default_factory=list)
 
 
 class ChatCompletionResponse(BaseModel):

@@ -1,0 +1,134 @@
+# AdaRoute Model Registry & Gateway Configuration
+# Defines local and external model metadata, pricing, quality, SLA, and replica endpoints.
+# Sourced from official provider documentation (Google AI Studio, Groq, Cohere, Ollama) and LMSYS Arena.
+
+gateway:
+  host: "0.0.0.0"
+  port: 8000
+  title: "AdaRoute Unified AI Gateway"
+  version: "3.0.0"
+  default_policy: "adaptive"
+  default_scheduler: "slo_aware"
+  execution_mode: "hybrid"  # "real" (strict fail-closed if unreachable) | "simulation" | "hybrid"
+  auth_required: false       # When true, strictly requires Bearer API key in Authorization header
+
+models:
+  # -------------------------------------------------------------
+  # Local Ollama Models (Self-Hosted, Internal/Confidential Safe)
+  # Sourced from local Ollama CPU runtime (context length verified via ollama show)
+  # -------------------------------------------------------------
+  - model_id: "qwen2.5:1.5b"
+    logical_aliases: ["general", "coding", "qa", "summarization", "fast"]
+    provider: "local"
+    execution_type: "local"
+    litellm_model: "ollama/qwen2.5:1.5b"
+    base_url: "http://localhost:11434"
+    privacy_levels: ["public", "internal_only", "confidential", "restricted"]
+    cost_per_1k_input: 0.000010   # Local CPU compute amortization
+    cost_per_1k_output: 0.000020
+    quality: 0.73                 # Open LLM Leaderboard / MMLU ~61%
+    max_context: 32768            # Ollama verified native context length
+    replicas:
+      - replica_id: "local-r1"
+        endpoint: "http://localhost:11434"
+        availability: true
+        weight: 1.0
+      - replica_id: "local-r2"
+        endpoint: "http://localhost:11434"
+        availability: true
+        weight: 1.0
+
+  - model_id: "deepseek-r1:1.5b"
+    logical_aliases: ["reasoning", "complex"]
+    provider: "local"
+    execution_type: "local"
+    litellm_model: "ollama/deepseek-r1:1.5b"
+    base_url: "http://localhost:11434"
+    privacy_levels: ["public", "internal_only", "confidential", "restricted"]
+    cost_per_1k_input: 0.000030   # Local CPU compute amortization
+    cost_per_1k_output: 0.000080
+    quality: 0.85                 # Distill Qwen 1.5B, MATH-500: 83.9%
+    max_context: 131072           # Ollama verified native context length
+    replicas:
+      - replica_id: "local-deepseek-r1"
+        endpoint: "http://localhost:11434"
+        availability: true
+        weight: 1.0
+
+  # -------------------------------------------------------------
+  # External Cloud Providers (via LiteLLM, Public Only)
+  # Pricing and context windows sourced from official provider pricing pages
+  # -------------------------------------------------------------
+  - model_id: "gemini/gemini-flash-latest"
+    logical_aliases: ["general", "fast", "qa", "summarization", "coding"]
+    provider: "gemini"
+    execution_type: "external"
+    litellm_model: "gemini/gemini-flash-latest"
+    api_key_env: "GOOGLE_API_KEY"
+    privacy_levels: ["public"]
+    cost_per_1k_input: 0.000075   # Official Google AI Studio: $0.075 / 1M tokens
+    cost_per_1k_output: 0.000300  # Official Google AI Studio: $0.30 / 1M tokens
+    quality: 0.89                 # LMSYS Chatbot Arena ELO ~1268, MMLU ~80.1%
+    max_context: 1048576          # 1,048,576 tokens (1M context window)
+    replicas: []
+
+  - model_id: "groq/qwen/qwen3.8-27b"
+    logical_aliases: ["general", "fast", "coding"]
+    provider: "groq"
+    execution_type: "external"
+    litellm_model: "groq/qwen/qwen3.8-27b"
+    api_key_env: "GROQ_API_KEY"
+    privacy_levels: ["public"]
+    cost_per_1k_input: 0.00080    # Official Groq pricing: $0.80 / 1M tokens
+    cost_per_1k_output: 0.00400   # Official Groq pricing: $4.00 / 1M tokens
+    quality: 0.87                 # Qwen3 27B class, LMSYS Arena ELO ~1250
+    max_context: 131072           # Groq API verified context length
+    replicas: []
+
+  - model_id: "cohere/command-r-08-2024"
+    logical_aliases: ["general", "reasoning"]
+    provider: "cohere"
+    execution_type: "external"
+    litellm_model: "cohere/command-r-08-2024"
+    api_key_env: "COHERE_CHAT_API_KEY"
+    privacy_levels: ["public"]
+    cost_per_1k_input: 0.00015    # Official Cohere pricing: $0.15 / 1M tokens
+    cost_per_1k_output: 0.00060   # Official Cohere pricing: $0.60 / 1M tokens
+    quality: 0.83                 # LMSYS Arena ELO ~1200
+    max_context: 128000           # Official Cohere Command R context length
+    replicas: []
+
+  # -------------------------------------------------------------
+  # Mock Backends (Deterministic Regression & Testing)
+  # -------------------------------------------------------------
+  - model_id: "gpt-4o-external"
+    logical_aliases: ["general", "coding", "reasoning", "flagship"]
+    provider: "mock-external"
+    execution_type: "mock"
+    litellm_model: "mock/gpt-4o"
+    privacy_levels: ["public"]
+    cost_per_1k_input: 0.005
+    cost_per_1k_output: 0.015
+    quality: 0.98
+    max_context: 128000
+    replicas:
+      - replica_id: "replica-gpt-4o-1"
+        endpoint: "mock://external-1"
+        availability: true
+        weight: 1.0
+
+  - model_id: "llama-3-8b"
+    logical_aliases: ["general", "qa"]
+    provider: "mock-local"
+    execution_type: "mock"
+    litellm_model: "mock/llama-3-8b"
+    privacy_levels: ["public", "internal_only", "confidential", "restricted"]
+    cost_per_1k_input: 0.0005
+    cost_per_1k_output: 0.0015
+    quality: 0.79
+    max_context: 8192
+    replicas:
+      - replica_id: "replica-llama-1"
+        endpoint: "mock://local-llama"
+        availability: true
+        weight: 1.0

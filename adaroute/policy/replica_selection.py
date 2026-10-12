@@ -3,6 +3,7 @@
 Evaluates within-model replicas based on active connections, dynamic workload W_q,
 memory pressure, and recent latency to prevent queue buildup and SLO violations.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -25,7 +26,7 @@ class BaseReplicaScheduler(ABC):
         replica = self.registry.get_replica(replica_id)
         if replica:
             replica.active_requests += 1
-            replica.workload_tokens += (prompt_tokens + estimated_output_tokens)
+            replica.workload_tokens += prompt_tokens + estimated_output_tokens
 
     def complete(
         self,

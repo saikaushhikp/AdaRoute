@@ -105,10 +105,9 @@ class BenchmarkRunner:
             latencies_ms.append(exec_lat)
 
             # Realized cost
-            actual_cost = (
-                (req.prompt_tokens / 1000.0) * model_spec.input_price_per_1k
-                + (req.actual_output_tokens / 1000.0) * model_spec.output_price_per_1k
-            )
+            actual_cost = (req.prompt_tokens / 1000.0) * model_spec.input_price_per_1k + (
+                req.actual_output_tokens / 1000.0
+            ) * model_spec.output_price_per_1k
             costs.append(actual_cost)
 
             # Quality attained
@@ -119,7 +118,7 @@ class BenchmarkRunner:
             if (exec_lat / 1000.0) <= req.latency_slo:
                 slo_attained_count += 1
 
-            total_tokens += (req.prompt_tokens + req.actual_output_tokens)
+            total_tokens += req.prompt_tokens + req.actual_output_tokens
 
             # Estimator error tracking
             estimator.record_observation(req.task_type, est_out, req.actual_output_tokens)
@@ -188,4 +187,6 @@ if __name__ == "__main__":
     print("Running AdaRoute benchmark matrix...")
     out = runner.run_all(num_requests=60)
     for r in out:
-        print(f"[{r['model_policy']} + {r['replica_scheduler']}]: Cost=${r['total_cost_usd']} | Quality={r['avg_quality_score']} | SLO={r['slo_attainment_pct']}% | Latency(p95)={r['p95_latency_ms']}ms")
+        print(
+            f"[{r['model_policy']} + {r['replica_scheduler']}]: Cost=${r['total_cost_usd']} | Quality={r['avg_quality_score']} | SLO={r['slo_attainment_pct']}% | Latency(p95)={r['p95_latency_ms']}ms"
+        )
