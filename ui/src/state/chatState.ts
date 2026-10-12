@@ -19,10 +19,11 @@ export const DEFAULT_SETTINGS: RequestSettings = {
   maxTokens: 256,
   policy: 'adaptive',
   scheduler: 'slo_aware',
-  tenantId: 'default',
-  userId: 'anonymous',
+  tenantId: 'user',
+  userId: 'user',
   noCache: false,
   gatewayUrl: '',
+  userPrivate: false,
 };
 
 export function useChatState(clientInstance?: GatewayClient) {

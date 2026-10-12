@@ -110,6 +110,29 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </div>
         </div>
 
+        {/* User Private Toggle */}
+        <div className="control-group">
+          <label
+            className="control-label"
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+            htmlFor="setting-user-private"
+          >
+            <span>User Private</span>
+            <input
+              type="checkbox"
+              id="setting-user-private"
+              checked={settings.userPrivate || false}
+              onChange={(e) => update('userPrivate', e.target.checked)}
+              style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+            />
+          </label>
+          <div style={{ fontSize: '0.7rem', color: settings.userPrivate ? '#eab308' : 'var(--text-dim)', marginTop: '0.15rem' }}>
+            {settings.userPrivate
+              ? '🛡️ Local-only mode active: External cloud models strictly excluded.'
+              : '☁️ Cloud models eligible for model selection.'}
+          </div>
+        </div>
+
         {/* Budget */}
         <div className="control-group">
           <label className="control-label" htmlFor="setting-budget">
