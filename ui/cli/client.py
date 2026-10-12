@@ -3,6 +3,7 @@ Communicates strictly over HTTP with AdaRoute Gateway.
 """
 
 from typing import Any
+
 import httpx
 
 
@@ -38,9 +39,10 @@ class GatewayCLIClient:
         max_tokens: int = 256,
         policy: str = "adaptive",
         scheduler: str = "slo_aware",
-        tenant_id: str = "default",
-        user_id: str = "anonymous",
+        tenant_id: str = "user",
+        user_id: str = "user",
         no_cache: bool = False,
+        user_private: bool = False,
     ) -> dict[str, Any]:
         """Dispatches chat completion request to POST /v1/chat/completions."""
         payload = {
@@ -56,6 +58,7 @@ class GatewayCLIClient:
             "tenant_id": tenant_id,
             "user_id": user_id,
             "no_cache": no_cache,
+            "user_private": user_private,
         }
 
         try:

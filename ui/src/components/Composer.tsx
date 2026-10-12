@@ -8,6 +8,8 @@ interface ComposerProps {
   onCancel?: () => void;
   isLoading: boolean;
   disabled?: boolean;
+  userPrivate?: boolean;
+  onToggleUserPrivate?: () => void;
 }
 
 export const Composer: React.FC<ComposerProps> = ({
@@ -17,6 +19,8 @@ export const Composer: React.FC<ComposerProps> = ({
   onCancel,
   isLoading,
   disabled = false,
+  userPrivate = false,
+  onToggleUserPrivate,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -55,8 +59,30 @@ export const Composer: React.FC<ComposerProps> = ({
           rows={1}
         />
         <div className="composer-footer">
-          <div className="composer-hints">
-            Press <kbd style={{ background: 'var(--border-strong)', padding: '0.1rem 0.3rem', borderRadius: 3 }}>Enter</kbd> to send, <kbd style={{ background: 'var(--border-strong)', padding: '0.1rem 0.3rem', borderRadius: 3 }}>Shift + Enter</kbd> for newline
+          <div className="composer-hints" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <span>Press <kbd style={{ background: 'var(--border-strong)', padding: '0.1rem 0.3rem', borderRadius: 3 }}>Enter</kbd> to send</span>
+            {onToggleUserPrivate && (
+              <button
+                type="button"
+                onClick={onToggleUserPrivate}
+                title="When ON, strictly routes to local self-hosted models, excluding cloud models"
+                style={{
+                  background: userPrivate ? 'rgba(234, 179, 8, 0.2)' : 'transparent',
+                  border: `1px solid ${userPrivate ? '#eab308' : 'var(--border-strong, #444)'}`,
+                  color: userPrivate ? '#eab308' : 'var(--text-dim, #888)',
+                  borderRadius: 4,
+                  padding: '2px 8px',
+                  cursor: 'pointer',
+                  fontSize: '0.75rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontWeight: userPrivate ? 600 : 400,
+                }}
+              >
+                {userPrivate ? '🛡️ User Private: ON (Local)' : '☁️ User Private: OFF'}
+              </button>
+            )}
           </div>
           <div>
             {isLoading && onCancel ? (

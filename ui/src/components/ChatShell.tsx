@@ -123,6 +123,8 @@ export const ChatShell: React.FC = () => {
           onSend={() => sendMessage()}
           onCancel={cancelRequest}
           isLoading={isLoading}
+          userPrivate={settings.userPrivate}
+          onToggleUserPrivate={() => updateSettings({ ...settings, userPrivate: !settings.userPrivate })}
         />
       </main>
 

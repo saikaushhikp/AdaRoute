@@ -26,6 +26,7 @@ export interface RequestSettings {
   qualityRequirement: QualityRequirement;
   latencySlo: number;
   maxTokens: number;
+  userPrivate: boolean;
 
   // Advanced / manual testing overrides
   policy: RoutingPolicy;

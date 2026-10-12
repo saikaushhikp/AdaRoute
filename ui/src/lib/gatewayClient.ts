@@ -91,11 +91,12 @@ export class GatewayClient {
       quality_requirement: settings.qualityRequirement,
       latency_slo: settings.latencySlo,
       max_tokens: settings.maxTokens,
-      tenant_id: settings.tenantId || 'default',
-      user_id: settings.userId || 'anonymous',
+      tenant_id: settings.tenantId || 'user',
+      user_id: settings.userId || 'user',
       policy: settings.policy,
       scheduler: settings.scheduler,
       no_cache: settings.noCache,
+      user_private: settings.userPrivate || false,
     };
 
     let response: Response;
