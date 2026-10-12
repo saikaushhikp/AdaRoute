@@ -1,22 +1,23 @@
 import pytest
 
-from adaroute.api import registry
 from adaroute.policy.model_selection import (
     AdaptiveModelPolicy,
     CheapestModelPolicy,
     StaticRulePolicy,
     StrongestModelPolicy,
 )
+from adaroute.policy.registry import ModelRegistry
 from adaroute.schemas import PrivacyLevel, RequestContext
 
 
 @pytest.fixture
 def policies():
+    test_reg = ModelRegistry(config_path="config.yaml")
     return {
-        "strongest": StrongestModelPolicy(registry),
-        "cheapest": CheapestModelPolicy(registry),
-        "static": StaticRulePolicy(registry),
-        "adaptive": AdaptiveModelPolicy(registry),
+        "strongest": StrongestModelPolicy(test_reg),
+        "cheapest": CheapestModelPolicy(test_reg),
+        "static": StaticRulePolicy(test_reg),
+        "adaptive": AdaptiveModelPolicy(test_reg),
     }
 
 
@@ -46,10 +47,7 @@ def test_tc_m3_01_strongest_distinct_from_cheapest(policies):
 
     # Invariant: Quality and cost orderings hold
     assert strong_cost > cheap_cost
-    assert (
-        strong_spec.quality_scores["coding"]
-        > cheap_spec.quality_scores["coding"]
-    )
+    assert strong_spec.quality_scores["coding"] > cheap_spec.quality_scores["coding"]
 
 
 def test_tc_m3_02_static_rule_follows_task_mapping(policies):
@@ -90,11 +88,16 @@ def test_tc_m3_03_adaptive_policy_balances_objectives(policies):
     )
 
     # Cost-heavy adaptive policy favors cheap local model
-    cost_heavy_adaptive = AdaptiveModelPolicy(registry, weights={"cost": 0.8, "quality": 0.1, "latency": 0.1, "slo": 0.0, "failure": 0.0})
+    cost_heavy_adaptive = AdaptiveModelPolicy(
+        policies["adaptive"].registry, weights={"cost": 0.8, "quality": 0.1, "latency": 0.1, "slo": 0.0, "failure": 0.0}
+    )
     spec_cost, _, _ = cost_heavy_adaptive.select_model(req)
     assert spec_cost.model_id == "qwen2.5:1.5b"
 
     # Quality-heavy adaptive policy favors strongest model
-    quality_heavy_adaptive = AdaptiveModelPolicy(registry, weights={"cost": 0.1, "quality": 0.8, "latency": 0.1, "slo": 0.0, "failure": 0.0})
+    quality_heavy_adaptive = AdaptiveModelPolicy(
+        policies["adaptive"].registry, weights={"cost": 0.1, "quality": 0.8, "latency": 0.1, "slo": 0.0, "failure": 0.0}
+    )
     spec_qual, _, _ = quality_heavy_adaptive.select_model(req)
-    assert spec_qual.model_id == "gpt-4o-external"
+    assert spec_qual.model_id in ("gpt-4o-external", "gemini/gemini-flash-latest")
+    assert spec_qual.quality_scores["general"] > spec_cost.quality_scores["general"]

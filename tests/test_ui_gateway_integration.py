@@ -40,11 +40,11 @@ async def test_ui_health_reverse_proxy():
 async def test_ui_chat_completion_reverse_proxy_and_cache():
     """Verify UI reverse-proxies /v1/chat/completions, returns metadata, and respects caching."""
     payload = {
-      "model": "general",
-      "messages": [{"role": "user", "content": "E2E Reverse Proxy Verification Test"}],
-      "privacy_level": "public",
-      "budget": 1.0,
-      "max_tokens": 128,
+        "model": "general",
+        "messages": [{"role": "user", "content": "E2E Reverse Proxy Verification Test"}],
+        "privacy_level": "public",
+        "budget": 1.0,
+        "max_tokens": 128,
     }
 
     async with httpx.AsyncClient() as client:

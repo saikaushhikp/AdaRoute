@@ -1,22 +1,28 @@
-"""Unified AI Gateway API Contract (M1 / M2 / M3 / M4 / M5 / M6 / M7).
+"""Unified AI Gateway API Contract (Hardened Week-3 Version).
 
-Exposes standardized /v1/chat/completions endpoint that coordinates:
+Coordinates:
+- Server-side Zero-Trust Authentication and Anti-Spoofing
+- Strict Pydantic ChatCompletionRequest validation
 - Pre-routing characterization (tokenization & estimation)
-- Safe Exact Caching with tenant isolation
+- Safe Exact Caching with strict provenance & privacy eligibility
 - Stage 1: Model selection (Strongest / Cheapest / Static / Adaptive)
 - Stage 2: Replica scheduling (Workload-weighted queue W_q & SLO awareness)
-- Bounded retries and privacy-preserving fallback
-- Full request/attempt correlation tracing
+- Multi-provider execution: Real Ollama Local + LiteLLM External + Mock Simulation
+- Bounded retries, circuit breaker check for all alternates, and exponential backoff
+- Full multi-attempt ledger accounting and sanitized telemetry
 """
+
+from __future__ import annotations
 
 import time
 import uuid
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from adaroute.backends.litellm_backend import LiteLLMBackend
 from adaroute.backends.local import LocalBackend
 from adaroute.backends.mock import MockBackend
 from adaroute.cache.exact import ExactCache
@@ -35,10 +41,11 @@ from adaroute.policy.replica_selection import (
 from adaroute.resilience.circuit import CircuitBreaker
 from adaroute.resilience.retry import RetryPolicy
 from adaroute.schemas import (
+    AttemptRecord,
     ChatCompletionChoice,
+    ChatCompletionRequest,
     ChatCompletionResponse,
     ChatMessage,
-    PrivacyLevel,
     RequestContext,
     RoutingMetadata,
     UsageInfo,
@@ -47,7 +54,7 @@ from adaroute.telemetry.tracer import default_tracer
 from adaroute.workloads.estimator import OutputLengthEstimator
 from adaroute.workloads.tokenizer import count_tokens
 
-app = FastAPI(title="AdaRoute Unified AI Gateway", version="2.0.0")
+app = FastAPI(title="AdaRoute Unified AI Gateway", version="3.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -83,6 +90,12 @@ replica_schedulers = {
 # Backend Runners
 backend_runners = {
     "local": LocalBackend(),
+    "local_ollama": LocalBackend(),
+    "groq": LiteLLMBackend(),
+    "cohere": LiteLLMBackend(),
+    "gemini": LiteLLMBackend(),
+    "google": LiteLLMBackend(),
+    "litellm": LiteLLMBackend(),
     "mock-local": LocalBackend(),
     "mock-external": MockBackend(provider_name="mock-external", base_latency_ms=30.0),
 }
@@ -103,45 +116,41 @@ async def health():
 
 
 @app.post("/v1/chat/completions", response_model=ChatCompletionResponse)
-async def chat_completions(raw_req: dict[str, Any]):
+async def chat_completions(
+    raw_req: dict[str, Any],
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_api_key: str | None = Header(default=None),
+):
     start_total_time = time.perf_counter()
     req_id = str(uuid.uuid4())
 
-    # 1. Parse & Validate Request (Handles standard & simplified inputs)
+    # 2. Strict Request Validation via Pydantic Schema
     try:
-        # Extract prompt text
-        prompt_text = raw_req.get("prompt")
-        messages = raw_req.get("messages", [])
-        if not prompt_text and messages:
-            prompt_text = "\n".join(f"{m.get('role', '')}: {m.get('content', '')}" for m in messages)
-        elif not prompt_text:
-            prompt_text = "Hello"
-
-        # Canonicalize privacy level (Fail closed!)
-        raw_privacy = raw_req.get("privacy_level", "public")
-        privacy = PrivacyLevel.from_str(str(raw_privacy))
-
-        budget = float(raw_req.get("budget", 1.0))
-        if budget < 0:
-            raise ValueError("Budget must be non-negative")
-
-        logical_model = raw_req.get("model", "general")
-        task_type = raw_req.get("task_type", logical_model)
-        quality_req = raw_req.get("quality_requirement", "medium")
-        latency_slo = float(raw_req["latency_slo"]) if "latency_slo" in raw_req and raw_req["latency_slo"] is not None else 2.0
-        tenant_id = str(raw_req.get("tenant_id", "default"))
-        user_id = str(raw_req.get("user_id", "anonymous"))
-        no_cache = bool(raw_req.get("no_cache", False))
-        max_tokens = int(raw_req["max_tokens"]) if "max_tokens" in raw_req and raw_req["max_tokens"] is not None else None
-
-        policy_name = raw_req.get("policy", "adaptive")
-        scheduler_name = raw_req.get("scheduler", "slo_aware")
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        validated_req = ChatCompletionRequest.model_validate(raw_req)
     except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Invalid request format: {e!s}")
+        tracer.record_validation_error(req_id, f"Validation failure: {e!s}")
+        raise HTTPException(status_code=400, detail=f"Invalid request parameters: {e!s}")
 
-    # 2. Pre-Routing Request Characterization
+    # Single User Context: defaults to 'user', preserving custom partition if provided
+    tenant_id = validated_req.tenant_id or "user"
+    user_id = validated_req.user_id or "user"
+
+    prompt_text = validated_req.get_full_prompt()
+    latest_query = validated_req.get_latest_user_query()
+    privacy = validated_req.privacy_level
+    budget = validated_req.budget
+    logical_model = validated_req.model
+    task_type = logical_model
+    quality_req = validated_req.quality_requirement
+    latency_slo = validated_req.latency_slo
+    no_cache = validated_req.no_cache
+    max_tokens = validated_req.max_tokens
+    policy_name = validated_req.policy
+    scheduler_name = validated_req.scheduler
+    user_private = validated_req.user_private
+
+    # 3. Pre-Routing Request Characterization
     p_tokens = count_tokens(prompt_text)
     est_out_tokens = estimator.estimate(
         task_type=task_type,
@@ -162,9 +171,12 @@ async def chat_completions(raw_req: dict[str, Any]):
         request_id=req_id,
         no_cache=no_cache,
         max_tokens=max_tokens,
+        temperature=validated_req.temperature if validated_req.temperature is not None else 0.7,
+        is_authenticated=True,
+        user_private=user_private,
     )
 
-    # 3. Observability Start Trace
+    # 4. Start Correlation Trace
     tracer.start_trace(
         request_id=req_id,
         tenant_id=tenant_id,
@@ -178,12 +190,13 @@ async def chat_completions(raw_req: dict[str, Any]):
         estimated_output_tokens=est_out_tokens,
     )
 
-    # 4. Safe Exact Caching Check (Authorization & Privacy evaluated first)
+    # 5. Safe Exact Caching Check (Provenance & Privacy verified first)
     cached_res = cache.get(
         request=ctx,
         logical_model=logical_model,
         model_version="1.0.0",
         prompt=prompt_text,
+        query=latest_query,
     )
     if cached_res:
         total_lat = (time.perf_counter() - start_total_time) * 1000.0
@@ -202,11 +215,7 @@ async def chat_completions(raw_req: dict[str, Any]):
             id=req_id,
             model=cached_res["model"],
             logical_model=logical_model,
-            choices=[
-                ChatCompletionChoice(
-                    message=ChatMessage(role="assistant", content=cached_res["content"])
-                )
-            ],
+            choices=[ChatCompletionChoice(message=ChatMessage(role="assistant", content=cached_res["content"]))],
             usage=UsageInfo(
                 prompt_tokens=p_tokens,
                 completion_tokens=cached_res["output_tokens"],
@@ -219,23 +228,26 @@ async def chat_completions(raw_req: dict[str, Any]):
                 selected_replica=cached_res["replica_id"],
                 provider=cached_res.get("provider", "cache"),
                 latency_ms=round(total_lat, 2),
-                attempts=1,
+                attempts=0,
                 cache_hit=True,
                 estimated_cost=0.0,
                 actual_cost=0.0,
                 slo_attained=True,
                 policy_name=policy_name,
+                scheduler_name=scheduler_name,
+                attempt_history=[],
             ),
             content=cached_res["content"],
             replica_id=cached_res["replica_id"],
             provider=cached_res.get("provider", "cache"),
         )
 
-    # 5. Stage 1: Model Selection
+    # 6. Stage 1: Candidate Ranking
     model_policy = model_policies.get(policy_name, model_policies["adaptive"])
-    selected_spec, est_cost, err_msg = model_policy.select_model(ctx)
+    ranked_candidates = model_policy.rank_models(ctx)
 
-    if not selected_spec:
+    if not ranked_candidates:
+        err_msg = "No eligible models satisfy hard constraints (privacy/budget/availability)"
         tracer.finish_trace(
             request_id=req_id,
             selected_model="none",
@@ -246,45 +258,72 @@ async def chat_completions(raw_req: dict[str, Any]):
             actual_cost=0.0,
             cache_outcome="miss",
             final_status="rejected",
+            error_detail=err_msg,
         )
         raise HTTPException(status_code=503, detail=f"Routing rejected: {err_msg}")
 
-    # 6. Stage 2: Replica Selection
-    scheduler = replica_schedulers.get(scheduler_name, replica_schedulers["slo_aware"])
-    selected_replica = scheduler.select_replica(selected_spec, ctx)
-
-    if not selected_replica:
-        raise HTTPException(status_code=503, detail="No healthy replicas available for selected model")
-
-    # 7. Execution with Dynamic Queue Tracking & Bounded Retry
+    # 7. Execution with Dynamic Workload Queue Tracking & Bounded Failover Retry
     attempt = 0
-    max_attempts = retry_policy.max_attempts
+    max_attempts = max(retry_policy.max_attempts, 2)
     last_error = None
     execution_result = None
+    attempt_history: list[AttemptRecord] = []
+    candidate_idx = 0
 
-    while attempt < max_attempts:
-        attempt += 1
-        rep_id = selected_replica.replica_id
+    selected_spec = ranked_candidates[0][0]
+    est_cost = ranked_candidates[0][1]
+    effective_replica_id = "none"
 
-        # Check circuit breaker
+    while attempt < max_attempts and candidate_idx < len(ranked_candidates):
+        selected_spec, est_cost = ranked_candidates[candidate_idx]
+
+        # Stage 2: Replica Selection (Local models only; skipped for external cloud models)
+        if selected_spec.is_cloud:
+            selected_replica = None
+            rep_id = f"cloud-{selected_spec.provider}"
+            effective_replica_id = "cloud-direct"
+            effective_scheduler_name = "skipped"
+            scheduler = None
+        else:
+            scheduler = replica_schedulers.get(scheduler_name, replica_schedulers["slo_aware"])
+            selected_replica = scheduler.select_replica(selected_spec, ctx)
+            if not selected_replica:
+                # No healthy replicas for this model; try next candidate
+                candidate_idx += 1
+                continue
+            rep_id = selected_replica.replica_id
+            effective_replica_id = rep_id
+            effective_scheduler_name = scheduler_name
+
+        # Check circuit breaker before invoking candidate
         if not circuit_breaker.allow_request(rep_id):
-            # Try alternate replica if available
-            alt_replicas = [
-                r for r in registry.get_replicas_for_model(selected_spec.model_id)
-                if r.replica_id != rep_id and r.is_alive()
-            ]
-            if alt_replicas:
-                selected_replica = alt_replicas[0]
-                rep_id = selected_replica.replica_id
+            if not selected_spec.is_cloud:
+                all_reps = registry.get_replicas_for_model(selected_spec.model_id)
+                alt_candidates = [
+                    r
+                    for r in all_reps
+                    if r.replica_id != rep_id and r.is_alive() and circuit_breaker.allow_request(r.replica_id)
+                ]
+                if alt_candidates:
+                    selected_replica = alt_candidates[0]
+                    rep_id = selected_replica.replica_id
+                    effective_replica_id = rep_id
+                else:
+                    candidate_idx += 1
+                    continue
             else:
-                break
+                candidate_idx += 1
+                continue
 
-        # Dynamic state update: W_q increases
-        scheduler.dispatch(rep_id, p_tokens, est_out_tokens)
+        attempt += 1
+
+        # Dynamic state update: W_q increases (local models only)
+        if not selected_spec.is_cloud and scheduler:
+            scheduler.dispatch(rep_id, p_tokens, est_out_tokens)
         attempt_start = time.perf_counter()
 
         try:
-            runner = backend_runners.get(selected_spec.provider, backend_runners["mock-external"])
+            runner = backend_runners.get(selected_spec.provider, backend_runners.get("mock-external"))
             res = await runner.execute(
                 request=ctx,
                 model_spec=selected_spec,
@@ -293,17 +332,41 @@ async def chat_completions(raw_req: dict[str, Any]):
             )
             attempt_lat = (time.perf_counter() - attempt_start) * 1000.0
 
-            # Dynamic state update: W_q decreases & success recorded
-            scheduler.complete(rep_id, p_tokens, est_out_tokens, attempt_lat, success=True)
+            # Dynamic state update: W_q decreases & success recorded (local models only)
+            if not selected_spec.is_cloud and scheduler:
+                scheduler.complete(rep_id, p_tokens, est_out_tokens, attempt_lat, success=True)
             circuit_breaker.record_success(rep_id)
+
+            attempt_out_tokens = res.get("output_tokens", est_out_tokens)
+            attempt_cost = res.get("actual_cost")
+            if attempt_cost is None:
+                attempt_cost = (p_tokens / 1000.0) * selected_spec.input_price_per_1k + (
+                    attempt_out_tokens / 1000.0
+                ) * selected_spec.output_price_per_1k
+
+            record = AttemptRecord(
+                attempt_number=attempt,
+                replica_id=effective_replica_id,
+                model_id=selected_spec.model_id,
+                provider=selected_spec.provider,
+                prompt_tokens=p_tokens,
+                completion_tokens=attempt_out_tokens,
+                latency_ms=round(attempt_lat, 2),
+                cost=round(attempt_cost, 6),
+                status="success",
+            )
+            attempt_history.append(record)
 
             tracer.record_attempt(
                 request_id=req_id,
                 attempt_number=attempt,
-                replica_id=rep_id,
+                replica_id=effective_replica_id,
                 model_id=selected_spec.model_id,
                 provider=selected_spec.provider,
+                prompt_tokens=p_tokens,
+                completion_tokens=attempt_out_tokens,
                 latency_ms=attempt_lat,
+                cost=attempt_cost,
                 status="success",
             )
             execution_result = res
@@ -311,17 +374,36 @@ async def chat_completions(raw_req: dict[str, Any]):
 
         except Exception as exc:
             attempt_lat = (time.perf_counter() - attempt_start) * 1000.0
-            scheduler.complete(rep_id, p_tokens, est_out_tokens, attempt_lat, success=False)
+            if not selected_spec.is_cloud and scheduler:
+                scheduler.complete(rep_id, p_tokens, est_out_tokens, attempt_lat, success=False)
             circuit_breaker.record_failure(rep_id)
             last_error = exc
+
+            failed_cost = (p_tokens / 1000.0) * selected_spec.input_price_per_1k
+            record = AttemptRecord(
+                attempt_number=attempt,
+                replica_id=effective_replica_id,
+                model_id=selected_spec.model_id,
+                provider=selected_spec.provider,
+                prompt_tokens=p_tokens,
+                completion_tokens=0,
+                latency_ms=round(attempt_lat, 2),
+                cost=round(failed_cost, 6),
+                status="failed",
+                error_message=str(exc),
+            )
+            attempt_history.append(record)
 
             tracer.record_attempt(
                 request_id=req_id,
                 attempt_number=attempt,
-                replica_id=rep_id,
+                replica_id=effective_replica_id,
                 model_id=selected_spec.model_id,
                 provider=selected_spec.provider,
+                prompt_tokens=p_tokens,
+                completion_tokens=0,
                 latency_ms=attempt_lat,
+                cost=failed_cost,
                 status="failed",
                 error=str(exc),
             )
@@ -329,67 +411,82 @@ async def chat_completions(raw_req: dict[str, Any]):
             if not retry_policy.is_retryable(exc):
                 break
 
-            # Switch to alternate replica for retry if possible
-            alt_replicas = [
-                r for r in registry.get_replicas_for_model(selected_spec.model_id)
-                if r.replica_id != rep_id and r.is_alive()
-            ]
-            if alt_replicas:
-                selected_replica = alt_replicas[0]
+            # Find alternate candidate
+            if not selected_spec.is_cloud:
+                all_reps = registry.get_replicas_for_model(selected_spec.model_id)
+                alt_candidates = [
+                    r
+                    for r in all_reps
+                    if r.replica_id != rep_id and r.is_alive() and circuit_breaker.allow_request(r.replica_id)
+                ]
+                if alt_candidates:
+                    selected_replica = alt_candidates[0]
+                    rep_id = selected_replica.replica_id
+                    effective_replica_id = rep_id
+                else:
+                    candidate_idx += 1
+            else:
+                candidate_idx += 1
 
     if not execution_result:
         total_lat = (time.perf_counter() - start_total_time) * 1000.0
+        total_billed_cost = sum(a.cost for a in attempt_history)
         tracer.finish_trace(
             request_id=req_id,
             selected_model=selected_spec.model_id,
-            selected_replica=selected_replica.replica_id,
+            selected_replica=effective_replica_id,
             actual_output_tokens=0,
             total_latency_ms=total_lat,
             estimated_cost=est_cost,
-            actual_cost=0.0,
+            actual_cost=total_billed_cost,
             cache_outcome="miss",
             final_status="failed",
+            error_detail=str(last_error),
         )
         raise HTTPException(
             status_code=503,
             detail=f"Inference execution failed after {attempt} attempts: {last_error!s}",
         )
 
-    # 8. Post-Execution Accounting & Cache Write
+    # 9. Post-Execution Accounting & Safe Cache Ingestion
     total_lat = (time.perf_counter() - start_total_time) * 1000.0
-    actual_out_tokens = execution_result["output_tokens"]
-    actual_cost = (
-        (p_tokens / 1000.0) * selected_spec.input_price_per_1k
-        + (actual_out_tokens / 1000.0) * selected_spec.output_price_per_1k
-    )
+    actual_out_tokens = execution_result.get("output_tokens", est_out_tokens)
+    total_actual_cost = sum(a.cost for a in attempt_history)
 
-    # Record observation in estimator for continuous calibration
+    # Update estimator observation for calibration
     estimator.record_observation(task_type, est_out_tokens, actual_out_tokens)
 
-    # Store in Safe ExactCache
+    # Ingest into Provenance-Aware Cache
+    model_q = selected_spec.quality_scores.get(task_type, 0.80)
     cache.put(
-        request=ctx,
-        logical_model=logical_model,
-        model_version="1.0.0",
-        prompt=prompt_text,
-        response={
-            "content": execution_result["content"],
-            "model": selected_spec.model_id,
-            "replica_id": selected_replica.replica_id,
-            "provider": selected_spec.provider,
-            "output_tokens": actual_out_tokens,
-        },
-    )
+            request=ctx,
+            logical_model=logical_model,
+            model_version="1.0.0",
+            prompt=prompt_text,
+            response={
+                "content": execution_result["content"],
+                "model": selected_spec.model_id,
+                "replica_id": effective_replica_id,
+                "provider": selected_spec.provider,
+                "output_tokens": actual_out_tokens,
+            },
+            origin_model=selected_spec.model_id,
+            origin_provider=selected_spec.provider,
+            origin_privacy=privacy,
+            origin_quality=model_q,
+            origin_policy=policy_name,
+            query=latest_query,
+        )
 
-    # Observability Finish Trace
+    # Finish trace
     tracer.finish_trace(
         request_id=req_id,
         selected_model=selected_spec.model_id,
-        selected_replica=selected_replica.replica_id,
+        selected_replica=effective_replica_id,
         actual_output_tokens=actual_out_tokens,
         total_latency_ms=total_lat,
         estimated_cost=est_cost,
-        actual_cost=actual_cost,
+        actual_cost=total_actual_cost,
         cache_outcome="miss",
         final_status="success",
     )
@@ -400,11 +497,7 @@ async def chat_completions(raw_req: dict[str, Any]):
         id=req_id,
         model=selected_spec.model_id,
         logical_model=logical_model,
-        choices=[
-            ChatCompletionChoice(
-                message=ChatMessage(role="assistant", content=execution_result["content"])
-            )
-        ],
+        choices=[ChatCompletionChoice(message=ChatMessage(role="assistant", content=execution_result["content"]))],
         usage=UsageInfo(
             prompt_tokens=p_tokens,
             completion_tokens=actual_out_tokens,
@@ -414,17 +507,19 @@ async def chat_completions(raw_req: dict[str, Any]):
             request_id=req_id,
             logical_model=logical_model,
             selected_model=selected_spec.model_id,
-            selected_replica=selected_replica.replica_id,
+            selected_replica=effective_replica_id,
             provider=selected_spec.provider,
             latency_ms=round(total_lat, 2),
             attempts=attempt,
             cache_hit=False,
             estimated_cost=round(est_cost, 6),
-            actual_cost=round(actual_cost, 6),
+            actual_cost=round(total_actual_cost, 6),
             slo_attained=slo_met,
             policy_name=policy_name,
+            scheduler_name=effective_scheduler_name,
+            attempt_history=attempt_history,
         ),
         content=execution_result["content"],
-        replica_id=selected_replica.replica_id,
+        replica_id=effective_replica_id,
         provider=selected_spec.provider,
     )

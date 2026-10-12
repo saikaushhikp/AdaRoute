@@ -61,7 +61,13 @@ async def test_tc_m2_03_transparent_provider_switch_same_client():
         # Request 2: Public + Strongest -> routed to external
         res_ext = await client.post(
             "/v1/chat/completions",
-            json={"model": "general", "prompt": "Hi external", "privacy_level": "public", "policy": "strongest", "no_cache": True},
+            json={
+                "model": "general",
+                "prompt": "Hi external",
+                "privacy_level": "public",
+                "policy": "strongest",
+                "no_cache": True,
+            },
         )
 
         assert res_local.status_code == 200
