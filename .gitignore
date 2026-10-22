@@ -30,8 +30,9 @@ dist/
 .vite/
 
 # Data / Ledgers
-data/
-*.jsonl
+# data/
+# *.jsonl
 Docs/
+docs/
 PLAN_chat_interface.md
 CRITICAL_CONVERSATION.md
