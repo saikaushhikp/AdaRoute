@@ -148,6 +148,46 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                 </div>
               </div>
 
+              {/* Attempt History & Failovers */}
+              {metadata.attempt_history && metadata.attempt_history.length > 0 && (
+                <div className="diag-card">
+                  <h4 style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Server size={14} /> Attempt History & Failovers ({metadata.attempt_history.length})
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {metadata.attempt_history.map((att) => (
+                      <div
+                        key={att.attempt_number}
+                        style={{
+                          fontSize: '0.75rem',
+                          padding: '0.4rem 0.6rem',
+                          borderRadius: '6px',
+                          backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                          borderLeft: `3px solid ${att.status === 'success' ? 'var(--success)' : 'var(--danger)'}`,
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+                          <span>Attempt #{att.attempt_number}: {att.model_id}</span>
+                          <span style={{ color: att.status === 'success' ? 'var(--success)' : 'var(--danger)' }}>
+                            {att.status.toUpperCase()}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.8rem', color: 'var(--text-dim)', marginTop: '0.2rem' }}>
+                          <span>Replica: {att.replica_id}</span>
+                          <span>Latency: {att.latency_ms.toFixed(1)}ms</span>
+                          <span>Cost: ${att.cost.toFixed(6)} ({att.cost_state || 'unknown'})</span>
+                        </div>
+                        {att.error_message && (
+                          <div style={{ color: 'var(--danger)', marginTop: '0.2rem', wordBreak: 'break-word', fontSize: '0.7rem' }}>
+                            {att.error_message}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-dim)', fontSize: '0.72rem', marginTop: 'auto', padding: '0.5rem 0' }}>
                 <ShieldCheck size={14} />
                 <span>Zero-leakage telemetry: Raw prompts and keys are scrubbed.</span>

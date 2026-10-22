@@ -1,0 +1,74 @@
+# System S2 Deployment Configuration (Enterprise On-Prem Node)
+gateway:
+  host: "0.0.0.0"
+  port: 8000
+  title: "AdaRoute Gateway - System S2"
+  default_policy: "cost_first"
+
+registry:
+  compatibility_models: false
+
+estimation:
+  default_prior: 65
+  task_priors:
+    coding: 190
+    reasoning: 160
+    summarization: 120
+    general: 65
+  max_token_ratio: 0.12
+  historical_quantile: 0.70
+
+routing:
+  default_policy: "cost_first"
+  static_task_map:
+    coding: "phi4-mini:3.8b"
+    general: "phi4-mini:3.8b"
+  policies:
+    adaptive:
+      weights:
+        cost: 0.60
+        quality: 0.15
+        latency: 0.15
+        slo: 0.05
+        failure: 0.05
+    cost_first:
+      weights:
+        cost: 0.75
+        quality: 0.10
+        latency: 0.10
+        slo: 0.025
+        failure: 0.025
+
+models:
+  - model_id: "phi4-mini:3.8b"
+    logical_aliases: ["general", "coding", "fast"]
+    provider: "local_vllm"
+    execution_type: "local"
+    base_url: "http://localhost:8000/v1"
+    privacy_levels: ["public", "internal_only", "confidential", "restricted"]
+    cost_per_1k_input: 0.000005
+    cost_per_1k_output: 0.000010
+    quality: 0.81
+    max_context: 16384
+    replicas:
+      - replica_id: "s2-gpu-0"
+        endpoint: "http://localhost:8000/v1"
+        availability: true
+        weight: 1.0
+      - replica_id: "s2-gpu-1"
+        endpoint: "http://localhost:8001/v1"
+        availability: true
+        weight: 1.0
+
+  - model_id: "cohere/command-r-08-2024"
+    logical_aliases: ["general", "coding", "reasoning", "enterprise"]
+    provider: "cohere"
+    execution_type: "external"
+    litellm_model: "cohere/command-r-08-2024"
+    api_key_env: "COHERE_CHAT_API_KEY"
+    privacy_levels: ["public"]
+    cost_per_1k_input: 0.00015
+    cost_per_1k_output: 0.00060
+    quality: 0.83
+    max_context: 128000
+    replicas: []

@@ -37,6 +37,20 @@ export interface RequestSettings {
   gatewayUrl: string;
 }
 
+export interface AttemptRecord {
+  attempt_number: number;
+  replica_id: string;
+  model_id: string;
+  provider: string;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  latency_ms: number;
+  cost: number;
+  cost_state?: string;
+  status: 'success' | 'failed' | string;
+  error_message?: string | null;
+}
+
 export interface RoutingMetadata {
   request_id: string;
   logical_model: string;
@@ -50,6 +64,7 @@ export interface RoutingMetadata {
   actual_cost: number;
   slo_attained: boolean;
   policy_name?: string;
+  attempt_history?: AttemptRecord[];
 }
 
 export interface UsageInfo {

@@ -12,10 +12,10 @@ import asyncio
 class RetryPolicy:
     def __init__(
         self,
-        max_attempts: int = 2,
+        max_attempts: int = 3,
         initial_backoff_sec: float = 0.05,
         backoff_multiplier: float = 2.0,
-        max_total_timeout_sec: float = 15.0,
+        max_total_timeout_sec: float = 45.0,
     ):
         self.max_attempts = max_attempts
         self.initial_backoff_sec = initial_backoff_sec
@@ -23,7 +23,7 @@ class RetryPolicy:
         self.max_total_timeout_sec = max_total_timeout_sec
 
     def is_retryable(self, exc: Exception) -> bool:
-        """Retry transient timeouts, connection drops, 429 rate limits, or 5xx failures."""
+        """Retry transient timeouts, connection drops, 429 rate limits, quota limits, or 5xx failures."""
         if isinstance(exc, (TimeoutError, ConnectionError, asyncio.TimeoutError)):
             return True
         msg = str(exc).lower()
@@ -39,6 +39,11 @@ class RetryPolicy:
             "temporarily unavailable",
             "connection refused",
             "connection reset",
+            "resource_exhausted",
+            "quota",
+            "exceeded",
+            "externalbackendunavailable",
+            "unavailable",
         )
         return any(ind in msg for ind in retryable_indicators)
 

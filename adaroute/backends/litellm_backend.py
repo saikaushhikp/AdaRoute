@@ -34,6 +34,7 @@ class LiteLLMBackend(BaseBackend):
         model_spec: ModelSpec,
         replica_id: str,
         prompt_text: str,
+        messages: list[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
         start_time = time.perf_counter()
 
@@ -44,50 +45,51 @@ class LiteLLMBackend(BaseBackend):
         # Ensure API keys are loaded
         load_dotenv()
 
-        target_model = model_spec.model_id
-        # Map generic external aliases to working verified models
-        if target_model in ("gpt-4o-external", "mock-external-flagship"):
-            # For gpt-4o-external, if OpenAI key has no credits, Groq qwen3.8-27b provides flagship public serving
+        target_model = model_spec.litellm_model or model_spec.model_id
+        # Map generic external mock aliases to available configured models if requested
+        if target_model in ("mock/gpt-4o", "gpt-4o-external", "mock-external-flagship"):
             if os.getenv("GROQ_API_KEY"):
                 target_model = "groq/qwen/qwen3.8-27b"
+            elif os.getenv("OPENAI_API_KEY"):
+                target_model = "gpt-4o"
 
         try:
-            messages = [{"role": "user", "content": prompt_text}]
+            chat_messages = messages or [{"role": "user", "content": prompt_text}]
+            timeout_sec = float(os.getenv("EXTERNAL_TIMEOUT_SEC", "12.0"))
             kwargs: dict[str, Any] = {
                 "model": target_model,
-                "messages": messages,
+                "messages": chat_messages,
                 "max_tokens": request.max_tokens or 256,
-                "timeout": 30.0,
+                "timeout": timeout_sec,
             }
             if request.temperature is not None:
                 kwargs["temperature"] = request.temperature
 
-            # Explicitly pass provider API keys and guard against missing keys in hybrid mode
-            if "gemini" in target_model.lower() or "google" in model_spec.provider.lower():
-                gem_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-                if not gem_key:
-                    if self.execution_mode == "real":
-                        raise ExternalBackendUnavailableError("Google/Gemini API key missing.")
-                    return await self._execute_simulation(request, model_spec, replica_id, prompt_text, start_time)
-                kwargs["api_key"] = gem_key
-                os.environ["GEMINI_API_KEY"] = gem_key
+            # Dynamically resolve credential reference from model_spec declarative configuration
+            api_key = None
+            if model_spec.api_key_env:
+                api_key = os.getenv(model_spec.api_key_env)
 
-            elif "groq" in target_model.lower():
-                groq_key = os.getenv("GROQ_API_KEY")
-                if not groq_key:
-                    if self.execution_mode == "real":
-                        raise ExternalBackendUnavailableError("Groq API key missing.")
-                    return await self._execute_simulation(request, model_spec, replica_id, prompt_text, start_time)
-                kwargs["api_key"] = groq_key
+            # Generic fallback credential discovery if not explicitly referenced
+            if not api_key:
+                p_upper = model_spec.provider.upper()
+                api_key = (
+                    os.getenv(f"{p_upper}_API_KEY")
+                    or os.getenv(f"{p_upper}_CHAT_API_KEY")
+                    or os.getenv("GOOGLE_API_KEY")
+                    or os.getenv("GEMINI_API_KEY")
+                )
 
-            elif "cohere" in target_model.lower():
-                cohere_key = os.getenv("COHERE_API_KEY") or os.getenv("COHERE_CHAT_API_KEY")
-                if not cohere_key:
-                    if self.execution_mode == "real":
-                        raise ExternalBackendUnavailableError("Cohere API key missing.")
-                    return await self._execute_simulation(request, model_spec, replica_id, prompt_text, start_time)
-                kwargs["api_key"] = cohere_key
-                os.environ["COHERE_API_KEY"] = cohere_key
+            if api_key:
+                kwargs["api_key"] = api_key
+                if model_spec.api_key_env:
+                    os.environ[model_spec.api_key_env] = api_key
+            else:
+                if self.execution_mode in ("real", "hybrid"):
+                    raise ExternalBackendUnavailableError(
+                        f"API key missing for {model_spec.model_id} (expected {model_spec.api_key_env or 'API key'})."
+                    )
+                return await self._execute_simulation(request, model_spec, replica_id, prompt_text, start_time)
 
             resp = await litellm.acompletion(**kwargs)
 
@@ -121,8 +123,19 @@ class LiteLLMBackend(BaseBackend):
                 "response_id": getattr(resp, "id", None),
             }
         except Exception as e:
-            # Raise so api.py circuit breaker and retry failover can engage alternate candidate providers
-            raise ExternalBackendUnavailableError(f"LiteLLM call to {target_model} failed: {e!s}") from e
+            if self.execution_mode in ("real", "hybrid"):
+                # Strict failover: raise error so router tries next candidate model
+                raise ExternalBackendUnavailableError(f"LiteLLM call to {target_model} failed: {e!s}") from e
+
+            # In pure simulation mode: fallback to simulation engine
+            return await self._execute_simulation(
+                request,
+                model_spec,
+                replica_id,
+                prompt_text,
+                start_time,
+                fallback_reason=str(e),
+            )
 
     async def _execute_simulation(
         self,
@@ -131,12 +144,14 @@ class LiteLLMBackend(BaseBackend):
         replica_id: str,
         prompt_text: str,
         start_time: float,
+        fallback_reason: str | None = None,
     ) -> dict[str, Any]:
-        await asyncio.sleep(0.03)  # 30ms simulated external network delay
+        await asyncio.sleep(0.02)  # 20ms simulated external network delay
         latency_ms = (time.perf_counter() - start_time) * 1000.0
         p_tokens = count_tokens(prompt_text)
         out_tokens = min(request.max_tokens or 60, request.estimated_output_tokens or 60)
 
+        source_label = "simulated_external_cloud_fallback" if fallback_reason else "simulated_external_cloud"
         response_content = (
             f"Simulated cloud response from [Provider {model_spec.provider} / {model_spec.model_id} via {replica_id}]: "
             f"Successfully processed public request."
@@ -154,6 +169,7 @@ class LiteLLMBackend(BaseBackend):
             "replica_id": replica_id,
             "model": model_spec.model_id,
             "provider": model_spec.provider,
-            "source": "simulated_external_cloud",
+            "source": source_label,
             "actual_cost": cost,
+            "fallback_reason": fallback_reason,
         }

@@ -54,9 +54,9 @@ class CheapestModelPolicy(BaseModelPolicy):
 
 
 class StaticRulePolicy(BaseModelPolicy):
-    """B3: Routes strictly according to predetermined static task mapping."""
+    """B3: Routes strictly according to predetermined static task mapping (Config-Driven)."""
 
-    STATIC_MAP = {
+    DEFAULT_STATIC_MAP = {
         "coding": "gpt-4o-external",
         "reasoning": "gpt-4o-external",
         "summarization": "qwen2.5:1.5b",
@@ -64,10 +64,21 @@ class StaticRulePolicy(BaseModelPolicy):
         "general": "qwen2.5:1.5b",
     }
 
+    def __init__(self, registry: ModelRegistry, static_map: dict[str, str] | None = None):
+        super().__init__(registry)
+        cfg_map = registry.get_static_task_map()
+        self.static_map = static_map or (cfg_map if cfg_map else dict(self.DEFAULT_STATIC_MAP))
+
     def rank_models(self, request: RequestContext) -> list[tuple[ModelSpec, float]]:
         eligible = self.checker.get_eligible_models(request)
-        preferred_id = self.STATIC_MAP.get(request.task_type.lower(), "qwen2.5:1.5b")
-        preferred = [x for x in eligible if x[0].model_id == preferred_id]
+        task = request.task_type.lower()
+        preferred_id = self.static_map.get(task)
+        if not preferred_id:
+            # System-agnostic dynamic fallback: select the first model advertising this task capability
+            candidate_specs = self.registry.get_models_for_capability(task)
+            preferred_id = candidate_specs[0].model_id if candidate_specs else None
+
+        preferred = [x for x in eligible if x[0].model_id == preferred_id] if preferred_id else []
         others = sorted([x for x in eligible if x[0].model_id != preferred_id], key=lambda x: x[1])
         return preferred + others
 
@@ -76,21 +87,28 @@ class AdaptiveModelPolicy(BaseModelPolicy):
     """B4 / Proposed: Evaluates normalized multi-objective objective J(m).
 
     J(m) = w_c * C_norm + w_l * L_norm + w_q * Q_loss_norm + w_s * SLO_penalty + w_f * Failure_penalty
+    Objective weights are loaded dynamically from config.yaml policies.
     """
 
     def __init__(
         self,
         registry: ModelRegistry,
         weights: dict[str, float] | None = None,
+        policy_name: str = "adaptive",
     ):
         super().__init__(registry)
-        self.weights = weights or {
-            "cost": 0.35,
-            "latency": 0.20,
-            "quality": 0.30,
-            "slo": 0.10,
-            "failure": 0.05,
-        }
+        cfg_weights = registry.get_policy_weights(policy_name)
+        self.weights = (
+            weights
+            or cfg_weights
+            or {
+                "cost": 0.35,
+                "latency": 0.20,
+                "quality": 0.30,
+                "slo": 0.10,
+                "failure": 0.05,
+            }
+        )
 
     def rank_models(self, request: RequestContext) -> list[tuple[ModelSpec, float]]:
         eligible = self.checker.get_eligible_models(request)
@@ -103,7 +121,7 @@ class AdaptiveModelPolicy(BaseModelPolicy):
 
         scored = []
         for spec, cost in eligible:
-            # 1. Normalized cost
+            # 1. Normalized cost (Cost factors preserved for budgeting & rate-limiting)
             c_norm = cost / max_cost
 
             # 2. Normalized quality loss
@@ -132,13 +150,34 @@ class AdaptiveModelPolicy(BaseModelPolicy):
 
             # Combined Objective Score
             j = (
-                self.weights["cost"] * c_norm
-                + self.weights["quality"] * q_loss_norm
-                + self.weights["latency"] * l_norm
-                + self.weights["slo"] * slo_penalty
-                + self.weights["failure"] * fail_rate
+                self.weights.get("cost", 0.35) * c_norm
+                + self.weights.get("quality", 0.30) * q_loss_norm
+                + self.weights.get("latency", 0.20) * l_norm
+                + self.weights.get("slo", 0.10) * slo_penalty
+                + self.weights.get("failure", 0.05) * fail_rate
             )
             scored.append((j, spec, cost))
 
         scored.sort(key=lambda x: x[0])
         return [(spec, cost) for _, spec, cost in scored]
+
+
+class LatencyFirstPolicy(AdaptiveModelPolicy):
+    """Named preset: Prioritizes latency above cost."""
+
+    def __init__(self, registry: ModelRegistry):
+        super().__init__(registry, policy_name="latency_first")
+
+
+class CostFirstPolicy(AdaptiveModelPolicy):
+    """Named preset: Prioritizes cost reduction above latency and quality."""
+
+    def __init__(self, registry: ModelRegistry):
+        super().__init__(registry, policy_name="cost_first")
+
+
+class QualityFirstPolicy(AdaptiveModelPolicy):
+    """Named preset: Prioritizes high quality while satisfying constraints."""
+
+    def __init__(self, registry: ModelRegistry):
+        super().__init__(registry, policy_name="quality_first")

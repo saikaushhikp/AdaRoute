@@ -18,7 +18,12 @@ class BaseReplicaScheduler(ABC):
         self.registry = registry
 
     @abstractmethod
-    def select_replica(self, model: ModelSpec, request: RequestContext) -> ReplicaState | None:
+    def select_replica(
+        self,
+        model: ModelSpec,
+        request: RequestContext,
+        exclude_ids: set[str] | None = None,
+    ) -> ReplicaState | None:
         """Select specific replica among healthy instances of the selected model."""
 
     def dispatch(self, replica_id: str, prompt_tokens: int, estimated_output_tokens: int):
@@ -37,6 +42,8 @@ class BaseReplicaScheduler(ABC):
         success: bool = True,
     ):
         """Update replica dynamic state on completion (W_q decreases)."""
+        import time
+
         replica = self.registry.get_replica(replica_id)
         if replica:
             replica.active_requests = max(0, replica.active_requests - 1)
@@ -45,6 +52,7 @@ class BaseReplicaScheduler(ABC):
             replica.recent_latency_ms = 0.8 * replica.recent_latency_ms + 0.2 * latency_ms
             if success:
                 replica.consecutive_failures = 0
+                replica.last_heartbeat = time.time()
             else:
                 replica.consecutive_failures += 1
                 if replica.consecutive_failures >= 3:
@@ -58,9 +66,14 @@ class RoundRobinScheduler(BaseReplicaScheduler):
         super().__init__(registry)
         self._indices: dict[str, int] = {}
 
-    def select_replica(self, model: ModelSpec, request: RequestContext) -> ReplicaState | None:
+    def select_replica(
+        self,
+        model: ModelSpec,
+        request: RequestContext,
+        exclude_ids: set[str] | None = None,
+    ) -> ReplicaState | None:
         replicas = self.registry.get_replicas_for_model(model.model_id)
-        healthy = [r for r in replicas if r.is_alive()]
+        healthy = [r for r in replicas if r.is_alive() and (not exclude_ids or r.replica_id not in exclude_ids)]
         if not healthy:
             return None
 
@@ -73,9 +86,14 @@ class RoundRobinScheduler(BaseReplicaScheduler):
 class LeastLoadedScheduler(BaseReplicaScheduler):
     """Picks the healthy replica with the fewest active requests."""
 
-    def select_replica(self, model: ModelSpec, request: RequestContext) -> ReplicaState | None:
+    def select_replica(
+        self,
+        model: ModelSpec,
+        request: RequestContext,
+        exclude_ids: set[str] | None = None,
+    ) -> ReplicaState | None:
         replicas = self.registry.get_replicas_for_model(model.model_id)
-        healthy = [r for r in replicas if r.is_alive()]
+        healthy = [r for r in replicas if r.is_alive() and (not exclude_ids or r.replica_id not in exclude_ids)]
         if not healthy:
             return None
 
@@ -90,9 +108,14 @@ class SLOAwareScheduler(BaseReplicaScheduler):
     Prefers replicas with low W_q and minimal recent latency to meet SLO targets.
     """
 
-    def select_replica(self, model: ModelSpec, request: RequestContext) -> ReplicaState | None:
+    def select_replica(
+        self,
+        model: ModelSpec,
+        request: RequestContext,
+        exclude_ids: set[str] | None = None,
+    ) -> ReplicaState | None:
         replicas = self.registry.get_replicas_for_model(model.model_id)
-        healthy = [r for r in replicas if r.is_alive()]
+        healthy = [r for r in replicas if r.is_alive() and (not exclude_ids or r.replica_id not in exclude_ids)]
         if not healthy:
             return None
 

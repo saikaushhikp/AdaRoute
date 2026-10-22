@@ -29,7 +29,9 @@ node_modules/
 dist/
 .vite/
 
-# personal docs
+# Data / Ledgers
+data/
+*.jsonl
 Docs/
-PLAN_*
-
+PLAN_chat_interface.md
+CRITICAL_CONVERSATION.md

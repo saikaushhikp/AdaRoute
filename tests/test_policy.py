@@ -2,8 +2,8 @@ from adaroute.routing import StrongestModelPolicy
 from adaroute.schemas import BackendState, RequestContext
 
 
-def test_tc_1_1_privacy_restriction():
-    """[TC_1.1] Milestone M1/M3: Validate that privacy-restricted requests retain internal_only constraints."""
+def test_tc_m3_17_privacy_restriction():
+    """[TC_M3_17] Validate that privacy-restricted requests retain internal-only constraints."""
     req = RequestContext(
         task_type="qa",
         prompt_tokens=100,
@@ -19,8 +19,8 @@ def test_tc_1_1_privacy_restriction():
     assert req.privacy_level == "internal_only"
 
 
-def test_tc_1_2_budget_restriction():
-    """[TC_1.2] Milestone M1/M3: Validate that requests retain and enforce budget constraints."""
+def test_tc_m3_18_budget_restriction():
+    """[TC_M3_18] Validate that requests retain and enforce budget constraints."""
     req = RequestContext(
         task_type="qa",
         prompt_tokens=100,
@@ -35,8 +35,8 @@ def test_tc_1_2_budget_restriction():
     assert req.budget < 0.01
 
 
-def test_tc_1_3_unhealthy_replica_removed():
-    """[TC_1.3] Milestone M1/M5: Validate that unavailable/unhealthy replicas are excluded from routing candidate set."""
+def test_tc_m5_04_unhealthy_replica_removed():
+    """[TC_M5_04] Validate that unhealthy replicas are excluded from routing."""
     backends = [
         BackendState(
             provider="local",

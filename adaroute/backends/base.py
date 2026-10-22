@@ -1,5 +1,7 @@
 """Base abstract class for all AdaRoute inference backends."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -14,6 +16,8 @@ class BaseBackend(ABC):
         model_spec: ModelSpec,
         replica_id: str,
         prompt_text: str,
+        messages: list[dict[str, str]] | None = None,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """Execute request on the specified replica.
 

@@ -27,6 +27,7 @@ class SyntheticRequest(BaseModel):
     latency_slo: float
     tenant_id: str = "tenant-1"
     arrival_offset_ms: float = 0.0
+    max_tokens: int | None = None
 
 
 class WorkloadGenerator:
@@ -108,6 +109,7 @@ class WorkloadGenerator:
             budget = round(self.rng.uniform(*budget_range), 4)
             quality = self.rng.choice(["medium", "high", "high" if task == "coding" else "medium"])
             slo = self.rng.choice([1.5, 2.0, 3.0])
+            max_tokens = self.rng.choice([128, 256, 512, None])
 
             # Burst / arrival interval (Poisson process)
             inter_arrival = self.rng.expovariate(1.0 / 100.0)  # ~10 req/s mean
@@ -125,11 +127,23 @@ class WorkloadGenerator:
                 latency_slo=slo,
                 tenant_id=f"tenant-{(i % 3) + 1}",
                 arrival_offset_ms=round(current_time_ms, 2),
+                max_tokens=max_tokens,
             )
             requests.append(req)
 
         return requests
 
     def save_trace(self, filepath: str, requests: list[SyntheticRequest]):
-        with open(filepath, "w") as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.writelines(r.model_dump_json() + "\n" for r in requests)
+
+    @classmethod
+    def load_trace(cls, filepath: str) -> list[SyntheticRequest]:
+        """Loads a frozen deterministic request trace from JSONL disk storage."""
+        requests = []
+        with open(filepath, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    requests.append(SyntheticRequest.model_validate_json(line))
+        return requests

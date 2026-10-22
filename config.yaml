@@ -12,6 +12,64 @@ gateway:
   execution_mode: "hybrid"  # "real" (strict fail-closed if unreachable) | "simulation" | "hybrid"
   auth_required: false       # When true, strictly requires Bearer API key in Authorization header
 
+registry:
+  compatibility_models: true # When false, strictly disables fallback legacy model injection
+
+estimation:
+  default_prior: 80
+  task_priors:
+    qa: 50
+    factual_qa: 45
+    summarization: 160
+    coding: 280
+    reasoning: 220
+    structured_extraction: 90
+    creative: 250
+    general: 80
+  max_token_ratio: 0.15
+  prompt_expansion_threshold: 500
+  prompt_expansion_ratio: 1.25
+  historical_quantile: 0.75
+
+routing:
+  default_policy: "adaptive"
+  default_scheduler: "slo_aware"
+  static_task_map:
+    coding: "gpt-4o-external"
+    reasoning: "gpt-4o-external"
+    summarization: "qwen2.5:1.5b"
+    qa: "qwen2.5:1.5b"
+    general: "qwen2.5:1.5b"
+  policies:
+    adaptive:
+      weights:
+        cost: 0.35
+        latency: 0.20
+        quality: 0.30
+        slo: 0.10
+        failure: 0.05
+    latency_first:
+      weights:
+        cost: 0.10
+        latency: 0.65
+        quality: 0.15
+        slo: 0.05
+        failure: 0.05
+    cost_first:
+      weights:
+        cost: 0.70
+        latency: 0.10
+        quality: 0.10
+        slo: 0.05
+        failure: 0.05
+    quality_first:
+      weights:
+        cost: 0.10
+        latency: 0.15
+        quality: 0.65
+        slo: 0.05
+        failure: 0.05
+
 models:
   # -------------------------------------------------------------
   # Local Ollama Models (Self-Hosted, Internal/Confidential Safe)

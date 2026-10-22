@@ -39,12 +39,22 @@ class LocalBackend(BaseBackend):
         self.timeout_sec = timeout_sec
         self.execution_mode = (execution_mode or os.getenv("EXECUTION_MODE", "hybrid")).lower()
 
+    async def ping(self) -> bool:
+        """Pings local Ollama server to verify availability."""
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                res = await client.get(f"{self.ollama_host}/api/tags")
+                return res.status_code == 200
+        except Exception:
+            return False
+
     async def execute(
         self,
         request: RequestContext,
         model_spec: ModelSpec,
         replica_id: str,
         prompt_text: str,
+        messages: list[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
         start_time = time.perf_counter()
 
@@ -59,12 +69,15 @@ class LocalBackend(BaseBackend):
         elif target_model in ("deepseek-r1-local", "deepseek-local"):
             target_model = "deepseek-r1:1.5b"
 
+        # Structured messages preserving native conversational roles
+        chat_messages = messages or [{"role": "user", "content": prompt_text}]
+
         # Attempt real Ollama chat completion
         try:
             async with httpx.AsyncClient(timeout=self.timeout_sec) as client:
                 payload: dict[str, Any] = {
                     "model": target_model,
-                    "messages": [{"role": "user", "content": prompt_text}],
+                    "messages": chat_messages,
                     "stream": False,
                     "options": {},
                 }
@@ -101,6 +114,7 @@ class LocalBackend(BaseBackend):
                         "provider": "local_ollama",
                         "source": "ollama_real",
                         "hardware": "cpu",
+                        "model_digest": data.get("model_digest") or f"sha256:{hash(target_model)}",
                         "total_duration_ns": data.get("total_duration", 0),
                     }
                 else:

@@ -1,0 +1,67 @@
+# System S1 Deployment Configuration (Edge AI Workstation)
+gateway:
+  host: "0.0.0.0"
+  port: 8000
+  title: "AdaRoute Gateway - System S1"
+  default_policy: "adaptive"
+
+registry:
+  compatibility_models: false
+
+estimation:
+  default_prior: 90
+  task_priors:
+    coding: 320
+    reasoning: 250
+    summarization: 150
+    general: 90
+  max_token_ratio: 0.18
+  historical_quantile: 0.80
+
+routing:
+  default_policy: "adaptive"
+  static_task_map:
+    coding: "gemini/gemini-flash-latest"
+    general: "qwen2.5:1.5b"
+  policies:
+    adaptive:
+      weights:
+        quality: 0.70
+        cost: 0.05
+        latency: 0.15
+        slo: 0.05
+        failure: 0.05
+
+models:
+  - model_id: "qwen2.5:1.5b"
+    logical_aliases: ["general", "coding", "fast"]
+    provider: "local"
+    execution_type: "local"
+    base_url: "http://localhost:11434"
+    privacy_levels: ["public", "internal_only", "confidential", "restricted"]
+    cost_per_1k_input: 0.000010
+    cost_per_1k_output: 0.000020
+    quality: 0.73
+    max_context: 32768
+    replicas:
+      - replica_id: "s1-r1"
+        endpoint: "http://localhost:11434"
+        availability: true
+        weight: 1.0
+      - replica_id: "s1-r2"
+        endpoint: "http://localhost:11434"
+        availability: true
+        weight: 1.0
+
+  - model_id: "gemini/gemini-flash-latest"
+    logical_aliases: ["general", "coding", "flagship"]
+    provider: "gemini"
+    execution_type: "external"
+    litellm_model: "gemini/gemini-flash-latest"
+    api_key_env: "GOOGLE_API_KEY"
+    privacy_levels: ["public"]
+    cost_per_1k_input: 0.000075
+    cost_per_1k_output: 0.000300
+    quality: 0.89
+    max_context: 1048576
+    replicas: []

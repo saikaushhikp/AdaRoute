@@ -2,7 +2,7 @@ build:
     docker build -t adaroute .
 
 test:
-    docker run --rm --add-host=host.docker.internal:host-gateway -v "{{justfile_directory()}}:/app" -w /app adaroute pytest -v tests/ adaroute/experiments/test_integration.py
+    docker run --rm --add-host=host.docker.internal:host-gateway -e UI_BASE_URL=http://host.docker.internal:8080 -v "{{justfile_directory()}}:/app" -w /app adaroute pytest -v tests/ adaroute/experiments/test_integration.py
 
 test-local:
     pytest -v tests/ adaroute/experiments/test_integration.py

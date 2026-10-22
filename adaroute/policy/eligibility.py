@@ -42,7 +42,18 @@ class EligibilityChecker:
 
         Returns (is_eligible, rejection_reason, estimated_cost).
         """
-        # 0. HARD CONSTRAINT: User Private Toggle (Fail-closed against cloud/external models)
+        # 0. HARD CONSTRAINT: Real Mode Mock Exclusion
+        import os
+
+        exec_mode = os.getenv("EXECUTION_MODE", "hybrid").lower()
+        if exec_mode == "real" and (spec.execution_type == "mock" or spec.provider.startswith("mock")):
+            return (
+                False,
+                f"Real execution mode active: mock candidate '{spec.model_id}' is excluded",
+                0.0,
+            )
+
+        # 0.1 HARD CONSTRAINT: User Private Toggle (Fail-closed against cloud/external models)
         if request.user_private and spec.is_cloud:
             return (
                 False,
@@ -58,7 +69,7 @@ class EligibilityChecker:
                 0.0,
             )
 
-        # 2. HARD CONSTRAINT: Budget Ceiling
+        # 2. HARD CONSTRAINT: Budget Ceiling (Pre-inference and Independent Worst-Case C_max Gate)
         est_cost = self.estimate_cost(spec, request.prompt_tokens, request.estimated_output_tokens)
         if request.budget is not None:
             if est_cost > request.budget:
@@ -68,10 +79,10 @@ class EligibilityChecker:
                     est_cost,
                 )
 
-            # Also check bounded worst-case output reservation if max_tokens is provided
+            # Independent bounded worst-case output reservation: C_max must NOT exceed budget
             if request.max_tokens is not None and request.max_tokens > 0:
                 max_possible_cost = spec.calculate_max_cost(request.prompt_tokens, request.max_tokens)
-                if max_possible_cost > request.budget and est_cost > request.budget:
+                if max_possible_cost > request.budget:
                     return (
                         False,
                         f"Budget ceiling exceeded: Max output cost ${max_possible_cost:.5f} > budget ${request.budget:.5f}",

@@ -13,8 +13,8 @@ async def client():
 
 
 @pytest.mark.asyncio
-async def test_tc_1_4_unified_api_routing_public_task(client):
-    """[TC_1.4] Milestone M1/M6: Validate that unified API /v1/chat/completions transparently routes public task to least-loaded replica."""
+async def test_tc_m1_03_unified_api_routing_public_task(client):
+    """[TC_M1_03] Milestone M1: Validate that the unified API routes a public task."""
     response = await client.post(
         "/v1/chat/completions",
         json={
@@ -33,8 +33,8 @@ async def test_tc_1_4_unified_api_routing_public_task(client):
 
 
 @pytest.mark.asyncio
-async def test_tc_1_5_unified_api_routing_privacy_constraint(client):
-    """[TC_1.5] Milestone M1/M2: Validate that unified API enforces privacy constraint preventing internal data routing to external provider."""
+async def test_tc_m1_04_unified_api_routing_privacy_constraint(client):
+    """[TC_M1_04] Milestone M1: Validate that the unified API enforces privacy constraints."""
     response = await client.post(
         "/v1/chat/completions",
         json={
@@ -51,8 +51,8 @@ async def test_tc_1_5_unified_api_routing_privacy_constraint(client):
 
 
 @pytest.mark.asyncio
-async def test_tc_1_6_unified_api_budget_constraint(client):
-    """[TC_1.6] Milestone M1/M3: Validate that unified API enforces budget constraint to route to cost-compliant local model."""
+async def test_tc_m1_05_unified_api_budget_constraint(client):
+    """[TC_M1_05] Milestone M1: Validate that the unified API enforces budget constraints."""
     # Very low budget constraint should force routing to the cheaper model (mock-local or cost-compliant model)
     # Even if we change the queue state (which we mock statically for now), budget is a hard constraint.
     response = await client.post(

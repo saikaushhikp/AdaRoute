@@ -1,36 +1,27 @@
-"""Request and Attempt Correlation Tracer (Hardened Week-3 Version).
+"""Request and Attempt Correlation Tracer (Hardened Week-4 Version).
 
 Provides comprehensive observability across:
-1. Pre-validation and validation rejection traces.
+1. Pre-validation and validation rejection traces with secret redaction.
 2. Full multi-attempt cost and token ledger (sum of all billable attempts).
-3. Secret and credential sanitization in error logs.
-4. Aligned cache metrics and SLO attainment calculation.
+3. Secret and credential sanitization in error logs and payloads.
+4. Durable transactional outbox ledger integration for persistence.
+5. Aligned cache metrics and SLO attainment calculation.
 """
 
 from __future__ import annotations
 
-import re
 import time
 
 from pydantic import BaseModel, Field
 
+from adaroute.telemetry.ledger import DurableLedger, default_ledger, sanitize_secrets
+
 
 def sanitize_message(text: str | None) -> str | None:
     """Scrub potential API keys, secrets, or bearer tokens from telemetry logs."""
-    if not text:
-        return text
-    # Redact common key prefixes
-    patterns = [
-        r"(Bearer\s+)[A-Za-z0-9_\-\.]+",
-        r"(gsk_[A-Za-z0-9]{20,})",
-        r"(sk-[A-Za-z0-9_\-]{20,})",
-        r"(key=)[A-Za-z0-9_\-\.]+",
-        r"(AQ\.[A-Za-z0-9_\-]{20,})",
-    ]
-    sanitized = text
-    for pat in patterns:
-        sanitized = re.sub(pat, r"[REDACTED_SECRET]", sanitized, flags=re.IGNORECASE)
-    return sanitized
+    if text is None:
+        return None
+    return sanitize_secrets(text)
 
 
 class AttemptRecord(BaseModel):
@@ -42,8 +33,11 @@ class AttemptRecord(BaseModel):
     completion_tokens: int = 0
     latency_ms: float = 0.0
     cost: float = 0.0
+    cost_state: str = "allocated_estimate"  # "invoiced_real", "allocated_estimate", "unknown_unbilled"
     status: str = "success"  # "success", "failed", "timeout", "rate_limited"
     error: str | None = None
+    execution_mode: str = "simulated"
+    is_simulated: bool = False
 
 
 class RequestEvent(BaseModel):
@@ -65,15 +59,21 @@ class RequestEvent(BaseModel):
     total_latency_ms: float = 0.0
     estimated_cost: float = 0.0
     actual_cost: float = 0.0
+    cost_state: str = "allocated_estimate"
     slo_attained: bool = True
     final_status: str = "success"  # "success", "rejected", "failed", "validation_error"
     error_detail: str | None = None
     timestamp: float = Field(default_factory=time.time)
+    execution_mode: str = "simulated"
+    is_simulated: bool = False
 
 
-class RequestTracer:
-    def __init__(self):
+class StructuredTracer:
+    """Structured correlation tracer with integrated durable outbox persistence."""
+
+    def __init__(self, ledger: DurableLedger | None = None):
         self._traces: dict[str, RequestEvent] = {}
+        self.ledger: DurableLedger = ledger or default_ledger
 
     def start_trace(
         self,
@@ -87,6 +87,8 @@ class RequestTracer:
         latency_slo: float | None = 2.0,
         prompt_tokens: int = 0,
         estimated_output_tokens: int = 50,
+        execution_mode: str = "simulated",
+        is_simulated: bool = False,
     ) -> RequestEvent:
         event = RequestEvent(
             request_id=request_id,
@@ -99,14 +101,16 @@ class RequestTracer:
             latency_slo=latency_slo,
             prompt_tokens=prompt_tokens,
             estimated_output_tokens=estimated_output_tokens,
+            execution_mode=execution_mode,
+            is_simulated=is_simulated,
         )
         self._traces[request_id] = event
         return event
 
     def record_validation_error(self, request_id: str, error_detail: str) -> None:
         """Records validation failure occurring before pre-routing characterization."""
+        sanitized = sanitize_secrets(error_detail)
         event = self._traces.get(request_id)
-        sanitized = sanitize_message(error_detail)
         if event:
             event.final_status = "validation_error"
             event.error_detail = sanitized
@@ -117,6 +121,16 @@ class RequestTracer:
                 error_detail=sanitized,
             )
             self._traces[request_id] = event
+
+        # Durably record validation rejection
+        self.ledger.record_request(
+            request_id=request_id,
+            logical_model=event.logical_model if event else "general",
+            cost=0.0,
+            cost_state="unknown_unbilled",
+            status="rejected",
+            error=sanitized,
+        )
 
     def record_attempt(
         self,
@@ -129,25 +143,56 @@ class RequestTracer:
         completion_tokens: int = 0,
         latency_ms: float = 0.0,
         cost: float = 0.0,
+        cost_state: str = "allocated_estimate",
         status: str = "success",
         error: str | None = None,
+        execution_mode: str = "simulated",
+        is_simulated: bool = False,
     ) -> None:
+        sanitized_error = sanitize_secrets(error) if error else None
+
+        # For failed attempts where cost is unknown, set cost_state="unknown_unbilled" and cost to 0.0
+        if status == "failed" and (cost_state == "unknown_unbilled" or cost == 0.0 or cost_state is None):
+            cost = 0.0
+            cost_state = "unknown_unbilled"
+
+        attempt_record = AttemptRecord(
+            attempt_number=attempt_number,
+            replica_id=replica_id,
+            model_id=model_id,
+            provider=provider,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            latency_ms=latency_ms,
+            cost=cost,
+            cost_state=cost_state,
+            status=status,
+            error=sanitized_error,
+            execution_mode=execution_mode,
+            is_simulated=is_simulated,
+        )
+
         event = self._traces.get(request_id)
         if event:
-            event.attempts.append(
-                AttemptRecord(
-                    attempt_number=attempt_number,
-                    replica_id=replica_id,
-                    model_id=model_id,
-                    provider=provider,
-                    prompt_tokens=prompt_tokens,
-                    completion_tokens=completion_tokens,
-                    latency_ms=latency_ms,
-                    cost=cost,
-                    status=status,
-                    error=sanitize_message(error),
-                )
-            )
+            event.attempts.append(attempt_record)
+
+        # Durably record attempt to transactional ledger
+        self.ledger.record_attempt(
+            request_id=request_id,
+            attempt_number=attempt_number,
+            replica_id=replica_id,
+            model_id=model_id,
+            provider=provider,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            latency_ms=latency_ms,
+            cost=cost,
+            cost_state=cost_state,
+            status=status,
+            error=sanitized_error,
+            execution_mode=execution_mode,
+            is_simulated=is_simulated,
+        )
 
     def finish_trace(
         self,
@@ -161,8 +206,14 @@ class RequestTracer:
         cache_outcome: str = "miss",
         final_status: str = "success",
         error_detail: str | None = None,
+        cost_state: str | None = None,
+        execution_mode: str = "simulated",
+        is_simulated: bool = False,
+        provider: str | None = None,
     ) -> RequestEvent | None:
         event = self._traces.get(request_id)
+        sanitized_error = sanitize_secrets(error_detail) if error_detail else None
+
         if event:
             event.selected_model = selected_model
             event.selected_replica = selected_replica
@@ -171,7 +222,9 @@ class RequestTracer:
             event.estimated_cost = estimated_cost
             event.cache_outcome = cache_outcome
             event.final_status = final_status
-            event.error_detail = sanitize_message(error_detail)
+            event.error_detail = sanitized_error
+            event.execution_mode = execution_mode
+            event.is_simulated = is_simulated
 
             # Reconcile actual cost: sum of all billable attempts, or explicit cost
             if actual_cost is not None:
@@ -181,10 +234,48 @@ class RequestTracer:
             else:
                 event.actual_cost = 0.0
 
+            if cost_state is not None:
+                event.cost_state = cost_state
+            elif final_status in ("failed", "rejected", "validation_error") and event.actual_cost == 0.0:
+                event.cost_state = "unknown_unbilled"
+            elif cache_outcome == "hit" or is_simulated or "local" in (selected_model or ""):
+                event.cost_state = "allocated_estimate"
+            else:
+                event.cost_state = "invoiced_real"
+
             if event.latency_slo:
                 event.slo_attained = (total_latency_ms / 1000.0) <= event.latency_slo
             else:
                 event.slo_attained = True
+
+            # Determine canonical status for ledger: "success", "failed", "rejected", "cached"
+            if cache_outcome == "hit":
+                ledger_status = "cached"
+            elif final_status in ("success", "failed", "rejected", "cached"):
+                ledger_status = final_status
+            elif final_status == "validation_error":
+                ledger_status = "rejected"
+            else:
+                ledger_status = "failed"
+
+            # Durably record finished request to ledger
+            self.ledger.record_request(
+                request_id=request_id,
+                logical_model=event.logical_model,
+                selected_model=selected_model,
+                selected_replica=selected_replica,
+                provider=provider or (event.attempts[-1].provider if event.attempts else None),
+                prompt_tokens=event.prompt_tokens,
+                completion_tokens=actual_output_tokens,
+                latency_ms=total_latency_ms,
+                cost=event.actual_cost,
+                cost_state=event.cost_state,
+                status=ledger_status,
+                execution_mode=execution_mode,
+                is_simulated=is_simulated,
+                error=sanitized_error,
+                timestamp=event.timestamp,
+            )
 
         return event
 
@@ -196,6 +287,9 @@ class RequestTracer:
 
     def clear(self) -> None:
         self._traces.clear()
+        self.ledger.clear()
 
 
-default_tracer = RequestTracer()
+# Backward-compatible alias
+RequestTracer = StructuredTracer
+default_tracer = StructuredTracer()

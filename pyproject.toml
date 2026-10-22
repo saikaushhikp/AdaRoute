@@ -16,6 +16,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "litellm>=1.40.0",
     "httpx>=0.25.0",
+    "redis>=5.0.0",
 ]
 
 [project.optional-dependencies]
@@ -31,6 +32,17 @@ include = ["adaroute*"]
 
 [tool.ruff]
 line-length = 120
+exclude = ["vLLM_testing"]
 
 [tool.ruff.lint]
-ignore = ["RUF012", "BLE001", "S110", "SIM102", "SIM103"]
+ignore = ["RUF012", "BLE001", "S110", "SIM102", "SIM103", "N999"]
+
+# Pytest configuration for warning handling
+[tool.pytest.ini_options]
+filterwarnings = [
+    # LiteLLM's TypedDict schemas use ReadOnly, which Pydantic cannot enforce on dicts.
+    "ignore:.*TypedDict class '.*' is using the `ReadOnly` qualifier.*:UserWarning",
+    "ignore:.*TypedDict class '.*' are using the `ReadOnly` qualifier.*:UserWarning",
+    # LiteLLM 1.92 can leave its internal async logging callback unawaited.
+    "ignore:coroutine 'Logging\\.async_success_handler' was never awaited:RuntimeWarning",
+]

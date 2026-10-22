@@ -7,6 +7,7 @@ for all supported models and their replicas. Supports loading from config.yaml.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -17,7 +18,20 @@ class ModelRegistry:
     def __init__(self, config_path: str | Path | None = None):
         self._models: dict[str, ModelSpec] = {}
         self._replicas: dict[str, ReplicaState] = {}
-        self._config_path = Path(config_path) if config_path else Path("config.yaml")
+        self.raw_config: dict[str, Any] = {}
+        self.routing_config: dict[str, Any] = {}
+        self.estimation_config: dict[str, Any] = {}
+        self.registry_config: dict[str, Any] = {}
+
+        if config_path:
+            self._config_path = Path(config_path)
+        else:
+            cand = Path("config.yaml")
+            if cand.exists():
+                self._config_path = cand
+            else:
+                self._config_path = Path(__file__).resolve().parent.parent.parent / "config.yaml"
+
         if self._config_path.exists():
             self.load_from_yaml(self._config_path)
         else:
@@ -31,7 +45,12 @@ class ModelRegistry:
             return
 
         with open(p, "r", encoding="utf-8") as f:
-            cfg = yaml.safe_load(f)
+            cfg = yaml.safe_load(f) or {}
+
+        self.raw_config = cfg
+        self.routing_config = cfg.get("routing", {})
+        self.estimation_config = cfg.get("estimation", {})
+        self.registry_config = cfg.get("registry", {})
 
         models_data = cfg.get("models", [])
         for m in models_data:
@@ -49,6 +68,10 @@ class ModelRegistry:
                 model_id=m["model_id"],
                 logical_capabilities=m.get("logical_aliases", ["general"]),
                 provider=m.get("provider", "local"),
+                execution_type=exec_type,
+                litellm_model=m.get("litellm_model"),
+                api_key_env=m.get("api_key_env"),
+                base_url=m.get("base_url"),
                 quality_scores={
                     "general": m.get("quality", 0.80),
                     "qa": m.get("quality", 0.80),
@@ -71,13 +94,32 @@ class ModelRegistry:
                     replica_id=r["replica_id"],
                     model_id=m["model_id"],
                     provider=m.get("provider", "local"),
+                    endpoint=r.get("endpoint"),
+                    weight=float(r.get("weight", 1.0)),
                     availability=r.get("availability", True),
                     recent_latency_ms=45.0,
                 )
                 self.register_replica(rep_state)
 
-        # Ensure legacy aliases exist for backward compatibility with W1/W2 tests
-        self._ensure_backward_compatibility()
+        # Conditionally ensure legacy aliases exist for backward compatibility with W1/W2 tests
+        if self.registry_config.get("compatibility_models", True):
+            self._ensure_backward_compatibility()
+
+    def get_policy_weights(self, policy_name: str) -> dict[str, float] | None:
+        """Retrieves objective weights for a named policy from declarative config."""
+        policies = self.routing_config.get("policies", {})
+        policy_cfg = policies.get(policy_name)
+        if policy_cfg and "weights" in policy_cfg:
+            return dict(policy_cfg["weights"])
+        return None
+
+    def get_static_task_map(self) -> dict[str, str]:
+        """Retrieves static task routing map from declarative config."""
+        return dict(self.routing_config.get("static_task_map", {}))
+
+    def get_estimation_config(self) -> dict[str, Any]:
+        """Retrieves estimation configuration section."""
+        return dict(self.estimation_config)
 
     def _ensure_backward_compatibility(self) -> None:
         if "gpt-4o-external" not in self._models:
@@ -237,11 +279,25 @@ class ModelRegistry:
     def get_replicas_for_model(self, model_id: str) -> list[ReplicaState]:
         return [r for r in self._replicas.values() if r.model_id == model_id]
 
+    def is_valid_capability_or_model(self, alias_or_id: str) -> bool:
+        """Checks if the given alias is a known logical capability or concrete model ID."""
+        target = alias_or_id.lower().strip()
+        if any(m_id.lower() == target for m_id in self._models):
+            return True
+        for m in self._models.values():
+            if any(c.lower() == target for c in m.logical_capabilities):
+                return True
+        return False
+
     def get_models_for_capability(self, capability: str) -> list[ModelSpec]:
+        """Resolves models matching a specific capability alias or concrete model ID."""
         cap = capability.lower().strip()
+        # Direct model_id match
+        for m_id, spec in self._models.items():
+            if m_id.lower() == cap:
+                return [spec]
+        # Logical capability matches (strict: no silent fallback to general)
         matches = [m for m in self._models.values() if cap in [c.lower() for c in m.logical_capabilities]]
-        if not matches:
-            matches = [m for m in self._models.values() if "general" in [c.lower() for c in m.logical_capabilities]]
         return matches
 
 

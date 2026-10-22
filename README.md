@@ -58,7 +58,6 @@
 - **Strict Contract Validation & Quality Floor Enforcement (`TC_W3_05`, `TC_W3_06`)**:
   - Enforced strict Pydantic model validation with `extra="forbid"`, mandatory non-empty prompts, and explicit rejection of unsupported streaming requests.
   - Added universal quality floor filtering (`low=0.0`, `medium=0.70`, `high=0.85`) across Stage 1 eligibility checking.
-  - Hardened budget feasibility to evaluate worst-case token spend: $C_{\text{max}} = p \cdot P_{\text{in}} + \text{max\_tokens} \cdot P_{\text{out}} \le B$.
 - **Real Local CPU Serving with Ollama (`TC_W3_07`, `TC_W3_08`)**:
   - Integrated `LocalBackend` directly with local Ollama HTTP `/api/chat` supporting `qwen2.5:1.5b` and `deepseek-r1:1.5b`.
   - Captures native token metrics directly from Ollama response telemetry (`prompt_eval_count`, `eval_count`) and labels hardware execution (`hardware: "cpu"`).
@@ -77,6 +76,34 @@
 - **Full Docker Containerization & Compose Support**:
   - Completely containerized all services (including Ollama, AdaRoute Gateway, and Workbench UI) with reproducible `just` recipes.
 
+### Week 4: Shared Redis Exact Caching, Durable Outbox Accounting, Independent Budget Gating & Calibrated Simulation
+- **Shared Redis Exact Caching & Safe Lossless Context Matching (`TC_M4_05`, `TC_M4_07`, `TC_M4_08`, `TC_M4_09`, `TC_M4_10`, `TC_M4_11`)**:
+  - Replaced volatile Python in-memory cache with shared `redis:7-alpine` (`RedisCacheBackend`) featuring connection pooling, TTL, and automatic transparent fallback to in-memory dictionary when offline.
+  - **Completely removed and disabled the unsafe secondary query-only index (`query_key`)**, eliminating multi-turn conversation context poisoning.
+  - Losslessly keys the entire conversation history transcript, `max_tokens`, `temperature`, `user_private`, tenant/user partition, and effective versions.
+  - Preserves multiline Python code indentation and spacing without destructive whitespace collapsing.
+  - Added strict real vs simulated provenance isolation and explicit cache invalidation (`invalidate`, `invalidate_prefix`, `clear`).
+- **P0 Independent Worst-Case Budget Admission Gate ($C_{\text{max}} \le B$) (`TC_W3_06`)**:
+  - Decoupled $C_{\text{max}}$ gating from estimated cost $C_{\text{est}}$. Whenever `max_tokens` is finite, $C_{\text{max}} > B$ independently rejects admission with HTTP 503 `"Budget ceiling exceeded"`.
+  - In real execution mode (`EXECUTION_MODE=real`), mock model specifications are strictly pruned from candidate sets.
+- **P1 Conversation Contract & Protocol Hardening (`TC_M1_01`, `TC_M1_02`, `TC_W3_05`)**:
+  - Enforced `ChatMessage(extra="forbid")`, non-empty prompt validation, and unknown capability alias rejection (HTTP 400).
+  - Forwards native ordered `messages` array directly to LiteLLM and Ollama runners without role flattening.
+- **P1 Durable Sanitized Outbox Ledger (`data/ledger.jsonl`) (`TC_W4_01`–`TC_W4_03`)**:
+  - Thread-safe append-only `DurableLedger` persisting every attempt and request to disk with `os.fsync()`.
+  - Comprehensive regex secret scrubber (`sanitize_secrets`) redacting Bearer tokens, Google API keys, OpenAI keys, Groq keys, Anthropic keys, and credentials.
+  - Sets failed attempts where billing is unknown to `cost_state="unknown_unbilled"` and `cost=0.0`.
+- **P1 Resilience & Cancellation Safety (`TC_M5_01`, `TC_M5_02`, `TC_W3_09`)**:
+  - Strict bounded retries honoring configured `max_attempts` without artificial minimum overrides.
+  - Tracks failed replicas in `exclude_ids` to avoid retrying degraded instances.
+  - Enforces cumulative total deadlines and exponential backoff; wraps execution in `try ... finally` to ensure replica dynamic counters are decremented on `asyncio.CancelledError`.
+- **P1 Simulator-API Parity & Calibrated Matched Replay (`TC_W4_04`, `TC_W4_05`)**:
+  - Cloud models skip replica queues in simulation ($W_q = 0.0$), matching `api.py`.
+  - Replaced ad-hoc estimation with unified `OutputLengthEstimator.from_config()`.
+  - Freezes deterministic Poisson traces per seed, replaying identical offered request cohorts across all policies (27.0/30.0 completed across all policies).
+  - Explicitly decomposes queue wait delay from TTFT and TPOT.
+  - Verified and corrected Gemini Flash pricing to $\$0.30/1\text{M} = \$0.000300/1\text{k}$.
+
 ---
 
 ## 2. Milestone Progress Mapping (M1 – M8)
@@ -94,53 +121,78 @@
 
 ---
 
-## 3. Formal Test Suite & Test Case Matrix
+## 3. Formal Test Suite & Test Case Matrix (68 Milestone Tests)
 
 | Testcase ID | Milestone | Scope | Test Function | Verified Invariant / Property | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `TC_P2_01` | **P0 Correctness** | Integration | `test_tc_p2_01_privacy_adversarial_forbidden_choice` | Internal request NEVER routes to external provider even if cheaper/idle. | **PASSED** |
-| `TC_P2_02` | **P0 Correctness** | Integration | `test_tc_p2_02_unknown_privacy_fails_closed` | Unknown privacy labels fail closed with HTTP 400. | **PASSED** |
-| `TC_P2_03` | **P0 Correctness** | Unit | `test_tc_p2_03_unavailable_local_fails_closed_no_leak` | Offline local replica triggers safe rejection; never leaks to external. | **PASSED** |
-| `TC_P2_04` | **P0 Correctness** | Unit | `test_tc_p2_04_confidential_and_restricted_enforcement` | Confidential and restricted labels strictly filtered from external models. | **PASSED** |
-| `TC_P2_05` | **P0 Correctness** | Integration | `test_tc_p2_05_impossible_budget_safely_rejected` | Impossible budget ceiling is safely rejected before inference. | **PASSED** |
-| `TC_P2_06` | **P0 Correctness** | Integration | `test_tc_p2_06_negative_budget_validation_error` | Negative budget amounts fail validation with HTTP 400. | **PASSED** |
-| `TC_P2_07` | **P0 Correctness** | Unit | `test_tc_p2_07_budget_differentiates_model_tier` | Intermediate budget permits cheap local model while filtering expensive model. | **PASSED** |
 | `TC_M1_01` | **M1 Contract** | Integration | `test_tc_m1_01_logical_capability_alias_routing` | Unified API accepts logical capability aliases (`coding`, `general`). | **PASSED** |
-| `TC_M1_02` | **M1 Contract** | Integration | `test_tc_m1_02_standard_chat_messages_contract` | Standard OpenAI messages schema accepted and executed. | **PASSED** |
+| `TC_M1_02` | **M1 Contract** | Integration | `test_tc_m1_02_standard_chat_messages_contract` | Standard OpenAI messages schema accepted and executed with roles preserved. | **PASSED** |
+| `TC_M1_03` | **M1 Contract** | Integration | `test_tc_m1_03_unified_api_routing_public_task` | Public request routes via unified `/v1/chat/completions` API. | **PASSED** |
+| `TC_M1_04` | **M1 Contract** | Integration | `test_tc_m1_04_unified_api_routing_privacy_constraint` | Internal privacy routes strictly to local models. | **PASSED** |
+| `TC_M1_05` | **M1 Contract** | Integration | `test_tc_m1_05_unified_api_budget_constraint` | Budget constraints filter out unaffordable models. | **PASSED** |
+| `TC_M1_06` | **M1 Contract** | Integration | `test_tc_m1_06_ui_static_asset_serving` | Web UI container serves production static assets (`index.html`, JS, CSS). | **PASSED** |
+| `TC_M1_07` | **M1 Contract** | Integration | `test_tc_m1_07_ui_health_reverse_proxy` | Reverse proxy `/health` endpoint responds with healthy gateway status. | **PASSED** |
+| `TC_M1_08` | **M1 Contract** | Integration | `test_tc_m1_08_ui_chat_completion_reverse_proxy_and_cache` | Web reverse proxy forwards chat completions and reflects cache hits. | **PASSED** |
+| `TC_M1_09` | **M1 Contract** | Integration | `test_tc_m1_09_single_user_context_no_auth_wall` | Single-user requests execute cleanly without authentication barriers. | **PASSED** |
+| `TC_M1_10` | **M1 Contract** | Integration | `test_tc_m1_10_strict_contract_validation` | Extra unknown parameters, empty prompt bodies, and unknown capability aliases fail with HTTP 400. | **PASSED** |
 | `TC_M2_01` | **M2 Multi-Provider**| Integration | `test_tc_m2_01_local_model_execution` | Local model backend executes successfully. | **PASSED** |
 | `TC_M2_02` | **M2 Multi-Provider**| Integration | `test_tc_m2_02_alternate_provider_execution` | Alternate/mock cloud provider executes successfully when eligible. | **PASSED** |
 | `TC_M2_03` | **M2 Multi-Provider**| Integration | `test_tc_m2_03_transparent_provider_switch_same_client` | Same client payload switches transparently based on policy constraints. | **PASSED** |
+| `TC_M2_04` | **M2 Multi-Provider**| Integration | `test_tc_m2_04_real_local_mode_fails_closed_when_offline` | In real execution mode, offline Ollama daemon fails closed with HTTP 503 instead of falling back. | **PASSED** |
+| `TC_M2_05` | **M2 Multi-Provider**| Integration | `test_tc_m2_05_real_local_model_native_tokens_and_hardware_tags` | Real Ollama execution returns native token counts and labels `hardware: "cpu"`. | **PASSED** |
 | `TC_M3_01` | **M3 Baselines** | Unit | `test_tc_m3_01_strongest_distinct_from_cheapest` | Strongest and Cheapest policies pick distinct models matching their objectives. | **PASSED** |
 | `TC_M3_02` | **M3 Baselines** | Unit | `test_tc_m3_02_static_rule_follows_task_mapping` | Static policy follows predetermined task-to-model mapping. | **PASSED** |
 | `TC_M3_03` | **M3 Baselines** | Unit | `test_tc_m3_03_adaptive_policy_balances_objectives` | Adaptive policy balances cost and quality weights in multi-objective scoring. | **PASSED** |
+| `TC_M3_04` | **M3 Privacy** | Integration | `test_tc_m3_04_privacy_adversarial_forbidden_choice` | Internal request NEVER routes to external provider even if cheaper/idle. | **PASSED** |
+| `TC_M3_05` | **M3 Privacy** | Integration | `test_tc_m3_05_unknown_privacy_fails_closed` | Unknown privacy labels fail closed with HTTP 400. | **PASSED** |
+| `TC_M3_06` | **M3 Privacy** | Unit | `test_tc_m3_06_unavailable_local_fails_closed_no_leak` | Offline local replica triggers safe rejection; never leaks to external. | **PASSED** |
+| `TC_M3_07` | **M3 Privacy** | Unit | `test_tc_m3_07_confidential_and_restricted_enforcement` | Confidential and restricted labels strictly filtered from external models. | **PASSED** |
+| `TC_M3_08` | **M3 Budget** | Integration | `test_tc_m3_08_impossible_budget_safely_rejected` | Impossible budget ceiling is safely rejected before inference. | **PASSED** |
+| `TC_M3_09` | **M3 Budget** | Integration | `test_tc_m3_09_negative_budget_validation_error` | Negative budget amounts fail validation with HTTP 400. | **PASSED** |
+| `TC_M3_10` | **M3 Budget** | Unit | `test_tc_m3_10_budget_differentiates_model_tier` | Intermediate budget permits cheap local model while filtering expensive model. | **PASSED** |
+| `TC_M3_11` | **M3 System** | Unit | `test_tc_m3_11_system_s1_declarative_routing` | System S1 declarative router matches task and privacy requirements. | **PASSED** |
+| `TC_M3_12` | **M3 System** | Unit | `test_tc_m3_12_system_s2_declarative_routing` | System S2 declarative router matches budget and SLA constraints. | **PASSED** |
+| `TC_M3_13` | **M3 System** | Unit | `test_tc_m3_13_cost_factors_strictly_preserved_for_telemetry_and_budgets` | Cost factors are preserved for telemetry and rate-limiting across all models. | **PASSED** |
+| `TC_M3_14` | **M3 System** | Unit | `test_tc_m3_14_online_historical_quantile_adaptation` | Quantile adaptation adjusts weights based on observed latency distributions. | **PASSED** |
+| `TC_M3_15` | **M3 / Policy** | Integration | `test_tc_m3_15_user_private_toggle_enforcement` | `user_private=True` strictly restricts execution to local models, while cloud models skip replica selection when eligible. | **PASSED** |
+| `TC_M3_16` | **M3 Budget** | Integration | `test_tc_m3_16_bounded_worst_case_spend_clamping` | Worst-case spend $C_{\text{max}} = p \cdot P_{\text{in}} + \text{max\_tokens} \cdot P_{\text{out}}$ independently gates admission. | **PASSED** |
+| `TC_M3_17` | **M3 Policy** | Unit | `test_tc_m3_17_privacy_restriction` | Policy filters models violating privacy level. | **PASSED** |
+| `TC_M3_18` | **M3 Policy** | Unit | `test_tc_m3_18_budget_restriction` | Policy filters models exceeding budget ceiling. | **PASSED** |
 | `TC_M4_01` | **M4 Safe Cache** | Integration | `test_tc_m4_01_repeat_request_cache_hit` | Repeated identical request hits cache and returns cached payload. | **PASSED** |
 | `TC_M4_02` | **M4 Safe Cache** | Integration | `test_tc_m4_02_cross_tenant_cache_isolation` | Tenant isolation invariant: Partitioned users cannot retrieve each other's cached responses. | **PASSED** |
 | `TC_M4_03` | **M4 Safe Cache** | Integration | `test_tc_m4_03_no_cache_bypass` | Requests with `no_cache=True` bypass cache lookup and write. | **PASSED** |
 | `TC_M4_04` | **M4 Safe Cache** | Integration | `test_tc_m4_04_canonical_normalization_cache_hit` | Canonical prompt whitespace and line ending normalization produces identical cache hit. | **PASSED** |
-| `TC_M4_05` | **M4 Safe Cache** | Integration | `test_tc_m4_05_multi_turn_repeat_query_cache_hit` | Multi-turn chat repeated query hits cache via secondary canonical query index. | **PASSED** |
+| `TC_M4_05` | **M4 Safe Cache** | Integration | `test_tc_m4_05_lossless_full_context_cache_and_poisoning_prevention` | Full context keying prevents context poisoning (changing facts or max_tokens causes cache MISS). | **PASSED** |
 | `TC_M4_06` | **M4 Model Specs** | Unit | `test_tc_m4_06_gemini_model_registered_and_spec_verified` | Verified `gemini/gemini-flash-latest` pricing ($0.075/1M in, $0.30/1M out) and 1M context. | **PASSED** |
 | `TC_M4_07` | **M4 Safe Cache** | Integration | `test_tc_m4_07_user_private_cache_partition_and_isolation` | `user_private` cache isolation: Public cloud cache entries NEVER hit when private. | **PASSED** |
+| `TC_M4_08` | **M4 Safe Cache** | Unit | `test_tc_m4_08_code_indentation_preservation_in_cache` | Code indentation (leading spaces/tabs) is preserved without whitespace collapsing. | **PASSED** |
+| `TC_M4_09` | **M4 Safe Cache** | Integration | `test_tc_m4_09_simulation_provenance_isolation` | Simulated responses are strictly isolated and never reused for real-only execution requests. | **PASSED** |
+| `TC_M4_10` | **M4 Safe Cache** | Unit | `test_tc_m4_10_cache_invalidation_methods` | Explicit cache invalidation (`invalidate`, `invalidate_prefix`, `clear`) safely purges stale keys. | **PASSED** |
+| `TC_M4_11` | **M4 Safe Cache** | Unit | `test_tc_m4_11_redis_backend_and_transparent_fallback` | Redis backend TTL, JSON serialization, and transparent automatic fallback to in-memory store. | **PASSED** |
+| `TC_M4_12` | **M4 Safe Cache** | Integration | `test_tc_m4_12_cache_provenance_privacy_leak_prevention` | Public cache entries cannot fulfill `internal_only` requests. | **PASSED** |
+| `TC_M4_13` | **M4 Safe Cache** | Integration | `test_tc_m4_13_cache_provenance_quality_floor_enforcement` | Cache entries generated by lower-quality models cannot fulfill higher quality floor requests. | **PASSED** |
+| `TC_M4_14` | **M4 Safe Cache** | Integration | `test_tc_m4_14_prose_punctuation_and_case_normalization` | Trailing punctuation (`?`, `.`, `!`) and casing match (`can you read my prompt?` vs `can you read my prompt`). | **PASSED** |
+| `TC_M4_15` | **M4 Resilience** | Integration | `test_tc_m4_15_external_failover_when_primary_rate_limited` | Rate-limited external model (429) fails over to alternate model without simulation. | **PASSED** |
 | `TC_M5_01` | **M5 Resilience** | Integration | `test_tc_m5_01_bounded_retry_on_replica_failure` | Primary replica transient error triggers bounded retry on alternate replica. | **PASSED** |
 | `TC_M5_02` | **M5 Resilience** | Unit | `test_tc_m5_02_circuit_breaker_state_transitions` | Circuit breaker transitions CLOSED $\to$ OPEN $\to$ HALF-OPEN $\to$ CLOSED. | **PASSED** |
+| `TC_M5_03` | **M5 Resilience** | Unit | `test_tc_m5_03_circuit_breaker_check_on_all_alternates` | When all replicas are OPEN, gateway returns 503 with zero upstream calls. | **PASSED** |
+| `TC_M5_04` | **M5 Resilience** | Unit | `test_tc_m5_04_unhealthy_replica_removed` | Unhealthy/unavailable replica is excluded from candidate selection. | **PASSED** |
 | `TC_M6_01` | **M6 Scheduler** | Unit | `test_tc_m6_01_multiple_replicas_exist_for_same_model` | At least two replicas exist for local model enabling within-model scheduling. | **PASSED** |
 | `TC_M6_02` | **M6 Scheduler** | Unit | `test_tc_m6_02_dynamic_workload_weighted_queue_tracking`| Dynamic workload-weighted queue $W_q$ increments on dispatch and decrements on completion. | **PASSED** |
 | `TC_M6_03` | **M6 Scheduler** | Unit | `test_tc_m6_03_least_loaded_and_slo_aware_selection` | Scheduler selects least-loaded replica when one is artificially saturated. | **PASSED** |
 | `TC_M7_01` | **M7 Telemetry** | Integration | `test_tc_m7_01_complete_structured_trace_record` | Every request produces a full correlation event trace record. | **PASSED** |
 | `TC_M7_02` | **M7 Telemetry** | Integration | `test_tc_m7_02_secret_prompt_redaction_in_traces` | Raw prompts and proprietary secrets are excluded from tracer records. | **PASSED** |
+| `TC_M7_03` | **M7 Telemetry** | Unit | `test_tc_m7_03_sanitize_secrets_credentials_and_tokens` | Regex sanitization reliably redacts Bearer, Google AI Studio, OpenAI, Anthropic, and Groq keys. | **PASSED** |
+| `TC_M7_04` | **M7 Telemetry** | Unit | `test_tc_m7_04_durable_ledger_disk_persistence` | Append-only `DurableLedger` persists transactions with `os.fsync()` and survives restarts. | **PASSED** |
+| `TC_M7_05` | **M7 Telemetry** | Unit | `test_tc_m7_05_durable_ledger_failed_attempt_zero_unbilled_cost` | Failed attempts record `cost_state="unknown_unbilled"` and `cost=0.0`. | **PASSED** |
+| `TC_M7_06` | **M7 / Live API** | Integration | `test_tc_m7_06_live_api_ledger_sanitization_integration` | Live `/v1/chat/completions` records sanitized attempt and request entries to disk. | **PASSED** |
+| `TC_M7_07` | **M7 Observability** | Integration | `test_tc_m7_07_multi_attempt_ledger_accounting` | Multi-attempt ledger records every execution attempt and scrubs all API keys and secrets. | **PASSED** |
 | `TC_M8_01` | **M8 Benchmark** | Unit | `test_tc_m8_01_independent_workload_and_estimator_error_tracking` | Decoupled ground truth workload generation enables non-circular estimation error tracking. | **PASSED** |
 | `TC_M8_02` | **M8 Benchmark** | Unit | `test_tc_m8_02_reproducible_benchmark_execution` | Fixed seed produces identical benchmark metrics across independent runs. | **PASSED** |
-| `TC_W3_01` | **M1 Contract** | Integration | `test_tc_w3_01_single_user_context_no_auth_wall` | Single-user requests execute cleanly without authentication barriers. | **PASSED** |
-| `TC_W3_02` | **M1 / Policy** | Integration | `test_tc_w3_02_user_private_toggle_enforcement` | `user_private=True` strictly restricts execution to local models, while cloud models skip replica selection when eligible. | **PASSED** |
-| `TC_W3_03` | **M4 Safe Cache** | Integration | `test_tc_w3_03_cache_provenance_privacy_leak_prevention` | Public cache entries cannot fulfill `internal_only` requests. | **PASSED** |
-| `TC_W3_04` | **M4 Safe Cache** | Integration | `test_tc_w3_04_cache_provenance_quality_floor_enforcement` | Cache entries generated by lower-quality models cannot fulfill higher quality floor requests. | **PASSED** |
-| `TC_W3_05` | **M1 Contract** | Integration | `test_tc_w3_05_strict_contract_validation` | Extra unknown parameters, empty prompt bodies, and unsupported stream requests fail validation with HTTP 400. | **PASSED** |
-| `TC_W3_06` | **M3 Budget** | Integration | `test_tc_w3_06_bounded_worst_case_spend_clamping` | Worst-case spend $C_{\text{max}} = p \cdot P_{\text{in}} + \text{max\_tokens} \cdot P_{\text{out}}$ exceeding budget is rejected with HTTP 400. | **PASSED** |
-| `TC_W3_07` | **M2 Multi-Provider**| Integration | `test_tc_w3_07_real_local_mode_fails_closed_when_offline` | In real execution mode, offline Ollama daemon fails closed with HTTP 503 instead of falling back. | **PASSED** |
-| `TC_W3_08` | **M2 Multi-Provider**| Integration | `test_tc_w3_08_real_local_model_native_tokens_and_hardware_tags` | Real Ollama execution returns native token counts and labels `hardware: "cpu"`. | **PASSED** |
-| `TC_W3_09` | **M5 Resilience** | Unit | `test_tc_w3_09_circuit_breaker_check_on_all_alternates` | Circuit breaker half-open state throttles concurrent probes and transitions accurately. | **PASSED** |
-| `TC_W3_10` | **M7 Observability** | Integration | `test_tc_w3_10_multi_attempt_ledger_accounting` | Multi-attempt ledger records every execution attempt and scrubs all API keys and secrets. | **PASSED** |
-| `TC_W3_11` | **M8 Benchmark** | Unit | `test_tc_w3_11_async_event_benchmark_poisson_arrival` | Poisson event clock benchmark computes accurate TTFT, TPOT, and queue delays under load. | **PASSED** |
-| `TC_W3_12` | **M8 Benchmark** | Unit | `test_tc_w3_12_attributable_savings_accounting_vs_frontier` | Verifies measurable cost reduction against theoretical frontier models. | **PASSED** |
+| `TC_M8_03` | **M8 Simulator** | Unit | `test_tc_m8_03_simulator_cloud_scheduling_and_delay_decomposition` | Cloud models skip local replica queue in simulation; $W_q$, TTFT, and TPOT cleanly decomposed. | **PASSED** |
+| `TC_M8_04` | **M8 Simulator** | Unit | `test_tc_m8_04_simulator_deterministic_frozen_cohort_matched_replay` | Frozen deterministic trace replayed identically across all policies guarantees matched cohorts. | **PASSED** |
+| `TC_M8_05` | **M8 Benchmark** | Unit | `test_tc_m8_05_async_event_benchmark_poisson_arrival` | Poisson event clock benchmark computes accurate TTFT, TPOT, and queue delays under load. | **PASSED** |
+| `TC_M8_06` | **M8 Benchmark** | Unit | `test_tc_m8_06_attributable_savings_accounting_vs_frontier` | Attributable savings $S_p = B_p - A_p$ verified against frontier reference. | **PASSED** |
 
 ---
 
@@ -155,10 +207,10 @@ AdaRoute can be used via three interfaces depending on your workflow:
 
 ### Step 1: Launch Services with Docker
 
-Start the complete stack (AdaRoute Gateway, Ollama service, and Workbench UI):
+Start the complete stack (AdaRoute Gateway, Redis Cache, Ollama service, and Workbench UI):
 
 ```bash
-# Launch Gateway, UI, and Ollama in the background
+# Launch Gateway, Redis, UI, and Ollama in the background
 just up
 
 # Check status of running containers
@@ -190,6 +242,7 @@ just cli
 #### Available Commands:
 - Type your prompt and press `Enter` to send.
 - `/private` or `/user_private` — Toggle **User Private** mode on/off. When ON, all traffic stays strictly on local models.
+- `/history` — Toggle between **Single-Query Mode** (History OFF, default — each prompt is evaluated independently, ideal for testing prompt exact-match cache hits) and **Multi-Turn Chat Mode** (History ON — appends previous dialogue turns into conversational context).
 - `/set cap <general|coding|reasoning>` — Switch logical capability alias.
 - `/set privacy <public|internal_only|confidential|restricted>` — Set privacy level.
 - `/set budget <float>` — Set max request budget ceiling (e.g., `/set budget 0.05`).
@@ -197,8 +250,11 @@ just cli
 - `/set policy <adaptive|strongest|cheapest|static>` — Override Stage 1 policy.
 - `/set scheduler <slo_aware|least_loaded|round_robin>` — Override Stage 2 scheduler.
 - `/diag` — Display deep routing diagnostics for the last completion.
-- `/clear` — Reset conversation history.
+- `/clear` — Clear conversation history and reset screen.
 - `/exit` — Exit the CLI.
+
+> [!TIP]
+> **Exact-Match Redis Caching**: For natural language prose queries, case normalization and trailing punctuation stripping are automatically applied. For example, `can you read my prompt?` and `can you read my prompt` produce the exact same cache key and hit from shared Redis in `< 1ms`. Multiline code blocks preserve exact indentation, spacing, and syntax.
 
 #### Example CLI Session:
 

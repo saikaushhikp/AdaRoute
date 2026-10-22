@@ -59,7 +59,7 @@ class AdaRouteCLI:
         hist_status = "[bold green]ON[/bold green]" if self.config["history"] else "[dim]OFF (single-query)[/dim]"
 
         header_table.add_row(
-            Text.from_markup(f"[bold blue]⚡ AdaRoute AI Gateway[/bold blue] [dim]({self.client.base_url})[/dim]"),
+            Text.from_markup(f"[bold blue] AdaRoute Gateway[/bold blue] [dim]({self.client.base_url})[/dim]"),
             status_text,
         )
         header_table.add_row(
@@ -176,6 +176,37 @@ class AdaRouteCLI:
         table.add_row("SLO Attainment", slo_badge)
 
         console.print(table)
+
+        # Attempt History Table (if multiple attempts or detailed attempts available)
+        attempt_history = meta.get("attempt_history", [])
+        if attempt_history:
+            att_table = Table(title="Execution Attempt History & Failover Trail", box=box.ROUNDED)
+            att_table.add_column("#", style="dim", justify="right")
+            att_table.add_column("Model", style="bold cyan")
+            att_table.add_column("Replica (Provider)", style="yellow")
+            att_table.add_column("Status", style="bold")
+            att_table.add_column("Latency", justify="right")
+            att_table.add_column("Cost (Billed State)", justify="right")
+            att_table.add_column("Error Detail", style="dim")
+
+            for att in attempt_history:
+                st = att.get("status", "unknown")
+                st_badge = "[bold green]SUCCESS[/bold green]" if st == "success" else "[bold red]FAILED[/bold red]"
+                cost_state = att.get("cost_state", "unbilled")
+                cost_val = f"${att.get('cost', 0.0):.6f} ({cost_state})"
+                err = att.get("error_message") or "-"
+                if len(err) > 60:
+                    err = err[:57] + "..."
+                att_table.add_row(
+                    str(att.get("attempt_number", 1)),
+                    att.get("model_id", "N/A"),
+                    f"{att.get('replica_id', 'N/A')} ({att.get('provider', 'N/A')})",
+                    st_badge,
+                    f"{att.get('latency_ms', 0.0):.1f} ms",
+                    cost_val,
+                    err,
+                )
+            console.print(att_table)
 
     def check_and_print_health(self) -> None:
         """Queries and displays live cluster health."""
@@ -323,14 +354,22 @@ class AdaRouteCLI:
                             self.config["history"] = args[0].lower() in ("true", "1", "on", "yes")
                         else:
                             self.config["history"] = not self.config["history"]
-                        state = (
-                            "[bold green]ENABLED (multi-turn chat)[/bold green]"
-                            if self.config["history"]
-                            else "[dim]DISABLED (single-query workbench mode)[/dim]"
-                        )
-                        console.print(f"Conversation history mode is now {state}")
-                        if not self.config["history"]:
+                        if self.config["history"]:
+                            console.print(
+                                "Conversation history mode is now [bold green]ENABLED (multi-turn context)[/bold green]"
+                            )
+                            console.print(
+                                "[dim]Note: Each prompt appends previous conversation history to context. "
+                                "To test exact prompt cache hits, keep History OFF (single-query mode) or type /clear to reset history.[/dim]"
+                            )
+                        else:
                             self.messages.clear()
+                            console.print(
+                                "Conversation history mode is now [dim]DISABLED (single-query workbench mode)[/dim]"
+                            )
+                            console.print(
+                                "[dim]Each prompt is evaluated independently, ideal for testing prompt exact cache hits.[/dim]"
+                            )
                     elif cmd in ("/private", "/user_private"):
                         self.config["user_private"] = not self.config["user_private"]
                         state = (

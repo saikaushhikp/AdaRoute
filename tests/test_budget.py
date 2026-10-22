@@ -12,8 +12,8 @@ def eligibility_checker():
 
 
 @pytest.mark.asyncio
-async def test_tc_p2_05_impossible_budget_safely_rejected():
-    """[TC_P2_05] Budget Ceiling: If budget is lower than any eligible candidate cost,
+async def test_tc_m3_08_impossible_budget_safely_rejected():
+    """[TC_M3_08] Budget Ceiling: If budget is lower than any eligible candidate cost,
 
     the gateway must reject safely (503 / 400) without running inference.
     """
@@ -34,8 +34,8 @@ async def test_tc_p2_05_impossible_budget_safely_rejected():
 
 
 @pytest.mark.asyncio
-async def test_tc_p2_06_negative_budget_validation_error():
-    """[TC_P2_06] Negative budget must fail validation immediately."""
+async def test_tc_m3_09_negative_budget_validation_error():
+    """[TC_M3_09] Negative budget must fail validation immediately."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
@@ -48,8 +48,8 @@ async def test_tc_p2_06_negative_budget_validation_error():
         assert response.status_code in (400, 422)
 
 
-def test_tc_p2_07_budget_differentiates_model_tier(eligibility_checker):
-    """[TC_P2_07] Intermediate budget permits local cheap model but excludes expensive cloud model."""
+def test_tc_m3_10_budget_differentiates_model_tier(eligibility_checker):
+    """[TC_M3_10] Intermediate budget permits local cheap model but excludes expensive cloud model."""
     local_spec = registry.get_model("qwen2.5:1.5b")
     ext_spec = registry.get_model("gpt-4o-external")
 

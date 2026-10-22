@@ -37,6 +37,8 @@ class MockBackend(BaseBackend):
         model_spec: ModelSpec,
         replica_id: str,
         prompt_text: str,
+        messages: list[dict[str, str]] | None = None,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         self.call_count += 1
         self.history.append(

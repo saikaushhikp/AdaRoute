@@ -1,18 +1,15 @@
-"""Week-3 Verification Test Suite (TC_W3_01 - TC_W3_12).
+"""Week-3 Verification Test Suite using milestone-based test IDs.
 
 Rigorous automated validation verifying all P0, P1, and P2 feedback requirements:
-- TC_W3_01: Single-User Context & No Auth Wall (Public API access for single user without auth errors)
-- TC_W3_02: User Private Toggle Enforcement (Local-only routing when user_private=True, cloud allowed when False)
-- TC_W3_03: Provenance-Aware Cache Isolation (Public cache never served to internal_only)
-- TC_W3_04: Cache Quality Floor Enforcement (Low-quality cache never served to high-quality request)
-- TC_W3_05: Strict Schema Validation (extra='forbid', stream=true rejected with 400)
-- TC_W3_06: Bounded Worst-Case Spend Clamping (C_max = P_in + max_tokens * P_out <= budget)
-- TC_W3_07: Strict Real Local Mode Fail-Closed (503 on unreachable Ollama, no silent simulation)
-- TC_W3_08: Native Token Extraction and Hardware Provenance
-- TC_W3_09: Circuit Breaker Check on All Alternates during Retry
-- TC_W3_10: Multi-Attempt Billing Ledger Accounting & Cloud Replica Skipping
-- TC_W3_11: Asynchronous Event-Driven Benchmark with TTFT/TPOT & Queuing Delay
-- TC_W3_12: Attributable Savings Accounting vs Reference Frontier Model
+- TC_M1_09: Single-user context and no authentication wall
+- TC_M3_15: User-private routing and bounded worst-case spend
+- TC_M4_12: Provenance-aware cache isolation and quality floor
+- TC_M1_10: Strict schema validation
+- TC_M2_04: Strict real local mode and native token provenance
+- TC_M5_03: Circuit breaker checks all alternates during retry
+- TC_M7_07: Multi-attempt billing ledger accounting
+- TC_M8_05: Asynchronous event-driven benchmark with queue metrics
+- TC_M8_06: Attributable savings versus a reference model
 """
 
 import pytest
@@ -26,13 +23,13 @@ from adaroute.resilience.circuit import CircuitState
 from adaroute.schemas import RequestContext
 
 # ==============================================================================
-# P0 IDENTITY & CONTRACT TESTS (TC_W3_01 - TC_W3_06)
+# P0 identity, contract, cache, and routing tests
 # ==============================================================================
 
 
 @pytest.mark.asyncio
-async def test_tc_w3_01_single_user_context_no_auth_wall():
-    """[TC_W3_01] Single-User Context: Requests succeed without auth headers and default to user."""
+async def test_tc_m1_09_single_user_context_no_auth_wall():
+    """[TC_M1_09] Requests succeed without auth headers and default to one user."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
@@ -49,8 +46,8 @@ async def test_tc_w3_01_single_user_context_no_auth_wall():
 
 
 @pytest.mark.asyncio
-async def test_tc_w3_02_user_private_toggle_enforcement():
-    """[TC_W3_02] User Private Toggle: When ON (True), cloud models are strictly excluded."""
+async def test_tc_m3_15_user_private_toggle_enforcement():
+    """[TC_M3_15] When user-private mode is on, cloud models are excluded."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         # 1. user_private=True: forces local self-hosted model even if policy is 'strongest' and privacy is public
@@ -92,8 +89,8 @@ async def test_tc_w3_02_user_private_toggle_enforcement():
 
 
 @pytest.mark.asyncio
-async def test_tc_w3_03_cache_provenance_privacy_leak_prevention():
-    """[TC_W3_03] Milestone M4: Public cache entry CANNOT be served to internal_only request."""
+async def test_tc_m4_12_cache_provenance_privacy_leak_prevention():
+    """[TC_M4_12] A public cache entry cannot serve an internal-only request."""
     cache.clear()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -131,8 +128,8 @@ async def test_tc_w3_03_cache_provenance_privacy_leak_prevention():
 
 
 @pytest.mark.asyncio
-async def test_tc_w3_04_cache_provenance_quality_floor_enforcement():
-    """[TC_W3_04] Milestone M4: Low quality cached response cannot satisfy high quality requirement."""
+async def test_tc_m4_13_cache_provenance_quality_floor_enforcement():
+    """[TC_M4_13] A low-quality cached response cannot satisfy a high-quality request."""
     cache.clear()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -167,8 +164,8 @@ async def test_tc_w3_04_cache_provenance_quality_floor_enforcement():
 
 
 @pytest.mark.asyncio
-async def test_tc_w3_05_strict_contract_validation():
-    """[TC_W3_05] Milestone M1: Extra fields and streaming rejected with HTTP 400."""
+async def test_tc_m1_10_strict_contract_validation():
+    """[TC_M1_10] Extra fields and streaming requests are rejected with HTTP 400."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         # Stream=true is not supported in current gateway release
@@ -195,8 +192,13 @@ async def test_tc_w3_05_strict_contract_validation():
         assert res_extra.status_code == 400
 
 
-def test_tc_w3_06_bounded_worst_case_spend_clamping():
-    """[TC_W3_06] Milestone M3: Worst case token spend (prompt + max_tokens) must not exceed budget."""
+@pytest.mark.asyncio
+async def test_tc_m3_16_bounded_worst_case_spend_clamping():
+    """[TC_M3_16] Worst-case token spending stays within the request budget.
+
+    Verifies that when C_est <= B < C_max, the model is strictly rejected
+    by the eligibility checker, and the HTTP route returns 503 if no models qualify.
+    """
     checker = EligibilityChecker(registry)
     expensive_spec = registry.get_model("gpt-4o-external")
 
@@ -204,8 +206,8 @@ def test_tc_w3_06_bounded_worst_case_spend_clamping():
     req = RequestContext(
         task_type="coding",
         prompt_tokens=500,
-        estimated_output_tokens=50,  # Estimated is small
-        max_tokens=4000,  # Max output tokens is very large!
+        estimated_output_tokens=50,  # Estimated is small ($0.00325)
+        max_tokens=4000,  # Max output tokens is very large ($0.0625)
         budget=0.01,  # Budget is $0.01
     )
 
@@ -214,22 +216,40 @@ def test_tc_w3_06_bounded_worst_case_spend_clamping():
     max_cost = expensive_spec.calculate_max_cost(req.prompt_tokens, req.max_tokens)
     assert max_cost > req.budget
 
-    # Estimated cost is within budget:
+    # Estimated cost is within budget ($0.00325 <= $0.01):
     est_cost = checker.estimate_cost(expensive_spec, req.prompt_tokens, req.estimated_output_tokens)
     assert est_cost <= req.budget
 
-    # But worst case exceeds budget ceiling
-    assert max_cost > req.budget
+    # Independent Worst-Case Gate Invariant: C_max > B must independently reject admission!
+    is_eligible, reason, _ = checker.check_model_eligibility(expensive_spec, req)
+    assert is_eligible is False
+    assert "Budget ceiling exceeded" in reason or "Max output cost" in reason
+    assert "0.06250" in reason
+
+    # Verify through HTTP endpoint with an impossible ceiling
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "gpt-4o-external",
+                "prompt": "Write a massive compiler in Python " * 20,
+                "max_tokens": 4000,
+                "budget": 0.0001,  # Extremely low budget: rejects both local and cloud
+            },
+        )
+        assert res.status_code == 503
+        assert "Routing rejected" in res.json()["detail"]
 
 
 # ==============================================================================
-# P1 REAL BACKEND & RESILIENCE TESTS (TC_W3_07 - TC_W3_10)
+# P1 real backend and resilience tests
 # ==============================================================================
 
 
 @pytest.mark.asyncio
-async def test_tc_w3_07_real_local_mode_fails_closed_when_offline():
-    """[TC_W3_07] Milestone M2: Strict 'real' execution mode fails closed (HTTP 503) without silent simulation."""
+async def test_tc_m2_04_real_local_mode_fails_closed_when_offline():
+    """[TC_M2_04] Real execution fails closed without silent simulation."""
     # Point to an unreachable host to simulate local engine failure in 'real' mode
     offline_backend = LocalBackend(
         ollama_host="http://localhost:99999",
@@ -249,8 +269,8 @@ async def test_tc_w3_07_real_local_mode_fails_closed_when_offline():
 
 
 @pytest.mark.asyncio
-async def test_tc_w3_08_real_local_model_native_tokens_and_hardware_tags():
-    """[TC_W3_08] Milestone M2: Real local Ollama generates native tokens and captures model digest."""
+async def test_tc_m2_05_real_local_model_native_tokens_and_hardware_tags():
+    """[TC_M2_05] Real local Ollama reports native tokens and model provenance."""
     local_backend = LocalBackend(execution_mode="hybrid")
     req = RequestContext(prompt_tokens=10, estimated_output_tokens=10)
     spec = registry.get_model("qwen2.5:1.5b")
@@ -264,8 +284,8 @@ async def test_tc_w3_08_real_local_model_native_tokens_and_hardware_tags():
     assert resp["hardware"] in ("cpu", "simulated_cpu", "cuda", "rocm", "metal")
 
 
-def test_tc_w3_09_circuit_breaker_check_on_all_alternates():
-    """[TC_W3_09] Milestone M5: Circuit breaker trips to OPEN and prevents alternate selection."""
+def test_tc_m5_03_circuit_breaker_check_on_all_alternates():
+    """[TC_M5_03] The circuit breaker blocks unhealthy alternate replicas."""
     cb = circuit_breaker
     cb.clear()
 
@@ -283,8 +303,8 @@ def test_tc_w3_09_circuit_breaker_check_on_all_alternates():
 
 
 @pytest.mark.asyncio
-async def test_tc_w3_10_multi_attempt_ledger_accounting():
-    """[TC_W3_10] Milestone M7: Detailed attempt ledger records individual attempt costs."""
+async def test_tc_m7_07_multi_attempt_ledger_accounting():
+    """[TC_M7_07] The attempt ledger records the cost of each attempt."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         res = await client.post(
@@ -312,12 +332,12 @@ async def test_tc_w3_10_multi_attempt_ledger_accounting():
 
 
 # ==============================================================================
-# P1 BENCHMARK & SAVINGS LEDGER TESTS (TC_W3_11 - TC_W3_12)
+# P1 benchmark and savings tests
 # ==============================================================================
 
 
-def test_tc_w3_11_async_event_benchmark_poisson_arrival():
-    """[TC_W3_11] Milestone M8: Asynchronous event-driven benchmark measures TTFT, TPOT, and p95 queuing."""
+def test_tc_m8_05_async_event_benchmark_poisson_arrival():
+    """[TC_M8_05] The event-driven benchmark measures TTFT, TPOT, and p95 queueing."""
     simulator = EventDrivenSimulator(arrival_rate_rps=10.0, seed=42)
     res = simulator.run_benchmark("adaptive", "slo_aware", num_requests=25)
 
@@ -333,8 +353,8 @@ def test_tc_w3_11_async_event_benchmark_poisson_arrival():
     assert "effective_throughput_rps" in res
 
 
-def test_tc_w3_12_attributable_savings_accounting_vs_frontier():
-    """[TC_W3_12] Milestone M7/M8: Calculate attributable cost savings vs frontier reference."""
+def test_tc_m8_06_attributable_savings_accounting_vs_frontier():
+    """[TC_M8_06] Calculate attributable savings versus a reference model."""
     frontier_model = registry.get_model("gpt-4o-external")
     local_model = registry.get_model("qwen2.5:1.5b")
 

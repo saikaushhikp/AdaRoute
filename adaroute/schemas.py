@@ -10,12 +10,35 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 
 def normalize_prompt_text(text: str) -> str:
-    """Normalizes prompt text canonically (NFKC, line endings, collapsed spaces)."""
+    """Normalizes prompt text canonically (NFKC, line endings, collapsed spaces).
+
+    Preserves code indentation (leading spaces/tabs) for code blocks while
+    canonicalizing whitespace variations for prose.
+    """
     if not text:
         return ""
     text = unicodedata.normalize("NFKC", text)
     text = text.replace("\r\n", "\n").replace("\r", "\n")
-    lines = [re.sub(r"[ \t]+", " ", line).strip() for line in text.split("\n")]
+
+    # Detect code blocks or syntax where leading indentation is semantically significant
+    has_code = "```" in text or any(
+        line.lstrip().startswith(("def ", "class ", "import ", "from ", "return ", "if __name__"))
+        for line in text.split("\n")
+    )
+
+    if has_code:
+        # Preserve indentation for code blocks while stripping trailing spaces
+        lines = [line.rstrip() for line in text.split("\n")]
+        return "\n".join(lines).strip()
+
+    # Standard prose: collapse multiple whitespace into single space, normalize case,
+    # and strip trailing sentence punctuation (? . ! , : ;) to match real-world query variations.
+    lines = []
+    for line in text.split("\n"):
+        cleaned = re.sub(r"[ \t]+", " ", line).strip()
+        cleaned = re.sub(r"[\?\.\!,;:]+$", "", cleaned).strip()
+        if cleaned:
+            lines.append(cleaned.lower())
     return "\n".join(lines).strip()
 
 
@@ -55,6 +78,8 @@ class RequestContext(BaseModel):
     temperature: float = 0.7
     is_authenticated: bool = True
     user_private: bool = False
+    execution_mode: str = "hybrid"
+    policy_name: str = "adaptive"
 
     @field_validator("privacy_level", mode="before")
     @classmethod
@@ -96,6 +121,8 @@ class ReplicaState(BaseModel):
     replica_id: str
     model_id: str
     provider: str
+    endpoint: str | None = None
+    weight: float = 1.0
     active_requests: int = 0
     workload_tokens: int = 0  # Dynamic W_q = sum(prompt_tokens + estimated_output)
     recent_latency_ms: float = 50.0
@@ -117,6 +144,10 @@ class ModelSpec(BaseModel):
     model_id: str
     logical_capabilities: list[str]
     provider: str
+    execution_type: str = "local"  # "local" | "external" | "mock"
+    litellm_model: str | None = None
+    api_key_env: str | None = None
+    base_url: str | None = None
     quality_scores: dict[str, float] = Field(default_factory=dict)
     input_price_per_1k: float = 0.001
     output_price_per_1k: float = 0.002
@@ -129,7 +160,13 @@ class ModelSpec(BaseModel):
     @property
     def is_cloud(self) -> bool:
         """Indicates whether this model is cloud-hosted (skips replica scheduling)."""
-        return self.is_external or self.provider in ("groq", "cohere", "litellm", "mock-external")
+        if self.execution_type in ("external", "cloud", "mock-external"):
+            return True
+        if self.is_external:
+            return True
+        if self.execution_type in ("local", "mock-local"):
+            return False
+        return self.provider in ("groq", "cohere", "gemini", "google", "litellm", "mock-external")
 
     def calculate_max_cost(self, prompt_tokens: int, max_tokens: int | None = None) -> float:
         """Calculates hard worst-case cost based on prompt tokens and max_tokens ceiling."""
@@ -138,6 +175,8 @@ class ModelSpec(BaseModel):
 
 
 class ChatMessage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     role: str
     content: str
 
@@ -177,6 +216,7 @@ class ChatCompletionRequest(BaseModel):
     policy: str = "adaptive"
     scheduler: str = "slo_aware"
     user_private: bool = False
+    execution_mode: str | None = Field(default=None)
 
     @field_validator("stream")
     @classmethod
@@ -206,8 +246,17 @@ class ChatCompletionRequest(BaseModel):
     @classmethod
     def validate_policy(cls, v: str) -> str:
         val = v.strip().lower()
-        if val not in ("adaptive", "strongest", "cheapest", "static"):
-            raise ValueError(f"Invalid routing policy: '{v}'.")
+        valid_policies = (
+            "adaptive",
+            "strongest",
+            "cheapest",
+            "static",
+            "latency_first",
+            "cost_first",
+            "quality_first",
+        )
+        if val not in valid_policies:
+            raise ValueError(f"Invalid routing policy: '{v}'. Must be one of {valid_policies}")
         return val
 
     @field_validator("scheduler")
@@ -220,9 +269,20 @@ class ChatCompletionRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_prompt_or_messages(self) -> ChatCompletionRequest:
-        if not self.messages and (not self.prompt or not self.prompt.strip()):
-            raise ValueError("Request must contain non-empty prompt or at least one message.")
+        has_prompt = bool(self.prompt and self.prompt.strip())
+        has_non_empty_msg = any(bool(m.content and m.content.strip()) for m in self.messages)
+        if not has_prompt and not has_non_empty_msg:
+            raise ValueError("Request must contain non-empty prompt or at least one non-empty message.")
         return self
+
+    def to_messages_list(self) -> list[dict[str, str]]:
+        """Returns structured message dictionaries preserving native conversation roles."""
+        valid_msgs = [m for m in self.messages if m.content and m.content.strip()]
+        if valid_msgs:
+            return [{"role": m.role.strip().lower(), "content": m.content} for m in valid_msgs]
+        if self.prompt and self.prompt.strip():
+            return [{"role": "user", "content": self.prompt}]
+        return []
 
     def get_full_prompt(self) -> str:
         """Returns canonical normalized representation of prompt or messages."""
@@ -271,8 +331,11 @@ class AttemptRecord(BaseModel):
     completion_tokens: int = 0
     latency_ms: float = 0.0
     cost: float = 0.0
+    cost_state: str = "allocated_estimate"  # "invoiced_real", "allocated_estimate", "unknown_unbilled"
     status: str = "success"  # "success" | "failed"
     error_message: str | None = None
+    execution_mode: str = "simulated"
+    is_simulated: bool = False
 
 
 class RoutingMetadata(BaseModel):
