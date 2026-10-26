@@ -80,6 +80,8 @@ class RequestContext(BaseModel):
     user_private: bool = False
     execution_mode: str = "hybrid"
     policy_name: str = "adaptive"
+    session_id: str | None = None
+    session_budget: float | None = None
 
     @field_validator("privacy_level", mode="before")
     @classmethod
@@ -217,6 +219,8 @@ class ChatCompletionRequest(BaseModel):
     scheduler: str = "slo_aware"
     user_private: bool = False
     execution_mode: str | None = Field(default=None)
+    session_id: str | None = None
+    session_budget: float | None = Field(default=None, ge=0.0)
 
     @field_validator("stream")
     @classmethod
@@ -246,17 +250,8 @@ class ChatCompletionRequest(BaseModel):
     @classmethod
     def validate_policy(cls, v: str) -> str:
         val = v.strip().lower()
-        valid_policies = (
-            "adaptive",
-            "strongest",
-            "cheapest",
-            "static",
-            "latency_first",
-            "cost_first",
-            "quality_first",
-        )
-        if val not in valid_policies:
-            raise ValueError(f"Invalid routing policy: '{v}'. Must be one of {valid_policies}")
+        if not val or not re.match(r"^[a-zA-Z0-9_-]+$", val):
+            raise ValueError(f"Invalid routing policy name format: '{v}'")
         return val
 
     @field_validator("scheduler")
@@ -367,3 +362,29 @@ class ChatCompletionResponse(BaseModel):
     content: str | None = None
     replica_id: str | None = None
     provider: str | None = None
+
+
+class PolicyRollbackRequest(BaseModel):
+    policy_name: str | None = None
+    version: int | None = None
+    author: str = "admin"
+
+
+class PolicyVersionRecord(BaseModel):
+    version: int
+    policy_name: str
+    description: str
+    timestamp: float
+    author: str
+    weights: dict[str, float] = Field(default_factory=dict)
+
+
+class LedgerSummary(BaseModel):
+    total_requests: int
+    actual_cost: float
+    baseline_cost: float
+    attributable_savings: float
+    savings_percentage: float
+    cache_hits: int
+    cache_hit_rate: float
+

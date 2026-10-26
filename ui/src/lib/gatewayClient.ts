@@ -192,6 +192,52 @@ export class GatewayClient {
       throw error;
     }
   }
+
+  /**
+   * Fetches auditable cost ledger and attributable savings S_p = B_p - A_p
+   */
+  async getLedger(limit: number = 50, signal?: AbortSignal): Promise<any> {
+    const url = this.resolveUrl(`/v1/control-plane/ledger?limit=${limit}`);
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      signal: signal || AbortSignal.timeout(5000),
+    });
+    if (!res.ok) throw new Error(`Ledger fetch failed: ${res.status}`);
+    return await res.json();
+  }
+
+  /**
+   * Queries active policy and version history
+   */
+  async getPolicies(signal?: AbortSignal): Promise<any> {
+    const url = this.resolveUrl('/v1/control-plane/policies');
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      signal: signal || AbortSignal.timeout(5000),
+    });
+    if (!res.ok) throw new Error(`Policies fetch failed: ${res.status}`);
+    return await res.json();
+  }
+
+  /**
+   * Rolls back or activates a routing policy version dynamically
+   */
+  async rollbackPolicy(
+    payload: { policy_name?: string; version?: number; author?: string },
+    signal?: AbortSignal
+  ): Promise<any> {
+    const url = this.resolveUrl('/v1/control-plane/rollback');
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+      signal: signal || AbortSignal.timeout(5000),
+    });
+    if (!res.ok) throw new Error(`Policy rollback failed: ${res.status}`);
+    return await res.json();
+  }
 }
 
 export const defaultGatewayClient = new GatewayClient();

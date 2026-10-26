@@ -12,6 +12,7 @@ from typing import Any
 import yaml
 
 from adaroute.schemas import ModelSpec, PrivacyLevel, ReplicaState
+from adaroute.selection import SystemCatalog, UnifiedModelSelector
 
 
 class ModelRegistry:
@@ -53,6 +54,7 @@ class ModelRegistry:
         self.registry_config = cfg.get("registry", {})
 
         models_data = cfg.get("models", [])
+        strict_cat = cfg.get("gateway", {}).get("strict_catalog", False)
         for m in models_data:
             privacy_set = {PrivacyLevel.from_str(pl) for pl in m.get("privacy_levels", ["public"])}
             exec_type = m.get("execution_type", "local")
@@ -64,6 +66,24 @@ class ModelRegistry:
                 "mock-external",
                 "litellm",
             )
+            # Support explicit per-capability quality profiles or legacy scalar quality
+            quality_scores: dict[str, float] = {}
+            raw_caps = m.get("capabilities", {})
+            if isinstance(raw_caps, dict) and raw_caps:
+                for cname, cdata in raw_caps.items():
+                    if isinstance(cdata, dict):
+                        q_info = cdata.get("quality", {})
+                        q_val = q_info.get("value", 0.80) if isinstance(q_info, dict) else float(q_info)
+                        quality_scores[cname.lower()] = q_val
+                    else:
+                        quality_scores[cname.lower()] = float(cdata)
+            base_q = float(m.get("quality", 0.80))
+            for alias in m.get("logical_aliases", ["general"]):
+                if alias.lower() not in quality_scores:
+                    quality_scores[alias.lower()] = base_q
+            if "general" not in quality_scores:
+                quality_scores["general"] = base_q
+
             spec = ModelSpec(
                 model_id=m["model_id"],
                 logical_capabilities=m.get("logical_aliases", ["general"]),
@@ -72,13 +92,7 @@ class ModelRegistry:
                 litellm_model=m.get("litellm_model"),
                 api_key_env=m.get("api_key_env"),
                 base_url=m.get("base_url"),
-                quality_scores={
-                    "general": m.get("quality", 0.80),
-                    "qa": m.get("quality", 0.80),
-                    "coding": m.get("quality", 0.80),
-                    "reasoning": m.get("quality", 0.80),
-                    "summarization": m.get("quality", 0.80),
-                },
+                quality_scores=quality_scores,
                 input_price_per_1k=m.get("cost_per_1k_input", 0.0),
                 output_price_per_1k=m.get("cost_per_1k_output", 0.0),
                 allowed_privacy=privacy_set,
@@ -102,8 +116,15 @@ class ModelRegistry:
                 self.register_replica(rep_state)
 
         # Conditionally ensure legacy aliases exist for backward compatibility with W1/W2 tests
-        if self.registry_config.get("compatibility_models", True):
+        if self.registry_config.get("compatibility_models", True) and not strict_cat:
             self._ensure_backward_compatibility()
+
+        try:
+            self.catalog = SystemCatalog.from_dict(cfg, strict_catalog=strict_cat)
+            self.selector = UnifiedModelSelector(catalog=self.catalog, config=cfg)
+        except Exception:
+            self.catalog = None
+            self.selector = None
 
     def get_policy_weights(self, policy_name: str) -> dict[str, float] | None:
         """Retrieves objective weights for a named policy from declarative config."""

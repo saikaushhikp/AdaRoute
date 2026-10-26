@@ -31,6 +31,7 @@ from adaroute.cache.redis_backend import (
     InMemoryCacheBackend,
     RedisCacheBackend,
 )
+from adaroute.cache.semantic import SemanticCache
 from adaroute.schemas import ChatMessage, PrivacyLevel, RequestContext, normalize_prompt_text
 
 logger = logging.getLogger("adaroute.cache")
@@ -62,6 +63,7 @@ class ExactCache:
                 redis_url=redis_url,
                 force_redis=(backend == "redis"),
             )
+        self.semantic_cache = SemanticCache(similarity_threshold=0.95, redis_url=redis_url)
 
     def _init_backend(
         self,
@@ -240,6 +242,24 @@ class ExactCache:
         # NOTE: Unsafe secondary query_key fallback index is DISABLED and REMOVED (W2-FB001).
         # Context poisoning is eliminated by keying losslessly on the full ordered context.
 
+        # Dynamic Semantic Caching: approximate vector similarity check (tau >= 0.95)
+        # Bounded strictly to standalone user prompts; multi-turn messages / system prompts enforce exact match
+        has_system_or_history = messages and (
+            len(messages) > 1
+            or any(
+                (m.role if hasattr(m, "role") else m.get("role", "")).lower() == "system"
+                for m in messages
+            )
+        )
+        if prompt and self.semantic_cache and not has_system_or_history:
+            try:
+                sem_hit = self.semantic_cache.get(request, prompt)
+                if sem_hit:
+                    self.hits += 1
+                    return sem_hit
+            except Exception:
+                pass
+
         self.misses += 1
         return None
 
@@ -308,8 +328,36 @@ class ExactCache:
             self.backend_type = "memory"
             self._backend.set(full_key, entry, ttl_seconds=ttl)
 
+        # Index in SemanticCache for vector similarity retrieval
+        has_system_or_history = messages and (
+            len(messages) > 1
+            or any(
+                (m.role if hasattr(m, "role") else m.get("role", "")).lower() == "system"
+                for m in messages
+            )
+        )
+        if prompt and self.semantic_cache and not has_system_or_history:
+            try:
+                self.semantic_cache.put(
+                    request=request,
+                    prompt_text=prompt,
+                    response_content=(response or {}).get("content", ""),
+                    model=origin_model,
+                    replica_id=(response or {}).get("replica_id", "cache"),
+                    output_tokens=(response or {}).get("output_tokens", 0),
+                    quality_score=origin_quality,
+                    is_simulated=is_simulated,
+                )
+            except Exception as e:
+                logger.debug(f"Semantic cache index failed: {e}")
+
     def invalidate(self, key: str) -> bool:
         """Invalidates a single cache entry by its key."""
+        if self.semantic_cache:
+            try:
+                self.semantic_cache.clear()
+            except Exception:
+                pass
         try:
             return self._backend.delete(key)
         except Exception as e:
@@ -318,6 +366,11 @@ class ExactCache:
 
     def invalidate_prefix(self, prefix: str) -> int:
         """Invalidates all cache entries matching a key prefix."""
+        if self.semantic_cache:
+            try:
+                self.semantic_cache.clear()
+            except Exception:
+                pass
         try:
             return self._backend.delete_prefix(prefix)
         except Exception as e:
@@ -326,11 +379,21 @@ class ExactCache:
 
     def clear(self) -> None:
         """Clears all entries in the cache."""
+        if self.semantic_cache:
+            try:
+                self.semantic_cache.clear()
+            except Exception:
+                pass
         try:
             self._backend.clear()
         except Exception as e:
             logger.warning(f"Cache backend clear failed ({e}), resetting to fresh in-memory store.")
             self._backend = InMemoryCacheBackend()
             self.backend_type = "memory"
+        if hasattr(self, "semantic_cache") and self.semantic_cache:
+            try:
+                self.semantic_cache.clear()
+            except Exception:
+                pass
         self.hits = 0
         self.misses = 0

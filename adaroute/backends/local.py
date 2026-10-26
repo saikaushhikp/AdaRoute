@@ -51,19 +51,33 @@ class LocalBackend(BaseBackend):
     async def execute(
         self,
         request: RequestContext,
-        model_spec: ModelSpec,
-        replica_id: str,
-        prompt_text: str,
+        model_spec: ModelSpec | None = None,
+        replica_id: str = "none",
+        prompt_text: str = "",
         messages: list[dict[str, str]] | None = None,
+        candidate: Any = None,
+        endpoint: str | None = None,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         start_time = time.perf_counter()
+
+        eff_host = (
+            endpoint
+            or (candidate.endpoint if candidate else None)
+            or self.ollama_host
+            or (getattr(model_spec, "base_url", None) if model_spec else None)
+        ).rstrip("/")
 
         # If strict simulation mode requested, skip real network attempt
         if self.execution_mode == "simulation":
             return await self._execute_simulation(request, model_spec, replica_id, prompt_text, start_time)
 
         # Resolve model name for Ollama
-        target_model = model_spec.model_id
+        target_model = (
+            getattr(candidate, "provider_model_name", None)
+            or getattr(candidate, "model_id", None)
+            or (model_spec.model_id if model_spec else "qwen2.5:1.5b")
+        )
         if target_model in ("qwen-2.5-local", "qwen2.5-local"):
             target_model = "qwen2.5:1.5b"
         elif target_model in ("deepseek-r1-local", "deepseek-local"):
@@ -87,7 +101,7 @@ class LocalBackend(BaseBackend):
                     payload["options"]["temperature"] = request.temperature
 
                 res = await client.post(
-                    f"{self.ollama_host}/api/chat",
+                    f"{eff_host}/api/chat",
                     json=payload,
                 )
 
@@ -122,7 +136,7 @@ class LocalBackend(BaseBackend):
                         raise LocalBackendUnavailableError(f"Ollama returned HTTP {res.status_code}: {res.text}")
         except Exception as e:
             if self.execution_mode == "real":
-                raise LocalBackendUnavailableError(f"Real Ollama instance at {self.ollama_host} is unreachable: {e!s}")
+                raise LocalBackendUnavailableError(f"Real Ollama instance at {eff_host} is unreachable: {e!s}")
 
         # Fallback to simulation engine in hybrid or offline mode
         return await self._execute_simulation(request, model_spec, replica_id, prompt_text, start_time)

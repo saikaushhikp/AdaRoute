@@ -89,6 +89,15 @@ class EligibilityChecker:
                         est_cost,
                     )
 
+        # 2.5 HARD CONSTRAINT: Context Window Capacity
+        needed_tokens = request.prompt_tokens + (request.max_tokens if (request.max_tokens and request.max_tokens > 0) else request.estimated_output_tokens)
+        if spec.max_context and needed_tokens > spec.max_context:
+            return (
+                False,
+                f"Context window exceeded: required {needed_tokens} tokens > limit {spec.max_context} for '{spec.model_id}'",
+                est_cost,
+            )
+
         # 3. HARD CONSTRAINT: Quality Floor (Enforced across ALL floors: low, medium, high!)
         min_quality = self.QUALITY_FLOORS.get(request.quality_requirement.lower(), 0.70)
         model_q = spec.quality_scores.get(request.task_type.lower(), spec.quality_scores.get("general", 0.75))

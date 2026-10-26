@@ -31,6 +31,12 @@ benchmark-event:
 benchmark-event-local:
     python -m adaroute.experiments.event_runner
 
+load-test:
+    docker run --rm --add-host=host.docker.internal:host-gateway -e GATEWAY_URL=http://host.docker.internal:8000 -v "{{justfile_directory()}}:/app" -w /app adaroute python -m adaroute.experiments.load_test
+
+load-test-local:
+    python -m adaroute.experiments.load_test
+
 ui-build:
     docker build -t adaroute-ui ./ui
 

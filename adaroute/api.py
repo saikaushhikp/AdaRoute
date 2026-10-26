@@ -15,10 +15,12 @@ Coordinates:
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import time
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, Request
@@ -28,6 +30,7 @@ from fastapi.responses import JSONResponse
 from adaroute.backends.litellm_backend import LiteLLMBackend
 from adaroute.backends.local import LocalBackend
 from adaroute.backends.mock import MockBackend
+from adaroute.backends.openai_compatible import OpenAICompatibleBackend
 from adaroute.cache.exact import ExactCache
 from adaroute.policy.model_selection import (
     AdaptiveModelPolicy,
@@ -53,11 +56,14 @@ from adaroute.schemas import (
     ChatCompletionResponse,
     ChatMessage,
     ModelSpec,
+    PolicyRollbackRequest,
     RequestContext,
     RoutingMetadata,
     UsageInfo,
 )
+from adaroute.selection import SessionStore
 from adaroute.telemetry.tracer import default_tracer, sanitize_message
+from adaroute.workloads.bayesian_estimator import BayesianLinearEstimator
 from adaroute.workloads.estimator import OutputLengthEstimator
 from adaroute.workloads.tokenizer import count_tokens
 
@@ -98,7 +104,29 @@ backend_runners = {
     "litellm": LiteLLMBackend(),
     "mock-local": LocalBackend(),
     "mock-external": MockBackend(provider_name="mock-external", base_latency_ms=30.0),
+    "openai_compatible": OpenAICompatibleBackend(),
+    "vllm": OpenAICompatibleBackend(),
 }
+session_store = SessionStore()
+bayesian_estimator = BayesianLinearEstimator(persistence_path="data/bayesian_estimator.json")
+try:
+    bayesian_estimator.load("data/bayesian_estimator.json")
+except Exception:
+    pass
+
+# Control Plane Versioned Policy State
+policy_versions: list[dict[str, Any]] = [
+    {
+        "version": 1,
+        "policy_name": "adaptive",
+        "description": "Baseline Pareto multi-objective optimization (quality, cost, latency)",
+        "timestamp": time.time(),
+        "author": "system",
+        "weights": {"quality": 0.35, "cost": 0.35, "latency": 0.30},
+    }
+]
+default_active_policy = "adaptive"
+
 
 
 @asynccontextmanager
@@ -145,8 +173,11 @@ app.add_middleware(
 )
 
 
-def get_backend_runner(spec: ModelSpec):
+def get_backend_runner(spec: ModelSpec, candidate: Any = None):
     """Dynamically resolves backend runner for any provider on any system."""
+    adapter_kind = getattr(candidate, "adapter_kind", None)
+    if adapter_kind in ("openai_compatible", "vllm") or spec.provider in ("openai_compatible", "vllm"):
+        return backend_runners["openai_compatible"]
     if spec.provider in backend_runners:
         return backend_runners[spec.provider]
     if spec.execution_type in ("external", "cloud"):
@@ -223,8 +254,21 @@ async def chat_completions(
     no_cache = validated_req.no_cache
     max_tokens = validated_req.max_tokens
     policy_name = validated_req.policy
+    if policy_name == "adaptive" and default_active_policy != "adaptive":
+        policy_name = default_active_policy
     scheduler_name = validated_req.scheduler
     user_private = validated_req.user_private
+
+    # Validate policy name against registered and declarative policies
+    valid_policies = set(model_policies.keys())
+    if hasattr(registry, "selector") and registry.selector and hasattr(registry.selector, "policies"):
+        valid_policies.update(registry.selector.policies.keys())
+    if policy_name not in valid_policies:
+        tracer.record_validation_error(req_id, f"Unknown routing policy: '{policy_name}'")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown routing policy: '{policy_name}'. Valid policies: {sorted(valid_policies)}",
+        )
 
     # 3. Pre-Routing Request Characterization
     p_tokens = count_tokens(prompt_text)
@@ -252,6 +296,8 @@ async def chat_completions(
         user_private=user_private,
         execution_mode=(validated_req.execution_mode or os.getenv("EXECUTION_MODE", "hybrid")),
         policy_name=policy_name,
+        session_id=validated_req.session_id,
+        session_budget=validated_req.session_budget,
     )
 
     # 4. Start Correlation Trace
@@ -422,6 +468,7 @@ async def chat_completions(
                     replica_id=rep_id,
                     prompt_text=prompt_text,
                     messages=raw_messages,
+                    endpoint=selected_replica.endpoint if selected_replica else None,
                 )
                 attempt_lat = (time.perf_counter() - attempt_start) * 1000.0
 
@@ -471,6 +518,15 @@ async def chat_completions(
                     status="success",
                 )
                 execution_result = res
+                if validated_req.session_id:
+                    session_store.record_turn(
+                        session_id=validated_req.session_id,
+                        tenant_id=tenant_id,
+                        selected_deployment_id=selected_spec.model_id,
+                        selected_model_id=selected_spec.model_id,
+                        capability=task_type,
+                        billed_cost=attempt_cost,
+                    )
                 break
 
             except Exception as exc:
@@ -571,6 +627,17 @@ async def chat_completions(
     # Update estimator observation for calibration
     estimator.record_observation(task_type, est_out_tokens, actual_out_tokens)
 
+    # Online recursive Bayesian conjugate updating
+    is_code = "def " in prompt_text or "class " in prompt_text or "function" in prompt_text.lower() or task_type == "coding"
+    is_reasoning = "step-by-step" in prompt_text.lower() or "think" in prompt_text.lower() or task_type == "reasoning"
+    bayesian_estimator.record_actual(
+        task_type=task_type,
+        prompt_tokens=p_tokens,
+        actual_output_tokens=actual_out_tokens,
+        is_code=is_code,
+        is_reasoning=is_reasoning,
+    )
+
     # Ingest into Provenance-Aware Cache
     model_q = selected_spec.quality_scores.get(task_type, 0.80)
     is_sim = "simulated" in str(execution_result.get("source", "")).lower()
@@ -642,3 +709,193 @@ async def chat_completions(
         replica_id=effective_replica_id,
         provider=selected_spec.provider,
     )
+
+
+@app.get("/v1/estimator/bayesian/state")
+async def get_bayesian_estimator_state():
+    """Returns the current online Bayesian estimator parameters and sample counts."""
+    return {
+        "status": "active",
+        "domains": {
+            domain: {
+                "mu": [round(float(x), 4) for x in reg.mu],
+                "sample_count": reg.sample_count,
+            }
+            for domain, reg in bayesian_estimator.regressors.items()
+        },
+    }
+
+
+def _read_ledger_records(ledger_path: Path) -> list[dict[str, Any]]:
+    if not ledger_path.exists():
+        return []
+    records = []
+    try:
+        with open(ledger_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    records.append(json.loads(line))
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    return records
+
+
+@app.get("/v1/control-plane/ledger")
+async def get_control_plane_ledger(limit: int = 50):
+    """Computes attributable savings S_p = B_p - A_p, aggregates, and transaction ledger."""
+    ledger_path = Path("data/ledger.jsonl")
+    records = await asyncio.to_thread(_read_ledger_records, ledger_path)
+
+    total_reqs = 0
+    actual_cost_total = 0.0
+    baseline_cost_total = 0.0
+    cache_hits = 0
+    by_capability: dict[str, dict[str, Any]] = {}
+    recent_transactions: list[dict[str, Any]] = []
+
+    for record in records:
+        # Count request level entries or fallback to attempt
+        if record.get("entry_type") != "request":
+            continue
+
+        total_reqs += 1
+        cost = float(record.get("cost", 0.0))
+        p_tok = int(record.get("prompt_tokens", 0))
+        c_tok = int(record.get("completion_tokens", 0))
+
+        # Baseline benchmark cost: frontier pricing ($0.005/1k prompt, $0.015/1k output)
+        counterfactual = (p_tok / 1000.0) * 0.005 + (c_tok / 1000.0) * 0.015
+        baseline = max(counterfactual, cost)
+        savings = max(0.0, baseline - cost)
+
+        actual_cost_total += cost
+        baseline_cost_total += baseline
+
+        is_cached = (record.get("status") == "cached") or ("cache" in str(record.get("provider", "")).lower())
+        if is_cached:
+            cache_hits += 1
+
+        cap = str(record.get("logical_model", "general"))
+        if cap not in by_capability:
+            by_capability[cap] = {
+                "requests": 0,
+                "actual_cost": 0.0,
+                "baseline_cost": 0.0,
+                "attributable_savings": 0.0,
+            }
+        by_capability[cap]["requests"] += 1
+        by_capability[cap]["actual_cost"] += cost
+        by_capability[cap]["baseline_cost"] += baseline
+        by_capability[cap]["attributable_savings"] += savings
+
+        recent_transactions.append({
+            "request_id": record.get("request_id"),
+            "timestamp": record.get("timestamp"),
+            "logical_model": cap,
+            "selected_model": record.get("selected_model"),
+            "provider": record.get("provider"),
+            "prompt_tokens": p_tok,
+            "completion_tokens": c_tok,
+            "actual_cost": round(cost, 6),
+            "baseline_cost": round(baseline, 6),
+            "attributable_savings": round(savings, 6),
+            "cache_hit": is_cached,
+            "status": record.get("status", "success"),
+        })
+
+    net_savings = max(0.0, baseline_cost_total - actual_cost_total)
+    savings_pct = (net_savings / baseline_cost_total * 100.0) if baseline_cost_total > 0.0 else 0.0
+    hit_rate = (cache_hits / total_reqs * 100.0) if total_reqs > 0 else 0.0
+
+    # Sort recent transactions newest first
+    recent_transactions.reverse()
+    clipped_transactions = recent_transactions[:limit]
+
+    return {
+        "summary": {
+            "total_requests": total_reqs,
+            "actual_cost": round(actual_cost_total, 6),
+            "baseline_cost": round(baseline_cost_total, 6),
+            "attributable_savings": round(net_savings, 6),
+            "savings_percentage": round(savings_pct, 2),
+            "cache_hits": cache_hits,
+            "cache_hit_rate": round(hit_rate, 2),
+        },
+        "by_capability": {
+            k: {
+                "requests": v["requests"],
+                "actual_cost": round(v["actual_cost"], 6),
+                "baseline_cost": round(v["baseline_cost"], 6),
+                "attributable_savings": round(v["attributable_savings"], 6),
+            }
+            for k, v in by_capability.items()
+        },
+        "recent_transactions": clipped_transactions,
+    }
+
+
+@app.get("/v1/control-plane/policies")
+async def get_control_plane_policies():
+    """Returns the active routing policy, version history, and available policy configurations."""
+    current_ver = policy_versions[-1]["version"] if policy_versions else 1
+    return {
+        "active_policy": default_active_policy,
+        "active_version": current_ver,
+        "history": policy_versions,
+        "available_policies": sorted(model_policies.keys()),
+    }
+
+
+@app.post("/v1/control-plane/rollback")
+async def rollback_control_plane_policy(req: PolicyRollbackRequest):
+    """Rolls back or switches the active gateway routing policy dynamically with full version audit."""
+    global default_active_policy
+
+    target_policy = None
+    if req.version is not None:
+        # Rollback to specific version in history
+        match = next((v for v in policy_versions if v["version"] == req.version), None)
+        if not match:
+            raise HTTPException(status_code=404, detail=f"Policy version {req.version} not found in version history.")
+        target_policy = match["policy_name"]
+    elif req.policy_name:
+        target_policy = req.policy_name.strip()
+    else:
+        raise HTTPException(status_code=400, detail="Must provide either policy_name or version to rollback.")
+
+    if target_policy not in model_policies:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown policy '{target_policy}'. Available: {sorted(model_policies.keys())}",
+        )
+
+    new_version_num = len(policy_versions) + 1
+    action_desc = (
+        f"Rollback to version {req.version} ({target_policy})"
+        if req.version
+        else f"Switched active policy to '{target_policy}'"
+    )
+    new_record = {
+        "version": new_version_num,
+        "policy_name": target_policy,
+        "description": action_desc,
+        "timestamp": time.time(),
+        "author": req.author or "admin",
+        "weights": getattr(model_policies.get(target_policy), "weights", {}),
+    }
+    policy_versions.append(new_record)
+    default_active_policy = target_policy
+
+    return {
+        "status": "success",
+        "active_policy": default_active_policy,
+        "active_version": new_version_num,
+        "message": f"Successfully activated policy '{default_active_policy}' at version {new_version_num}",
+        "history": policy_versions,
+    }
+

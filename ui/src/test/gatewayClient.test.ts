@@ -10,7 +10,7 @@ describe('GatewayClient', () => {
     vi.restoreAllMocks();
   });
 
-  it('checks health successfully', async () => {
+  it('[TC_M1_11] checks health successfully', async () => {
     const mockHealth = {
       status: 'healthy',
       models: ['qwen2.5:1.5b', 'gpt-4o-external'],
@@ -28,7 +28,7 @@ describe('GatewayClient', () => {
     expect(res.replicas).toContain('local-r1');
   });
 
-  it('handles offline health status', async () => {
+  it('[TC_M1_12] handles offline health status', async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('Failed to fetch'));
 
     const res = await client.checkHealth();
@@ -36,7 +36,7 @@ describe('GatewayClient', () => {
     expect(res.error).toContain('Failed to fetch');
   });
 
-  it('sends chat completion request and parses response', async () => {
+  it('[TC_M1_13] sends chat completion request and parses response', async () => {
     const mockResponse = {
       id: 'req-12345',
       model: 'qwen2.5:1.5b',
@@ -80,7 +80,7 @@ describe('GatewayClient', () => {
     expect(res.routing_metadata?.cache_hit).toBe(false);
   });
 
-  it('maps HTTP 400 to VALIDATION_ERROR', async () => {
+  it('[TC_M1_14] maps HTTP 400 to VALIDATION_ERROR', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 400,
@@ -97,7 +97,7 @@ describe('GatewayClient', () => {
     });
   });
 
-  it('maps HTTP 503 to ROUTING_REJECTED', async () => {
+  it('[TC_M1_15] maps HTTP 503 to ROUTING_REJECTED', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 503,
@@ -114,7 +114,7 @@ describe('GatewayClient', () => {
     });
   });
 
-  it('maps network errors to NETWORK_ERROR', async () => {
+  it('[TC_M1_16] maps network errors to NETWORK_ERROR', async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('Network connection refused'));
 
     await expect(

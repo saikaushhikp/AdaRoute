@@ -8,7 +8,7 @@ import { SettingsPanel } from '../components/SettingsPanel';
 import { DEFAULT_SETTINGS } from '../state/chatState';
 
 describe('UI Presentation Components', () => {
-  it('renders GatewayStatus as active when healthy', () => {
+  it('[TC_M1_17] renders GatewayStatus as active when healthy', () => {
     const onRefresh = vi.fn();
     render(
       <GatewayStatus
@@ -22,7 +22,7 @@ describe('UI Presentation Components', () => {
     expect(onRefresh).toHaveBeenCalled();
   });
 
-  it('renders GatewayStatus as offline when unavailable', () => {
+  it('[TC_M1_18] renders GatewayStatus as offline when unavailable', () => {
     render(
       <GatewayStatus
         health={{ status: 'unavailable', error: 'Connection refused' }}
@@ -33,7 +33,7 @@ describe('UI Presentation Components', () => {
     expect(screen.getByText('Gateway Offline')).toBeInTheDocument();
   });
 
-  it('renders user and assistant MessageBubble', () => {
+  it('[TC_M1_19] renders user and assistant MessageBubble', () => {
     const userMsg = {
       id: '1',
       role: 'user' as const,
@@ -71,7 +71,7 @@ describe('UI Presentation Components', () => {
     expect(screen.getByRole('button', { name: /copy/i })).toBeInTheDocument();
   });
 
-  it('renders Composer and triggers onSend on button click and keyboard Enter', () => {
+  it('[TC_M1_20] renders Composer and triggers onSend on button click and keyboard Enter', () => {
     const onSend = vi.fn();
     const onChange = vi.fn();
 
@@ -109,7 +109,7 @@ describe('UI Presentation Components', () => {
     expect(onSend).toHaveBeenCalledTimes(2);
   });
 
-  it('allows changing capability and privacy in SettingsPanel', () => {
+  it('[TC_M1_21] allows changing capability and privacy in SettingsPanel', () => {
     const onChange = vi.fn();
     render(
       <SettingsPanel

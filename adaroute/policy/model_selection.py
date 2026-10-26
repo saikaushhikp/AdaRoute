@@ -54,27 +54,24 @@ class CheapestModelPolicy(BaseModelPolicy):
 
 
 class StaticRulePolicy(BaseModelPolicy):
-    """B3: Routes strictly according to predetermined static task mapping (Config-Driven)."""
+    """B3: Routes strictly according to predetermined static task mapping (Config-Driven).
 
-    DEFAULT_STATIC_MAP = {
-        "coding": "gpt-4o-external",
-        "reasoning": "gpt-4o-external",
-        "summarization": "qwen2.5:1.5b",
-        "qa": "qwen2.5:1.5b",
-        "general": "qwen2.5:1.5b",
-    }
+    System-agnostic: uses declarative static_task_map from config.yaml, or resolves
+    the first declared model advertising the requested capability. Never inserts
+    undeclared models.
+    """
 
     def __init__(self, registry: ModelRegistry, static_map: dict[str, str] | None = None):
         super().__init__(registry)
         cfg_map = registry.get_static_task_map()
-        self.static_map = static_map or (cfg_map if cfg_map else dict(self.DEFAULT_STATIC_MAP))
+        self.static_map = static_map if static_map is not None else (dict(cfg_map) if cfg_map else {})
 
     def rank_models(self, request: RequestContext) -> list[tuple[ModelSpec, float]]:
         eligible = self.checker.get_eligible_models(request)
         task = request.task_type.lower()
         preferred_id = self.static_map.get(task)
         if not preferred_id:
-            # System-agnostic dynamic fallback: select the first model advertising this task capability
+            # System-agnostic dynamic resolution: select the first declared model advertising this task capability
             candidate_specs = self.registry.get_models_for_capability(task)
             preferred_id = candidate_specs[0].model_id if candidate_specs else None
 

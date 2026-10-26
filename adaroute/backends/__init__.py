@@ -1,5 +1,6 @@
-from .base import BaseBackend
+from .base import BackendResult, BaseBackend
 from .local import LocalBackend
 from .mock import MockBackend
+from .openai_compatible import OpenAICompatibleBackend
 
-__all__ = ["BaseBackend", "LocalBackend", "MockBackend"]
+__all__ = ["BackendResult", "BaseBackend", "LocalBackend", "MockBackend", "OpenAICompatibleBackend"]

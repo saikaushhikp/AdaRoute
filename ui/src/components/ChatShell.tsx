@@ -4,8 +4,9 @@ import { SettingsPanel } from './SettingsPanel';
 import { MessageList } from './MessageList';
 import { Composer } from './Composer';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
+import { ControlPlanePanel } from './ControlPlanePanel';
 import { GatewayStatus } from './GatewayStatus';
-import { Menu, Trash2, Zap } from 'lucide-react';
+import { Menu, Trash2, Zap, ShieldCheck } from 'lucide-react';
 
 export const ChatShell: React.FC = () => {
   const {
@@ -30,6 +31,7 @@ export const ChatShell: React.FC = () => {
   } = useChatState();
 
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isControlPlaneOpen, setIsControlPlaneOpen] = useState(false);
 
   const handleClearWithConfirm = () => {
     if (messages.length === 0) return;
@@ -75,6 +77,18 @@ export const ChatShell: React.FC = () => {
 
           <div className="header-right">
             <GatewayStatus health={gatewayHealth} onRefresh={refreshHealth} />
+
+            <button
+              type="button"
+              className="action-btn"
+              onClick={() => setIsControlPlaneOpen(true)}
+              title="Open Auditable Control Plane & Cost Ledger"
+              aria-label="Open Control Plane"
+              style={{ color: 'var(--accent-primary)' }}
+            >
+              <ShieldCheck size={14} />
+              <span>Control Plane</span>
+            </button>
 
             {activeDiagnostics && (
               <button
@@ -133,6 +147,12 @@ export const ChatShell: React.FC = () => {
         isOpen={isDiagnosticsOpen}
         onClose={closeDiagnostics}
         metadata={activeDiagnostics}
+      />
+
+      {/* Auditable Control Plane & Ledger */}
+      <ControlPlanePanel
+        isOpen={isControlPlaneOpen}
+        onClose={() => setIsControlPlaneOpen(false)}
       />
     </div>
   );

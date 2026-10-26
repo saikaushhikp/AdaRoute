@@ -35,6 +35,9 @@ class LiteLLMBackend(BaseBackend):
         replica_id: str,
         prompt_text: str,
         messages: list[dict[str, str]] | None = None,
+        endpoint: str | None = None,
+        candidate: Any = None,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         start_time = time.perf_counter()
 
