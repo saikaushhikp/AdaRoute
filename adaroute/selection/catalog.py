@@ -196,9 +196,7 @@ class SystemCatalog:
         rep_ids = set()
         for r in deployment.replicas:
             if r.replica_id in rep_ids:
-                raise ValueError(
-                    f"Duplicate replica_id '{r.replica_id}' in deployment '{deployment.deployment_id}'"
-                )
+                raise ValueError(f"Duplicate replica_id '{r.replica_id}' in deployment '{deployment.deployment_id}'")
             rep_ids.add(r.replica_id)
 
         self.deployments[deployment.deployment_id] = deployment
@@ -281,9 +279,7 @@ class SystemCatalog:
                             q_info = cdata.get("quality", {})
                             q_val = q_info.get("value", 0.80) if isinstance(q_info, dict) else float(q_info)
                             q_src = q_info.get("source", "configured") if isinstance(q_info, dict) else "configured"
-                            q_conf = (
-                                q_info.get("confidence", 0.50) if isinstance(q_info, dict) else 0.50
-                            )
+                            q_conf = q_info.get("confidence", 0.50) if isinstance(q_info, dict) else 0.50
                             cap_profiles[cname.lower()] = CapabilityProfile(
                                 name=cname.lower(),
                                 supported=cdata.get("supported", True),

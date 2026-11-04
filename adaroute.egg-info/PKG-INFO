@@ -1,0 +1,19 @@
+Metadata-Version: 2.4
+Name: adaroute
+Version: 0.1.0
+Summary: LLM Serving through Request Characterization and Policy Evaluation
+Requires-Python: >=3.9
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: fastapi>=0.100.0
+Requires-Dist: uvicorn>=0.23.0
+Requires-Dist: tiktoken>=0.5.0
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: python-dotenv>=1.0.0
+Requires-Dist: litellm>=1.40.0
+Requires-Dist: httpx>=0.25.0
+Requires-Dist: redis>=5.0.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-asyncio; extra == "dev"
+Requires-Dist: ruff; extra == "dev"
+Requires-Dist: httpx>=0.25.0; extra == "dev"

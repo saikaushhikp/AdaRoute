@@ -387,4 +387,3 @@ class LedgerSummary(BaseModel):
     savings_percentage: float
     cache_hits: int
     cache_hit_rate: float
-

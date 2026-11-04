@@ -65,8 +65,18 @@ class SignalExtractor:
 
     REASONING_PATTERNS = [
         (re.compile(r"\b(prove|derive|verify|deduce|infer)\b", re.IGNORECASE), "proof_keyword", 0.35),
-        (re.compile(r"\b(step[-\s]by[-\s]step|think carefully|chain of thought|explain your reasoning)\b", re.IGNORECASE), "step_by_step_marker", 0.30),
-        (re.compile(r"\b(why is|how come|analyze the trade-offs|counterexample)\b", re.IGNORECASE), "analytical_marker", 0.20),
+        (
+            re.compile(
+                r"\b(step[-\s]by[-\s]step|think carefully|chain of thought|explain your reasoning)\b", re.IGNORECASE
+            ),
+            "step_by_step_marker",
+            0.30,
+        ),
+        (
+            re.compile(r"\b(why is|how come|analyze the trade-offs|counterexample)\b", re.IGNORECASE),
+            "analytical_marker",
+            0.20,
+        ),
         (re.compile(r"\b(solve|calculate|evaluate|optimize)\b", re.IGNORECASE), "problem_solving_marker", 0.15),
     ]
 

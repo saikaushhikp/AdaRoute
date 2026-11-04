@@ -66,10 +66,7 @@ class ExplanationBuilder:
         dominated_ids: list[str],
         ranked: list[tuple[CandidateDeployment, CandidateScoreRecord]],
     ) -> RoutingExplanation:
-        hard_rej_records = [
-            {"candidate_id": r.candidate_id, "reasons": r.rejection_reasons}
-            for r in rejected
-        ]
+        hard_rej_records = [{"candidate_id": r.candidate_id, "reasons": r.rejection_reasons} for r in rejected]
 
         if ranked:
             winner_cand, winner_score = ranked[0]

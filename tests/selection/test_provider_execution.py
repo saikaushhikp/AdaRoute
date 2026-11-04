@@ -91,9 +91,7 @@ async def test_tc_m2_09_openai_compatible_vllm_protocol_and_auth():
         "id": "chatcmpl-vllm-1",
         "object": "chat.completion",
         "model": "deepseek-vllm",
-        "choices": [
-            {"index": 0, "message": {"role": "assistant", "content": "vLLM high-speed response"}}
-        ],
+        "choices": [{"index": 0, "message": {"role": "assistant", "content": "vLLM high-speed response"}}],
         "usage": {"prompt_tokens": 20, "completion_tokens": 15, "total_tokens": 35},
     }
 

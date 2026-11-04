@@ -1,0 +1,15 @@
+pydantic>=2.0.0
+fastapi>=0.100.0
+uvicorn>=0.23.0
+tiktoken>=0.5.0
+pyyaml>=6.0
+python-dotenv>=1.0.0
+litellm>=1.40.0
+httpx>=0.25.0
+redis>=5.0.0
+
+[dev]
+pytest>=7.0.0
+pytest-asyncio
+ruff
+httpx>=0.25.0

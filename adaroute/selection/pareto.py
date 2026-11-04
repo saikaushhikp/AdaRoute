@@ -64,9 +64,7 @@ class ParetoFrontierEngine:
 
         return at_least_as_good and strictly_better
 
-    def prune_dominated(
-        self, candidates: list[CandidateFeatures]
-    ) -> tuple[list[CandidateFeatures], list[str]]:
+    def prune_dominated(self, candidates: list[CandidateFeatures]) -> tuple[list[CandidateFeatures], list[str]]:
         """Removes all candidates dominated on the configured Pareto objectives.
 
         Returns (survivors, rejected_dominated_candidate_ids).

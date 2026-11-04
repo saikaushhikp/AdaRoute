@@ -246,10 +246,7 @@ class ExactCache:
         # Bounded strictly to standalone user prompts; multi-turn messages / system prompts enforce exact match
         has_system_or_history = messages and (
             len(messages) > 1
-            or any(
-                (m.role if hasattr(m, "role") else m.get("role", "")).lower() == "system"
-                for m in messages
-            )
+            or any((m.role if hasattr(m, "role") else m.get("role", "")).lower() == "system" for m in messages)
         )
         if prompt and self.semantic_cache and not has_system_or_history:
             try:
@@ -331,10 +328,7 @@ class ExactCache:
         # Index in SemanticCache for vector similarity retrieval
         has_system_or_history = messages and (
             len(messages) > 1
-            or any(
-                (m.role if hasattr(m, "role") else m.get("role", "")).lower() == "system"
-                for m in messages
-            )
+            or any((m.role if hasattr(m, "role") else m.get("role", "")).lower() == "system" for m in messages)
         )
         if prompt and self.semantic_cache and not has_system_or_history:
             try:

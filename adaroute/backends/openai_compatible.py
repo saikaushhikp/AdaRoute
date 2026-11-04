@@ -42,9 +42,12 @@ class OpenAICompatibleBackend(BaseBackend):
         start_time = time.perf_counter()
 
         # Resolve endpoint from replica, candidate, or default
-        eff_endpoint = endpoint or (candidate.endpoint if candidate else None) or (
-            getattr(model_spec, "base_url", None) if model_spec else None
-        ) or self.default_endpoint
+        eff_endpoint = (
+            endpoint
+            or (candidate.endpoint if candidate else None)
+            or (getattr(model_spec, "base_url", None) if model_spec else None)
+            or self.default_endpoint
+        )
         eff_endpoint = eff_endpoint.rstrip("/")
         if not eff_endpoint.endswith("/v1"):
             eff_endpoint = f"{eff_endpoint}/v1"
@@ -63,7 +66,9 @@ class OpenAICompatibleBackend(BaseBackend):
                 headers["Authorization"] = f"Bearer {token}"
 
         chat_messages = messages or [{"role": "user", "content": prompt_text}]
-        p_tokens = count_tokens(prompt_text) if prompt_text else sum(count_tokens(m.get("content", "")) for m in chat_messages)
+        p_tokens = (
+            count_tokens(prompt_text) if prompt_text else sum(count_tokens(m.get("content", "")) for m in chat_messages)
+        )
 
         payload: dict[str, Any] = {
             "model": target_model,
@@ -88,7 +93,9 @@ class OpenAICompatibleBackend(BaseBackend):
                 lat_ms = (time.perf_counter() - start_time) * 1000.0
 
                 in_p = getattr(candidate, "input_price_per_1k", 0.0) or getattr(model_spec, "input_price_per_1k", 0.0)
-                out_p = getattr(candidate, "output_price_per_1k", 0.0) or getattr(model_spec, "output_price_per_1k", 0.0)
+                out_p = getattr(candidate, "output_price_per_1k", 0.0) or getattr(
+                    model_spec, "output_price_per_1k", 0.0
+                )
                 cost = (prompt_tok / 1000.0) * in_p + (completion_tok / 1000.0) * out_p
 
                 return BackendResult(
@@ -107,4 +114,6 @@ class OpenAICompatibleBackend(BaseBackend):
         except Exception as e:
             if isinstance(e, OpenAICompatibleUnavailableError):
                 raise
-            raise OpenAICompatibleUnavailableError(f"Failed to connect to OpenAI-compatible endpoint at {eff_endpoint}: {e}") from e
+            raise OpenAICompatibleUnavailableError(
+                f"Failed to connect to OpenAI-compatible endpoint at {eff_endpoint}: {e}"
+            ) from e

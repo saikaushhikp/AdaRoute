@@ -137,7 +137,9 @@ class HardConstraintEngine:
 
         # 9. Cost & Worst-Case Budget Ceilings
         est_cost = candidate.calculate_expected_cost(request.prompt_tokens, estimate.expected_tokens)
-        eff_max_tokens = request.max_tokens if (request.max_tokens and request.max_tokens > 0) else estimate.reservation_tokens
+        eff_max_tokens = (
+            request.max_tokens if (request.max_tokens and request.max_tokens > 0) else estimate.reservation_tokens
+        )
         worst_case_cost = candidate.calculate_max_cost(request.prompt_tokens, eff_max_tokens)
 
         if request.budget is not None:

@@ -132,4 +132,3 @@ async def test_tc_m9_03_live_load_test_network_error_handling():
     assert metrics.failed == 4
     assert metrics.cache_hits == 0
     assert metrics.actual_incurred_cost == 0.0
-

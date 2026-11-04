@@ -52,8 +52,7 @@ class DeploymentOutputEstimator:
         self.default_prior = default_prior
         self.task_priors = {k.lower(): v for k, v in (task_priors or {}).items()}
         self.deployment_priors = {
-            dep.lower(): {k.lower(): v for k, v in priors.items()}
-            for dep, priors in (deployment_priors or {}).items()
+            dep.lower(): {k.lower(): v for k, v in priors.items()} for dep, priors in (deployment_priors or {}).items()
         }
         self.expected_quantile = expected_quantile
         self.reservation_quantile = reservation_quantile

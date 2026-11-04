@@ -30,7 +30,9 @@ def build_explainable_catalog() -> SystemCatalog:
     m1 = ModelDefinition(
         model_id="model-fast",
         capability_profiles={
-            "general": CapabilityProfile("general", supported=True, quality_value=0.75, quality_source="benchmark", quality_confidence=0.85)
+            "general": CapabilityProfile(
+                "general", supported=True, quality_value=0.75, quality_source="benchmark", quality_confidence=0.85
+            )
         },
         context_window=8192,
     )
@@ -48,7 +50,9 @@ def build_explainable_catalog() -> SystemCatalog:
     m2 = ModelDefinition(
         model_id="model-flagship",
         capability_profiles={
-            "general": CapabilityProfile("general", supported=True, quality_value=0.95, quality_source="configured", quality_confidence=0.90)
+            "general": CapabilityProfile(
+                "general", supported=True, quality_value=0.95, quality_source="configured", quality_confidence=0.90
+            )
         },
         context_window=32768,
     )

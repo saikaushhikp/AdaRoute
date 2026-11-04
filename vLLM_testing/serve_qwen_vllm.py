@@ -138,7 +138,7 @@ def build_command(
         "--dtype",
         args.dtype,
         "--max-model-len",
-        str(args.max_model_len),
+        str(args.max_model_len), "--no-cpu-fallback"
     ]
     if quantization:
         command.extend(["--quantization", quantization])

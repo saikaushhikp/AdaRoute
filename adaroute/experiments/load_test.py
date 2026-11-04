@@ -77,10 +77,22 @@ class LiveLoadTestRunner:
     SAMPLE_PROMPTS = [
         {"model": "general", "prompt": "What is the capital of France?", "privacy_level": "public"},
         {"model": "general", "prompt": "Explain the difference between TCP and UDP.", "privacy_level": "public"},
-        {"model": "coding", "prompt": "Write a python function to compute factorial recursively.", "privacy_level": "public"},
+        {
+            "model": "coding",
+            "prompt": "Write a python function to compute factorial recursively.",
+            "privacy_level": "public",
+        },
         {"model": "qa", "prompt": "What is Moore's Law and does it still apply?", "privacy_level": "internal_only"},
-        {"model": "general", "prompt": "Summarize the primary benefits of microservice architecture.", "privacy_level": "public"},
-        {"model": "reasoning", "prompt": "Solve step-by-step: If 5 machines make 5 widgets in 5 minutes, how long do 100 machines take to make 100 widgets?", "privacy_level": "public"},
+        {
+            "model": "general",
+            "prompt": "Summarize the primary benefits of microservice architecture.",
+            "privacy_level": "public",
+        },
+        {
+            "model": "reasoning",
+            "prompt": "Solve step-by-step: If 5 machines make 5 widgets in 5 minutes, how long do 100 machines take to make 100 widgets?",
+            "privacy_level": "public",
+        },
     ]
 
     def __init__(
@@ -179,8 +191,7 @@ class LiveLoadTestRunner:
         # 2. Launch concurrent client worker tasks
         async with httpx.AsyncClient(timeout=self.timeout_sec) as client:
             workers = [
-                asyncio.create_task(self._client_worker(queue, results, client))
-                for _ in range(self.concurrency)
+                asyncio.create_task(self._client_worker(queue, results, client)) for _ in range(self.concurrency)
             ]
             await asyncio.gather(*workers)
 

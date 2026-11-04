@@ -122,7 +122,9 @@ def test_tc_m3_33_privacy_and_user_private_constraints():
     assert any("Privacy violation" in r for r in dec.rejection_reasons)
 
     # 2. User private failure: user_private=True excludes cloud
-    req_private = RequestContext(task_type="general", prompt_tokens=50, privacy_level=PrivacyLevel.PUBLIC, user_private=True)
+    req_private = RequestContext(
+        task_type="general", prompt_tokens=50, privacy_level=PrivacyLevel.PUBLIC, user_private=True
+    )
     dec_priv = engine.evaluate(cand_cloud, req_private, est)
     assert dec_priv.is_eligible is False
     assert any("User private toggle active" in r for r in dec_priv.rejection_reasons)

@@ -110,9 +110,7 @@ class CandidateDeployment:
         ) * self.output_price_per_1k
 
     def calculate_max_cost(self, prompt_tokens: int, max_tokens: int) -> float:
-        return (prompt_tokens / 1000.0) * self.input_price_per_1k + (
-            max_tokens / 1000.0
-        ) * self.output_price_per_1k
+        return (prompt_tokens / 1000.0) * self.input_price_per_1k + (max_tokens / 1000.0) * self.output_price_per_1k
 
 
 class CandidateResolver:

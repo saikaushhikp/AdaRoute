@@ -86,9 +86,7 @@ class DomainBayesianRegressor:
                         aug[k][j] -= factor * aug[i][j]
         return [row[n:] for row in aug]
 
-    def _extract_features(
-        self, prompt_tokens: int, is_code: bool = False, is_reasoning: bool = False
-    ) -> list[float]:
+    def _extract_features(self, prompt_tokens: int, is_code: bool = False, is_reasoning: bool = False) -> list[float]:
         return [
             1.0,
             float(prompt_tokens) / 100.0,

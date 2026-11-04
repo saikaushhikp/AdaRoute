@@ -1,0 +1,27 @@
+# Git metadata
+.git
+**/.git
+
+# Python artifacts
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Node dependencies
+node_modules/
+**/node_modules/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs and temporary files
+*.log
+.tmp/

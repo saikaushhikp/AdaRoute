@@ -128,7 +128,6 @@ policy_versions: list[dict[str, Any]] = [
 default_active_policy = "adaptive"
 
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Background heartbeat task to maintain healthy replica state
@@ -628,7 +627,9 @@ async def chat_completions(
     estimator.record_observation(task_type, est_out_tokens, actual_out_tokens)
 
     # Online recursive Bayesian conjugate updating
-    is_code = "def " in prompt_text or "class " in prompt_text or "function" in prompt_text.lower() or task_type == "coding"
+    is_code = (
+        "def " in prompt_text or "class " in prompt_text or "function" in prompt_text.lower() or task_type == "coding"
+    )
     is_reasoning = "step-by-step" in prompt_text.lower() or "think" in prompt_text.lower() or task_type == "reasoning"
     bayesian_estimator.record_actual(
         task_type=task_type,
@@ -793,20 +794,22 @@ async def get_control_plane_ledger(limit: int = 50):
         by_capability[cap]["baseline_cost"] += baseline
         by_capability[cap]["attributable_savings"] += savings
 
-        recent_transactions.append({
-            "request_id": record.get("request_id"),
-            "timestamp": record.get("timestamp"),
-            "logical_model": cap,
-            "selected_model": record.get("selected_model"),
-            "provider": record.get("provider"),
-            "prompt_tokens": p_tok,
-            "completion_tokens": c_tok,
-            "actual_cost": round(cost, 6),
-            "baseline_cost": round(baseline, 6),
-            "attributable_savings": round(savings, 6),
-            "cache_hit": is_cached,
-            "status": record.get("status", "success"),
-        })
+        recent_transactions.append(
+            {
+                "request_id": record.get("request_id"),
+                "timestamp": record.get("timestamp"),
+                "logical_model": cap,
+                "selected_model": record.get("selected_model"),
+                "provider": record.get("provider"),
+                "prompt_tokens": p_tok,
+                "completion_tokens": c_tok,
+                "actual_cost": round(cost, 6),
+                "baseline_cost": round(baseline, 6),
+                "attributable_savings": round(savings, 6),
+                "cache_hit": is_cached,
+                "status": record.get("status", "success"),
+            }
+        )
 
     net_savings = max(0.0, baseline_cost_total - actual_cost_total)
     savings_pct = (net_savings / baseline_cost_total * 100.0) if baseline_cost_total > 0.0 else 0.0
@@ -898,4 +901,3 @@ async def rollback_control_plane_policy(req: PolicyRollbackRequest):
         "message": f"Successfully activated policy '{default_active_policy}' at version {new_version_num}",
         "history": policy_versions,
     }
-

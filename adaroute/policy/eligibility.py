@@ -90,7 +90,9 @@ class EligibilityChecker:
                     )
 
         # 2.5 HARD CONSTRAINT: Context Window Capacity
-        needed_tokens = request.prompt_tokens + (request.max_tokens if (request.max_tokens and request.max_tokens > 0) else request.estimated_output_tokens)
+        needed_tokens = request.prompt_tokens + (
+            request.max_tokens if (request.max_tokens and request.max_tokens > 0) else request.estimated_output_tokens
+        )
         if spec.max_context and needed_tokens > spec.max_context:
             return (
                 False,
