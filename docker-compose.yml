@@ -1,13 +1,13 @@
 services:
   # ---------------------------------------------------------------------------
-  # vLLM – primary local inference engine (OpenAI-compatible API on port 8000)
-  # Replaces Ollama as the self-hosted LLM backend.
+  # vLLM – primary local inference engine (OpenAI-compatible API)
+  # Default: CPU mode (works on any machine, no GPU required).
   #
-  # GPU usage is automatic when the nvidia runtime is available.
-  # CPU-only fallback: set VLLM_TARGET_DEVICE=cpu and remove the `deploy` block.
+  # For GPU acceleration run:
+  #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
   #
-  # The model is loaded at startup via the --model flag.  Override it with:
-  #   VLLM_MODEL=Qwen/Qwen2.5-7B-Instruct docker compose up
+  # Override the model at runtime:
+  #   VLLM_MODEL=Qwen/Qwen2.5-7B-Instruct docker compose up --build
   # ---------------------------------------------------------------------------
   vllm:
     image: vllm/vllm-openai:latest
@@ -21,7 +21,7 @@ services:
       - adaroute-net
     environment:
       - HF_TOKEN=${HF_TOKEN:-}
-      - VLLM_TARGET_DEVICE=${VLLM_TARGET_DEVICE:-auto}
+      - VLLM_TARGET_DEVICE=cpu
     volumes:
       - huggingface-cache:/root/.cache/huggingface
     command: >
@@ -29,22 +29,15 @@ services:
       --served-model-name ${VLLM_SERVED_MODEL_NAME:-Qwen/Qwen2.5-1.5B-Instruct}
       --port 8000
       --host 0.0.0.0
-      --dtype ${VLLM_DTYPE:-float16}
-      --max-model-len ${VLLM_MAX_MODEL_LEN:-4096}
-      --gpu-memory-utilization ${VLLM_GPU_MEM_UTIL:-0.85}
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+      --device cpu
+      --dtype ${VLLM_DTYPE:-bfloat16}
+      --max-model-len ${VLLM_MAX_MODEL_LEN:-2048}
     healthcheck:
       test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" 2>/dev/null || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 10
-      start_period: 60s
+      start_period: 120s
 
   redis:
     image: redis:7-alpine
@@ -76,7 +69,6 @@ services:
         required: false
     environment:
       - PYTHONUNBUFFERED=1
-      # vLLM service endpoint (resolved via Docker DNS inside the adaroute-net network)
       - VLLM_BASE_URL=http://vllm:8000/v1
       - REDIS_URL=redis://redis:6379/0
       - EXECUTION_MODE=${EXECUTION_MODE:-hybrid}

@@ -27,7 +27,7 @@ import httpx
 from adaroute.schemas import ModelSpec, RequestContext
 from adaroute.workloads.tokenizer import count_tokens
 
-from .base import BackendResult, BaseBackend
+from .base import BaseBackend
 
 
 class VLLMBackendUnavailableError(Exception):

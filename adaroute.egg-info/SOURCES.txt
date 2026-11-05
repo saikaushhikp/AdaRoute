@@ -18,6 +18,7 @@ adaroute/backends/litellm_backend.py
 adaroute/backends/local.py
 adaroute/backends/mock.py
 adaroute/backends/openai_compatible.py
+adaroute/backends/vllm_backend.py
 adaroute/cache/__init__.py
 adaroute/cache/exact.py
 adaroute/cache/redis_backend.py
