@@ -31,6 +31,7 @@ from adaroute.backends.litellm_backend import LiteLLMBackend
 from adaroute.backends.local import LocalBackend
 from adaroute.backends.mock import MockBackend
 from adaroute.backends.openai_compatible import OpenAICompatibleBackend
+from adaroute.backends.vllm_backend import VLLMBackend
 from adaroute.cache.exact import ExactCache
 from adaroute.policy.model_selection import (
     AdaptiveModelPolicy,
@@ -94,18 +95,23 @@ replica_schedulers = {
 }
 
 # Backend Runners (Pluggable & Extensible)
+# vLLM replaces Ollama as the primary local inference backend.
+# LocalBackend (Ollama) is kept as a legacy alias for backward compatibility
+# but all "local" and "vllm" providers now resolve to VLLMBackend.
+_vllm_backend = VLLMBackend()
 backend_runners = {
-    "local": LocalBackend(),
-    "local_ollama": LocalBackend(),
+    "local": _vllm_backend,         # local models now served by vLLM
+    "local_vllm": _vllm_backend,
+    "local_ollama": LocalBackend(), # retained for Ollama compatibility mode
     "groq": LiteLLMBackend(),
     "cohere": LiteLLMBackend(),
     "gemini": LiteLLMBackend(),
     "google": LiteLLMBackend(),
     "litellm": LiteLLMBackend(),
-    "mock-local": LocalBackend(),
+    "mock-local": _vllm_backend,
     "mock-external": MockBackend(provider_name="mock-external", base_latency_ms=30.0),
     "openai_compatible": OpenAICompatibleBackend(),
-    "vllm": OpenAICompatibleBackend(),
+    "vllm": _vllm_backend,
 }
 session_store = SessionStore()
 bayesian_estimator = BayesianLinearEstimator(persistence_path="data/bayesian_estimator.json")
@@ -136,12 +142,13 @@ async def lifespan(app: FastAPI):
     async def heartbeat_loop():
         while not stop_event.is_set():
             try:
-                local_backend = backend_runners.get("local")
-                if local_backend and hasattr(local_backend, "ping"):
-                    is_ok = await local_backend.ping()
+                # Ping the vLLM backend (primary local inference engine)
+                vllm_backend = backend_runners.get("local")
+                if vllm_backend and hasattr(vllm_backend, "ping"):
+                    is_ok = await vllm_backend.ping()
                     now = time.time()
                     for r in registry.get_all_replicas():
-                        if r.provider in ("local", "local_ollama"):
+                        if r.provider in ("local", "local_vllm", "vllm"):
                             if is_ok:
                                 r.last_heartbeat = now
                                 r.consecutive_failures = 0
@@ -175,14 +182,16 @@ app.add_middleware(
 def get_backend_runner(spec: ModelSpec, candidate: Any = None):
     """Dynamically resolves backend runner for any provider on any system."""
     adapter_kind = getattr(candidate, "adapter_kind", None)
+    # vLLM and openai_compatible share the same wire protocol
     if adapter_kind in ("openai_compatible", "vllm") or spec.provider in ("openai_compatible", "vllm"):
-        return backend_runners["openai_compatible"]
+        return backend_runners["vllm"]
     if spec.provider in backend_runners:
         return backend_runners[spec.provider]
     if spec.execution_type in ("external", "cloud"):
         return backend_runners["litellm"]
     if spec.execution_type == "mock":
         return backend_runners["mock-external"]
+    # Default local → vLLM backend
     return backend_runners["local"]
 
 
@@ -200,7 +209,7 @@ async def health():
             if await local_backend.ping():
                 now = time.time()
                 for r in registry.get_all_replicas():
-                    if r.provider in ("local", "local_ollama"):
+                    if r.provider in ("local", "local_vllm", "vllm"):
                         r.last_heartbeat = now
                         r.consecutive_failures = 0
                         r.availability = True

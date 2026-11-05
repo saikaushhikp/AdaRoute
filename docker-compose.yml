@@ -1,21 +1,50 @@
 services:
-  ollama:
-    image: ollama/ollama:latest
-    container_name: adaroute-ollama
+  # ---------------------------------------------------------------------------
+  # vLLM – primary local inference engine (OpenAI-compatible API on port 8000)
+  # Replaces Ollama as the self-hosted LLM backend.
+  #
+  # GPU usage is automatic when the nvidia runtime is available.
+  # CPU-only fallback: set VLLM_TARGET_DEVICE=cpu and remove the `deploy` block.
+  #
+  # The model is loaded at startup via the --model flag.  Override it with:
+  #   VLLM_MODEL=Qwen/Qwen2.5-7B-Instruct docker compose up
+  # ---------------------------------------------------------------------------
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: adaroute-vllm
     ports:
-      - "${OLLAMA_PORT:-11435}:11434"
+      - "${VLLM_PORT:-8001}:8000"
     expose:
-      - "11434"
-    volumes:
-      - ollama-data:/root/.ollama
+      - "8000"
+    ipc: host
     networks:
       - adaroute-net
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+      - VLLM_TARGET_DEVICE=${VLLM_TARGET_DEVICE:-auto}
+    volumes:
+      - huggingface-cache:/root/.cache/huggingface
+    command: >
+      --model ${VLLM_MODEL:-Qwen/Qwen2.5-1.5B-Instruct}
+      --served-model-name ${VLLM_SERVED_MODEL_NAME:-Qwen/Qwen2.5-1.5B-Instruct}
+      --port 8000
+      --host 0.0.0.0
+      --dtype ${VLLM_DTYPE:-float16}
+      --max-model-len ${VLLM_MAX_MODEL_LEN:-4096}
+      --gpu-memory-utilization ${VLLM_GPU_MEM_UTIL:-0.85}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     healthcheck:
-      test: ["CMD-SHELL", "ollama list > /dev/null 2>&1 || exit 0"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 3s
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" 2>/dev/null || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
 
   redis:
     image: redis:7-alpine
@@ -30,19 +59,6 @@ services:
       timeout: 3s
       retries: 5
       start_period: 2s
-
-  # Optional vLLM serving container (for GPU / dedicated self-hosted workloads)
-  # Run with: docker compose --profile vllm up
-  vllm:
-    image: vllm/vllm-openai:latest
-    profiles: ["vllm"]
-    container_name: adaroute-vllm
-    ports:
-      - "8001:8000"
-    ipc: host
-    networks:
-      - adaroute-net
-    command: --model Qwen/Qwen2.5-1.5B-Instruct --port 8000
 
   gateway:
     image: adaroute:latest
@@ -60,19 +76,23 @@ services:
         required: false
     environment:
       - PYTHONUNBUFFERED=1
-      - OLLAMA_BASE_URL=http://ollama:11434
+      # vLLM service endpoint (resolved via Docker DNS inside the adaroute-net network)
+      - VLLM_BASE_URL=http://vllm:8000/v1
       - REDIS_URL=redis://redis:6379/0
+      - EXECUTION_MODE=${EXECUTION_MODE:-hybrid}
     volumes:
       - .:/app
     depends_on:
-      - ollama
-      - redis
+      vllm:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 3s
       timeout: 3s
       retries: 5
-      start_period: 2s
+      start_period: 5s
     networks:
       - adaroute-net
 
@@ -90,7 +110,7 @@ services:
       - adaroute-net
 
 volumes:
-  ollama-data:
+  huggingface-cache:
     driver: local
 
 networks:

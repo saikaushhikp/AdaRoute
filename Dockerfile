@@ -7,4 +7,6 @@ RUN pip install --no-cache-dir .[dev]
 
 COPY . .
 
-CMD ["pytest", "tests/"]
+# Default: run the FastAPI gateway.
+# Override with: docker run ... pytest tests/ to run the test suite.
+CMD ["uvicorn", "adaroute.api:app", "--host", "0.0.0.0", "--port", "8000"]
