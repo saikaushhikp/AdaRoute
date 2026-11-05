@@ -1,0 +1,26 @@
+# GPU override — merges on top of docker-compose.yml
+# Usage: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+#
+# Requires: NVIDIA Container Toolkit installed on the host
+# Install guide: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+
+services:
+  vllm:
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+      - VLLM_TARGET_DEVICE=cuda
+    command: >
+      --model ${VLLM_MODEL:-Qwen/Qwen2.5-1.5B-Instruct}
+      --served-model-name ${VLLM_SERVED_MODEL_NAME:-Qwen/Qwen2.5-1.5B-Instruct}
+      --port 8000
+      --host 0.0.0.0
+      --dtype ${VLLM_DTYPE:-float16}
+      --max-model-len ${VLLM_MAX_MODEL_LEN:-4096}
+      --gpu-memory-utilization ${VLLM_GPU_MEM_UTIL:-0.85}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
