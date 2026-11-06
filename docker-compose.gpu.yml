@@ -10,7 +10,7 @@ services:
       - HF_TOKEN=${HF_TOKEN:-}
       - VLLM_TARGET_DEVICE=cuda
     command: >
-      --model ${VLLM_MODEL:-Qwen/Qwen2.5-1.5B-Instruct}
+      ${VLLM_MODEL:-Qwen/Qwen2.5-1.5B-Instruct}
       --served-model-name ${VLLM_SERVED_MODEL_NAME:-Qwen/Qwen2.5-1.5B-Instruct}
       --port 8000
       --host 0.0.0.0
