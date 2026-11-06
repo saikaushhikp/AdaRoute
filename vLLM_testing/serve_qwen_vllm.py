@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install dependencies, cache Qwen AWQ, and serve it through vLLM.
+"""Install dependencies, cache Qwen GPTQ Int4, and serve it through vLLM.
 
 The server exposes vLLM's OpenAI-compatible API. The model is downloaded to
 the Hugging Face cache on first run, so later runs do not download it again.
@@ -22,7 +22,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-MODEL_ID = "Qwen/Qwen2.5-1.5B-Instruct-AWQ"
+MODEL_ID = "Qwen/Qwen2.5-1.5B-Instruct-GPTQ-Int4"
 CPU_FALLBACK_MODEL_ID = "Qwen/Qwen2.5-1.5B-Instruct"
 
 
@@ -88,8 +88,8 @@ def has_cpu_native_backend() -> bool:
         return False
 
 
-def has_cpu_awq_backend() -> bool:
-    """Return whether vLLM exposes the CPU kernel required by AWQ."""
+def has_cpu_gptq_backend() -> bool:
+    """Return whether vLLM exposes the CPU kernel required by GPTQ."""
     try:
         import torch
         from vllm import _custom_ops  # noqa: F401
@@ -138,7 +138,7 @@ def build_command(
         "--dtype",
         args.dtype,
         "--max-model-len",
-        str(args.max_model_len), "--no-cpu-fallback"
+        str(args.max_model_len),
     ]
     if quantization:
         command.extend(["--quantization", quantization])
@@ -187,21 +187,21 @@ def main() -> None:
     hf_token = load_hf_token()
 
     model_path = args.model
-    quantization = "awq" if model_path == MODEL_ID else None
+    quantization = "gptq" if model_path == MODEL_ID else None
     if (
         device == "cpu"
-        and quantization == "awq"
-        and not has_cpu_awq_backend()
+        and quantization == "gptq"
+        and not has_cpu_gptq_backend()
     ):
         if args.no_cpu_fallback:
             raise RuntimeError(
-                "This CPU has no vLLM cpu_gemm_wna16 AWQ kernel. "
+            "This CPU has no vLLM cpu_gemm_wna16 GPTQ kernel. "
                 "Use a CPU with the required ISA, a CUDA/ROCm host, or omit "
                 "--no-cpu-fallback to serve the unquantized Qwen model."
             )
         print(
-            f"CPU AWQ is unavailable; falling back to {CPU_FALLBACK_MODEL_ID}. "
-            "Use --no-cpu-fallback to require AWQ.",
+            f"CPU GPTQ is unavailable; falling back to {CPU_FALLBACK_MODEL_ID}. "
+            "Use --no-cpu-fallback to require GPTQ.",
             flush=True,
         )
         model_path = CPU_FALLBACK_MODEL_ID
@@ -211,7 +211,7 @@ def main() -> None:
 
     if device == "cpu":
         print(
-            "Detected CPU-only execution. AWQ support and usable performance "
+            "Detected CPU-only execution. GPTQ support and usable performance "
             "depend on the installed vLLM CPU backend; a clear backend error "
             "will be reported if this quantized model is unsupported.",
             flush=True,

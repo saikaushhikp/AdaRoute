@@ -6,8 +6,7 @@ services:
   # For GPU acceleration run:
   #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
   #
-  # Override the model at runtime:
-  #   VLLM_MODEL=Qwen/Qwen2.5-7B-Instruct docker compose up --build
+  # For the CUDA-only GPTQ Int4 test profile, see docker-compose.gptq.yml.
   # ---------------------------------------------------------------------------
   vllm:
     image: vllm/vllm-openai-cpu:latest-x86_64
@@ -23,14 +22,12 @@ services:
       - HF_TOKEN=${HF_TOKEN:-}
       - VLLM_TARGET_DEVICE=cpu
       # Keep the CPU KV cache within the memory available to local development.
-      - VLLM_CPU_KVCACHE_SPACE=${VLLM_CPU_KVCACHE_SPACE:-4}
-      # Keep the CPU KV cache within the memory available to local development.
-      - VLLM_CPU_KVCACHE_SPACE=${VLLM_CPU_KVCACHE_SPACE:-4}
+      - VLLM_CPU_KVCACHE_SPACE=${VLLM_CPU_KVCACHE_SPACE:-2}
     volumes:
       - huggingface-cache:/root/.cache/huggingface
     command: >
-      ${VLLM_MODEL:-Qwen/Qwen2.5-1.5B-Instruct}
-      --served-model-name ${VLLM_SERVED_MODEL_NAME:-Qwen/Qwen2.5-1.5B-Instruct}
+      ${VLLM_MODEL:-Qwen/Qwen2.5-0.5B-Instruct}
+      --served-model-name ${VLLM_SERVED_MODEL_NAME:-Qwen/Qwen2.5-0.5B-Instruct}
       --port 8000
       --host 0.0.0.0
       --dtype ${VLLM_DTYPE:-bfloat16}

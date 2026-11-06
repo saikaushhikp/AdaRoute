@@ -37,9 +37,9 @@ routing:
   static_task_map:
     coding: "gpt-4o-external"
     reasoning: "gpt-4o-external"
-    summarization: "Qwen/Qwen2.5-1.5B-Instruct"
-    qa: "Qwen/Qwen2.5-1.5B-Instruct"
-    general: "Qwen/Qwen2.5-1.5B-Instruct"
+    summarization: "Qwen/Qwen2.5-0.5B-Instruct"
+    qa: "Qwen/Qwen2.5-0.5B-Instruct"
+    general: "Qwen/Qwen2.5-0.5B-Instruct"
   policies:
     adaptive:
       weights:
@@ -75,11 +75,11 @@ models:
   # Local vLLM Models (Self-Hosted, GPU-accelerated, Internal/Confidential Safe)
   # Served via vLLM OpenAI-compatible API (http://vllm:8000/v1 inside Docker)
   # -------------------------------------------------------------
-  - model_id: "Qwen/Qwen2.5-1.5B-Instruct"
+  - model_id: "Qwen/Qwen2.5-0.5B-Instruct"
     logical_aliases: ["general", "coding", "qa", "summarization", "fast"]
     provider: "vllm"
     execution_type: "local"
-    litellm_model: "openai/Qwen/Qwen2.5-1.5B-Instruct"
+    litellm_model: "openai/Qwen/Qwen2.5-0.5B-Instruct"
     base_url: "http://vllm:8000/v1"
     privacy_levels: ["public", "internal_only", "confidential", "restricted"]
     cost_per_1k_input: 0.000010   # Local GPU compute amortization
@@ -92,6 +92,24 @@ models:
         availability: true
         weight: 1.0
       - replica_id: "vllm-r2"
+        endpoint: "http://vllm:8000"
+        availability: true
+        weight: 1.0
+
+  # Enabled by docker-compose.gptq.yml on a CUDA host.
+  - model_id: "Qwen/Qwen2.5-0.5B-Instruct-GPTQ-Int4"
+    logical_aliases: ["gptq-4bit"]
+    provider: "vllm"
+    execution_type: "local"
+    litellm_model: "openai/Qwen/Qwen2.5-0.5B-Instruct-GPTQ-Int4"
+    base_url: "http://vllm:8000/v1"
+    privacy_levels: ["public", "internal_only", "confidential", "restricted"]
+    cost_per_1k_input: 0.000010
+    cost_per_1k_output: 0.000020
+    quality: 0.73
+    max_context: 32768
+    replicas:
+      - replica_id: "vllm-gptq-r1"
         endpoint: "http://vllm:8000"
         availability: true
         weight: 1.0
