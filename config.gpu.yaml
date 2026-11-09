@@ -1,0 +1,68 @@
+# GPU-only catalog used by docker-compose.gpu.yml.
+# One vLLM process serves one model; this catalog deliberately maps every local
+# capability to the Qwen 7B model declared in .env.gpu.example.
+gateway:
+  host: "0.0.0.0"
+  port: 8000
+  title: "AdaRoute GPU vLLM Gateway"
+  version: "3.0.0-gpu"
+  default_policy: "adaptive"
+  default_scheduler: "slo_aware"
+  execution_mode: "real"
+  auth_required: false
+
+registry:
+  compatibility_models: false
+
+estimation:
+  default_prior: 80
+  task_priors:
+    qa: 50
+    factual_qa: 45
+    summarization: 160
+    coding: 280
+    reasoning: 220
+    structured_extraction: 90
+    creative: 250
+    general: 80
+  max_token_ratio: 0.15
+  prompt_expansion_threshold: 500
+  prompt_expansion_ratio: 1.25
+  historical_quantile: 0.75
+
+routing:
+  default_policy: "adaptive"
+  default_scheduler: "slo_aware"
+  static_task_map:
+    coding: "Qwen/Qwen2.5-7B-Instruct"
+    reasoning: "Qwen/Qwen2.5-7B-Instruct"
+    summarization: "Qwen/Qwen2.5-7B-Instruct"
+    qa: "Qwen/Qwen2.5-7B-Instruct"
+    general: "Qwen/Qwen2.5-7B-Instruct"
+  policies:
+    adaptive:
+      weights: {cost: 0.35, latency: 0.20, quality: 0.30, slo: 0.10, failure: 0.05}
+    latency_first:
+      weights: {cost: 0.10, latency: 0.65, quality: 0.15, slo: 0.05, failure: 0.05}
+    cost_first:
+      weights: {cost: 0.70, latency: 0.10, quality: 0.10, slo: 0.05, failure: 0.05}
+    quality_first:
+      weights: {cost: 0.10, latency: 0.15, quality: 0.65, slo: 0.05, failure: 0.05}
+
+models:
+  - model_id: "Qwen/Qwen2.5-7B-Instruct"
+    logical_aliases: ["general", "coding", "qa", "summarization", "reasoning", "fast", "complex"]
+    provider: "vllm"
+    execution_type: "local"
+    litellm_model: "openai/Qwen/Qwen2.5-7B-Instruct"
+    base_url: "http://vllm:8000/v1"
+    privacy_levels: ["public", "internal_only", "confidential", "restricted"]
+    cost_per_1k_input: 0.000040
+    cost_per_1k_output: 0.000120
+    quality: 0.85
+    max_context: 32768
+    replicas:
+      - replica_id: "vllm-gpu-qwen-7b"
+        endpoint: "http://vllm:8000"
+        availability: true
+        weight: 1.0

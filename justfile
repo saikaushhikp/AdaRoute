@@ -46,6 +46,15 @@ ui-test:
 up:
     docker compose up --build -d
 
+# CUDA/NVIDIA profile. Copy .env.gpu.example to .env.gpu and tune it for the
+# accelerator host before using these recipes.
+gpu-up:
+    docker compose --env-file .env.gpu -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
+
+# CUDA-only GPTQ Int4 profile. It layers onto the standard GPU profile.
+gpu-gptq-up:
+    docker compose --env-file .env.gpu -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.gptq.yml up --build -d
+
 down:
     docker compose down
 

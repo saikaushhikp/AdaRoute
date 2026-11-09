@@ -230,6 +230,41 @@ Expected output:
 }
 ```
 
+### GPU vLLM profile (NVIDIA CUDA)
+
+The normal `just up` flow remains CPU-safe. The GPU profile is an opt-in
+Compose override that starts the official CUDA vLLM image and uses a dedicated
+model catalog, so the gateway only requests the model actually served by that
+profile.
+
+On the accelerator host, install the NVIDIA driver and configure Docker with
+the NVIDIA Container Toolkit. NVIDIA documents the host setup with
+`sudo nvidia-ctk runtime configure --runtime=docker`, followed by a Docker
+restart. Then prepare the GPU settings and start the desired profile:
+
+```bash
+cp .env.gpu.example .env.gpu
+# Tune model size, memory limits, and GPU parallelism in .env.gpu.
+just gpu-up
+```
+
+`gpu-up` serves `Qwen/Qwen2.5-7B-Instruct` by default. A vLLM process serves
+one model; use `VLLM_TENSOR_PARALLEL_SIZE` to shard that model across the same
+number of visible GPUs. Set `NVIDIA_VISIBLE_DEVICES` to restrict the selected
+devices. For the CUDA-only GPTQ Int4 profile, run:
+
+```bash
+just gpu-gptq-up
+```
+
+The GPU recipes use `config.gpu.yaml` and `config.gptq.yaml` respectively to
+keep their aliases aligned with the vLLM served-model name. Do not replace the
+model variables independently of the matching catalog entry.
+
+References: [vLLM Docker deployment](https://docs.vllm.ai/en/latest/deployment/docker/),
+[Docker Compose GPU support](https://docs.docker.com/compose/how-tos/gpu-support/),
+and [NVIDIA Container Toolkit installation](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+
 ---
 
 ### Step 2: Using the Interactive Terminal CLI (`ui/cli`)

@@ -1,0 +1,44 @@
+# GPU-only catalog used by docker-compose.gptq.yml.
+gateway:
+  host: "0.0.0.0"
+  port: 8000
+  title: "AdaRoute GPU GPTQ vLLM Gateway"
+  version: "3.0.0-gptq"
+  default_policy: "adaptive"
+  default_scheduler: "slo_aware"
+  execution_mode: "real"
+  auth_required: false
+
+registry:
+  compatibility_models: false
+
+routing:
+  default_policy: "adaptive"
+  default_scheduler: "slo_aware"
+  static_task_map:
+    coding: "Qwen/Qwen2.5-0.5B-Instruct-GPTQ-Int4"
+    reasoning: "Qwen/Qwen2.5-0.5B-Instruct-GPTQ-Int4"
+    summarization: "Qwen/Qwen2.5-0.5B-Instruct-GPTQ-Int4"
+    qa: "Qwen/Qwen2.5-0.5B-Instruct-GPTQ-Int4"
+    general: "Qwen/Qwen2.5-0.5B-Instruct-GPTQ-Int4"
+  policies:
+    adaptive:
+      weights: {cost: 0.35, latency: 0.20, quality: 0.30, slo: 0.10, failure: 0.05}
+
+models:
+  - model_id: "Qwen/Qwen2.5-0.5B-Instruct-GPTQ-Int4"
+    logical_aliases: ["general", "coding", "qa", "summarization", "reasoning", "gptq-4bit"]
+    provider: "vllm"
+    execution_type: "local"
+    litellm_model: "openai/Qwen/Qwen2.5-0.5B-Instruct-GPTQ-Int4"
+    base_url: "http://vllm:8000/v1"
+    privacy_levels: ["public", "internal_only", "confidential", "restricted"]
+    cost_per_1k_input: 0.000010
+    cost_per_1k_output: 0.000020
+    quality: 0.73
+    max_context: 32768
+    replicas:
+      - replica_id: "vllm-gpu-gptq"
+        endpoint: "http://vllm:8000"
+        availability: true
+        weight: 1.0

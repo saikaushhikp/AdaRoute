@@ -1,7 +1,6 @@
 # CUDA-only GPTQ Int4 test profile.
 #
-# Run with:
-#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.gptq.yml up --build
+# Run with `just gpu-gptq-up` after creating .env.gpu from its example.
 #
 # The CPU image on this host loads the model but does not provide the
 # cpu_gemm_wna16 custom operator required for GPTQ token generation.
@@ -15,4 +14,12 @@ services:
       --host 0.0.0.0
       --dtype ${VLLM_DTYPE:-float16}
       --max-model-len ${VLLM_MAX_MODEL_LEN:-4096}
-      --gpu-memory-utilization ${VLLM_GPU_MEM_UTIL:-0.85}
+      --gpu-memory-utilization ${VLLM_GPU_MEM_UTIL:-0.90}
+      --tensor-parallel-size ${VLLM_TENSOR_PARALLEL_SIZE:-1}
+      --pipeline-parallel-size ${VLLM_PIPELINE_PARALLEL_SIZE:-1}
+      --max-num-seqs ${VLLM_MAX_NUM_SEQS:-128}
+      --swap-space ${VLLM_SWAP_SPACE_GB:-4}
+      --enable-prefix-caching
+  gateway:
+    environment:
+      - ADAROUTE_CONFIG=/app/config.gptq.yaml

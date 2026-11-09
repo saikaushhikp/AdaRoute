@@ -6,6 +6,7 @@ for all supported models and their replicas. Supports loading from config.yaml.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -27,7 +28,11 @@ class ModelRegistry:
         if config_path:
             self._config_path = Path(config_path)
         else:
-            cand = Path("config.yaml")
+            # Compose GPU profiles select an isolated catalog so their logical
+            # aliases always match the model launched by vLLM.  The default
+            # config remains unchanged for CPU/local development.
+            configured_path = os.getenv("ADAROUTE_CONFIG")
+            cand = Path(configured_path) if configured_path else Path("config.yaml")
             if cand.exists():
                 self._config_path = cand
             else:
