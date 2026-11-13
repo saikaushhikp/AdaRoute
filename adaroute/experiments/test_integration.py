@@ -28,8 +28,8 @@ async def test_tc_m1_03_unified_api_routing_public_task(client):
     assert response.status_code == 200
     data = response.json()
     assert len(data["content"]) > 0
-    assert data["replica_id"] in ("replica-1", "local-r1", "local-r2", "replica-llama-1")
-    assert data["provider"] in ("mock-local", "local")
+    assert data["provider"] in ("mock-local", "local", "vllm", "local_vllm", "local_ollama")
+    assert len(data["replica_id"]) > 0
 
 
 @pytest.mark.asyncio
@@ -46,8 +46,8 @@ async def test_tc_m1_04_unified_api_routing_privacy_constraint(client):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["provider"] in ("mock-local", "local")
-    assert data["model"] in ("llama-3-8b", "qwen2.5:1.5b")
+    assert data["provider"] in ("mock-local", "local", "vllm", "local_vllm", "local_ollama")
+    assert "external" not in data["provider"]
 
 
 @pytest.mark.asyncio

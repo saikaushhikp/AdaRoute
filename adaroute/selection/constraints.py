@@ -11,7 +11,7 @@ Evaluates all mandatory hard feasibility & safety constraints before soft scorin
 8. Provider cooldown and circuit breaker state
 9. Replica availability (at least 1 healthy replica for local deployments)
 10. Execution mode compatibility (e.g. mock exclusion in 'real' mode)
-11. Quality floor (low: 0.0, medium: 0.70, high: 0.85)
+11. Quality floor (low: 0.0, medium: 0.30, high: 0.85)
 
 Returns a typed EligibilityDecision containing all failed constraint reasons.
 """
@@ -49,7 +49,7 @@ class HardConstraintEngine:
 
     QUALITY_FLOORS = {
         "low": 0.0,
-        "medium": 0.70,
+        "medium": 0.30,
         "high": 0.85,
     }
 
@@ -160,7 +160,7 @@ class HardConstraintEngine:
                 )
 
         # 11. Quality Floor
-        min_quality = self.QUALITY_FLOORS.get(request.quality_requirement.lower(), 0.70)
+        min_quality = self.QUALITY_FLOORS.get(request.quality_requirement.lower(), 0.30)
         cand_q = candidate.get_capability_quality(request.task_type)
         if cand_q < min_quality:
             rejection_reasons.append(

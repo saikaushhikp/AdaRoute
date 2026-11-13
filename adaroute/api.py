@@ -100,9 +100,9 @@ replica_schedulers = {
 # but all "local" and "vllm" providers now resolve to VLLMBackend.
 _vllm_backend = VLLMBackend()
 backend_runners = {
-    "local": _vllm_backend,         # local models now served by vLLM
+    "local": _vllm_backend,  # local models now served by vLLM
     "local_vllm": _vllm_backend,
-    "local_ollama": LocalBackend(), # retained for Ollama compatibility mode
+    "local_ollama": LocalBackend(),  # retained for Ollama compatibility mode
     "groq": LiteLLMBackend(),
     "cohere": LiteLLMBackend(),
     "gemini": LiteLLMBackend(),

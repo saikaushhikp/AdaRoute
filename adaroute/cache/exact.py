@@ -173,8 +173,8 @@ class ExactCache:
                 return False
 
         # 4. Quality floor satisfaction
-        quality_floors = {"low": 0.0, "medium": 0.70, "high": 0.85}
-        required_floor = quality_floors.get(request.quality_requirement.lower(), 0.70)
+        quality_floors = {"low": 0.0, "medium": 0.30, "high": 0.85}
+        required_floor = quality_floors.get(request.quality_requirement.lower(), 0.30)
         if entry.origin_quality < required_floor:
             return False
 

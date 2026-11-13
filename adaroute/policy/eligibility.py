@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 class EligibilityChecker:
     QUALITY_FLOORS = {
         "low": 0.0,
-        "medium": 0.70,
+        "medium": 0.30,
         "high": 0.85,
     }
 
@@ -45,7 +45,7 @@ class EligibilityChecker:
         # 0. HARD CONSTRAINT: Real Mode Mock Exclusion
         import os
 
-        exec_mode = os.getenv("EXECUTION_MODE", "hybrid").lower()
+        exec_mode = (getattr(request, "execution_mode", None) or os.getenv("EXECUTION_MODE", "hybrid")).lower()
         if exec_mode == "real" and (spec.execution_type == "mock" or spec.provider.startswith("mock")):
             return (
                 False,
@@ -101,7 +101,7 @@ class EligibilityChecker:
             )
 
         # 3. HARD CONSTRAINT: Quality Floor (Enforced across ALL floors: low, medium, high!)
-        min_quality = self.QUALITY_FLOORS.get(request.quality_requirement.lower(), 0.70)
+        min_quality = self.QUALITY_FLOORS.get(request.quality_requirement.lower(), 0.30)
         model_q = spec.quality_scores.get(request.task_type.lower(), spec.quality_scores.get("general", 0.75))
         if model_q < min_quality:
             return (

@@ -69,7 +69,8 @@ class LocalBackend(BaseBackend):
         ).rstrip("/")
 
         # If strict simulation mode requested, skip real network attempt
-        if self.execution_mode == "simulation":
+        eff_mode = (getattr(request, "execution_mode", None) or self.execution_mode).lower()
+        if eff_mode == "simulation":
             return await self._execute_simulation(request, model_spec, replica_id, prompt_text, start_time)
 
         # Resolve model name for Ollama

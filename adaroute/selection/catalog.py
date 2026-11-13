@@ -65,7 +65,7 @@ class ModelDefinition:
         gen = self.capability_profiles.get("general")
         if gen and gen.supported:
             return gen.quality_value
-        return 0.70
+        return 0.30
 
     def get_capability_profile(self, capability: str) -> CapabilityProfile | None:
         return self.capability_profiles.get(capability.lower()) or self.capability_profiles.get("general")

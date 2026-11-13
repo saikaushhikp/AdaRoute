@@ -68,6 +68,7 @@ class ModelRegistry:
                 "cohere",
                 "gemini",
                 "google",
+                "openai",
                 "mock-external",
                 "litellm",
             )

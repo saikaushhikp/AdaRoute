@@ -5,7 +5,7 @@
 # Serves both local GGUF models concurrently inside a SINGLE vLLM container
 # (adaroute-vllm) via scripts/vllm_multi_server.py:
 #   - unsloth/Qwen3-0.6B-GGUF:Q4_K_M
-#   - unsloth/gemma-3-1b-it-GGUF:Q4_K_M
+#   - unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M
 #
 # The model selector routes requests to http://vllm:7000/v1, where the internal
 # router dispatches to the selected model engine.

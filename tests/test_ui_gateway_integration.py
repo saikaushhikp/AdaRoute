@@ -19,7 +19,7 @@ async def test_tc_m1_06_ui_static_asset_serving():
             assert res.status_code == 200
             assert "AdaRoute AI Gateway" in res.text
             assert '<div id="root"></div>' in res.text
-        except httpx.ConnectError:
+        except (httpx.ConnectError, httpx.TimeoutException):
             pytest.skip("UI container is not currently running on port 7070 (optional live test)")
 
 
@@ -34,7 +34,7 @@ async def test_tc_m1_07_ui_health_reverse_proxy():
             assert data["status"] == "healthy"
             assert "models" in data
             assert "replicas" in data
-        except httpx.ConnectError:
+        except (httpx.ConnectError, httpx.TimeoutException):
             pytest.skip("UI container is not currently running on port 7070")
 
 
@@ -55,7 +55,7 @@ async def test_tc_m1_08_ui_chat_completion_reverse_proxy_and_cache():
             res1 = await client.post(
                 f"{UI_BASE_URL}/v1/chat/completions",
                 json=payload,
-                timeout=30.0,
+                timeout=60.0,
             )
             assert res1.status_code == 200
             data1 = res1.json()
@@ -66,11 +66,11 @@ async def test_tc_m1_08_ui_chat_completion_reverse_proxy_and_cache():
             res2 = await client.post(
                 f"{UI_BASE_URL}/v1/chat/completions",
                 json=payload,
-                timeout=30.0,
+                timeout=60.0,
             )
             assert res2.status_code == 200
             data2 = res2.json()
             assert data2["routing_metadata"]["cache_hit"] is True
             assert data2["routing_metadata"]["estimated_cost"] == 0.0
-        except httpx.ConnectError:
+        except (httpx.ConnectError, httpx.TimeoutException):
             pytest.skip("UI container is not currently running on port 7070")

@@ -168,7 +168,7 @@ class ModelSpec(BaseModel):
             return True
         if self.execution_type in ("local", "mock-local"):
             return False
-        return self.provider in ("groq", "cohere", "gemini", "google", "litellm", "mock-external")
+        return self.provider in ("groq", "cohere", "gemini", "google", "openai", "litellm", "mock-external")
 
     def calculate_max_cost(self, prompt_tokens: int, max_tokens: int | None = None) -> float:
         """Calculates hard worst-case cost based on prompt tokens and max_tokens ceiling."""

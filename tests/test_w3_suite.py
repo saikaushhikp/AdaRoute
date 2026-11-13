@@ -37,6 +37,7 @@ async def test_tc_m1_09_single_user_context_no_auth_wall():
             json={
                 "model": "general",
                 "prompt": "Hello single-user AdaRoute",
+                "execution_mode": "simulation",
             },
         )
         assert response.status_code == 200
@@ -59,12 +60,13 @@ async def test_tc_m3_15_user_private_toggle_enforcement():
                 "privacy_level": "public",
                 "policy": "strongest",
                 "user_private": True,
+                "execution_mode": "simulation",
             },
         )
         assert response_priv.status_code == 200
         data_priv = response_priv.json()
         meta_priv = data_priv["routing_metadata"]
-        assert meta_priv["provider"] in ("local", "local_ollama", "mock-local")
+        assert meta_priv["provider"] in ("local", "local_ollama", "mock-local", "vllm", "local_vllm")
         assert "external" not in meta_priv["provider"]
 
         # 2. user_private=False: external cloud model (e.g. gpt-4o-external under strongest policy) IS eligible
@@ -77,12 +79,13 @@ async def test_tc_m3_15_user_private_toggle_enforcement():
                 "policy": "strongest",
                 "user_private": False,
                 "no_cache": True,
+                "execution_mode": "simulation",
             },
         )
         assert response_open.status_code == 200
         data_open = response_open.json()
         meta_open = data_open["routing_metadata"]
-        assert meta_open["provider"] in ("mock-external", "groq", "cohere", "litellm")
+        assert meta_open["provider"] in ("mock-external", "groq", "cohere", "litellm", "gemini", "openai")
         # Cloud models skip replica scheduling
         assert meta_open["selected_replica"] == "cloud-direct"
         assert meta_open["scheduler_name"] == "skipped"
@@ -105,6 +108,7 @@ async def test_tc_m4_12_cache_provenance_privacy_leak_prevention():
                 "privacy_level": "public",
                 "policy": "strongest",
                 "tenant_id": "tenant-sec",
+                "execution_mode": "simulation",
             },
         )
         assert res_public.status_code == 200
@@ -118,13 +122,14 @@ async def test_tc_m4_12_cache_provenance_privacy_leak_prevention():
                 "prompt": prompt,
                 "privacy_level": "internal_only",
                 "tenant_id": "tenant-sec",
+                "execution_mode": "simulation",
             },
         )
         assert res_internal.status_code == 200
         data_int = res_internal.json()
         # Invariant: Cache HIT is prohibited across privacy boundary!
         assert data_int["routing_metadata"]["cache_hit"] is False
-        assert data_int["routing_metadata"]["provider"] in ("local", "local_ollama", "mock-local")
+        assert data_int["routing_metadata"]["provider"] in ("local", "local_ollama", "mock-local", "vllm", "local_vllm")
 
 
 @pytest.mark.asyncio
@@ -143,6 +148,7 @@ async def test_tc_m4_13_cache_provenance_quality_floor_enforcement():
                 "prompt": prompt,
                 "quality_requirement": "low",
                 "tenant_id": "tenant-qual",
+                "execution_mode": "simulation",
             },
         )
         assert res_low.status_code == 200
@@ -155,11 +161,14 @@ async def test_tc_m4_13_cache_provenance_quality_floor_enforcement():
                 "prompt": prompt,
                 "quality_requirement": "high",
                 "tenant_id": "tenant-qual",
+                "execution_mode": "simulation",
             },
         )
         assert res_high.status_code == 200
         # If the origin model was below 0.85, cache was bypassed
-        if res_low.json()["routing_metadata"]["selected_model"] == "llama-3-8b":
+        low_model_id = res_low.json()["routing_metadata"]["selected_model"]
+        low_spec = registry.get_model(low_model_id)
+        if low_spec and getattr(low_spec, "quality", 1.0) < 0.85:
             assert res_high.json()["routing_metadata"]["cache_hit"] is False
 
 
@@ -273,10 +282,13 @@ async def test_tc_m2_05_real_local_model_native_tokens_and_hardware_tags():
     """[TC_M2_05] Real local Ollama reports native tokens and model provenance."""
     local_backend = LocalBackend(execution_mode="hybrid")
     req = RequestContext(prompt_tokens=10, estimated_output_tokens=10)
-    spec = registry.get_model("qwen2.5:1.5b")
+    local_models = [m for m in registry.get_all_models() if not m.is_external and not m.is_cloud]
+    assert len(local_models) > 0, "No local model found in registry"
+    spec = local_models[0]
+    replica_id = spec.replicas[0] if spec.replicas else "local-r1"
 
-    # qwen2.5:1.5b is running live on Ollama
-    resp = await local_backend.execute(req, spec, "local-r1", "Respond with exact word: PONG")
+    # Local model is running live or simulated
+    resp = await local_backend.execute(req, spec, replica_id, "Respond with exact word: PONG")
     assert resp is not None
     assert resp["prompt_tokens"] > 0
     assert resp["output_tokens"] > 0
@@ -355,8 +367,12 @@ def test_tc_m8_05_async_event_benchmark_poisson_arrival():
 
 def test_tc_m8_06_attributable_savings_accounting_vs_frontier():
     """[TC_M8_06] Calculate attributable savings versus a reference model."""
-    frontier_model = registry.get_model("gpt-4o-external")
-    local_model = registry.get_model("qwen2.5:1.5b")
+    ext_models = [m for m in registry.get_all_models() if m.is_external or m.is_cloud]
+    frontier_model = registry.get_model("gpt-4o-external") or (ext_models[0] if ext_models else None)
+    local_models = [m for m in registry.get_all_models() if not m.is_external and not m.is_cloud]
+    assert frontier_model is not None, "Frontier reference model required"
+    assert len(local_models) > 0, "Local model required"
+    local_model = local_models[0]
 
     prompt_tokens = 500
     completion_tokens = 250

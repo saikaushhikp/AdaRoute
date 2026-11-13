@@ -44,12 +44,7 @@ class VLLMBackend(BaseBackend):
         execution_mode: str | None = None,
     ) -> None:
         # Resolve base URL: env > constructor arg > Docker-compose service default
-        raw_url = (
-            base_url
-            or os.getenv("VLLM_BASE_URL")
-            or os.getenv("VLLM_HOST")
-            or "http://vllm:7000"
-        ).rstrip("/")
+        raw_url = (base_url or os.getenv("VLLM_BASE_URL") or os.getenv("VLLM_HOST") or "http://vllm:7000").rstrip("/")
         # Normalise: always end with /v1
         self.base_url = raw_url if raw_url.endswith("/v1") else f"{raw_url}/v1"
         self.timeout_sec = timeout_sec
@@ -93,8 +88,9 @@ class VLLMBackend(BaseBackend):
         **kwargs: Any,
     ) -> dict[str, Any]:
         start_time = time.perf_counter()
+        eff_mode = (getattr(request, "execution_mode", None) or self.execution_mode).lower()
 
-        if self.execution_mode == "simulation":
+        if eff_mode == "simulation":
             return await self._simulate(request, model_spec, replica_id, prompt_text, start_time)
 
         # ---- Resolve endpoint & model name ----
@@ -103,9 +99,7 @@ class VLLMBackend(BaseBackend):
 
         chat_messages = messages or [{"role": "user", "content": prompt_text}]
         p_tokens = (
-            count_tokens(prompt_text)
-            if prompt_text
-            else sum(count_tokens(m.get("content", "")) for m in chat_messages)
+            count_tokens(prompt_text) if prompt_text else sum(count_tokens(m.get("content", "")) for m in chat_messages)
         )
 
         payload: dict[str, Any] = {
@@ -135,9 +129,7 @@ class VLLMBackend(BaseBackend):
                 completion_tok = usage.get("completion_tokens", count_tokens(content))
                 lat_ms = (time.perf_counter() - start_time) * 1000.0
 
-                in_p = getattr(candidate, "input_price_per_1k", 0.0) or getattr(
-                    model_spec, "input_price_per_1k", 0.0
-                )
+                in_p = getattr(candidate, "input_price_per_1k", 0.0) or getattr(model_spec, "input_price_per_1k", 0.0)
                 out_p = getattr(candidate, "output_price_per_1k", 0.0) or getattr(
                     model_spec, "output_price_per_1k", 0.0
                 )
@@ -164,9 +156,7 @@ class VLLMBackend(BaseBackend):
                 raise
         except Exception as exc:
             if self.execution_mode == "real":
-                raise VLLMBackendUnavailableError(
-                    f"Failed to connect to vLLM at {eff_base}: {exc}"
-                ) from exc
+                raise VLLMBackendUnavailableError(f"Failed to connect to vLLM at {eff_base}: {exc}") from exc
 
         # Hybrid fallback: transparent simulation
         return await self._simulate(request, model_spec, replica_id, prompt_text, start_time)
@@ -185,9 +175,7 @@ class VLLMBackend(BaseBackend):
         token = self._api_key
         # 2. Credential reference on candidate / model spec
         if not token:
-            cred_ref = getattr(candidate, "credential_reference", None) or getattr(
-                model_spec, "api_key_env", None
-            )
+            cred_ref = getattr(candidate, "credential_reference", None) or getattr(model_spec, "api_key_env", None)
             if cred_ref:
                 token = os.getenv(cred_ref)
         if token:

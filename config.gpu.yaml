@@ -1,7 +1,7 @@
 # GPU-only catalog used by docker-compose.gpu.yml.
 # Both local models are served inside the single vLLM container at http://vllm:7000:
 #   1. unsloth/Qwen3-0.6B-GGUF:Q4_K_M
-#   2. unsloth/gemma-3-1b-it-GGUF:Q4_K_M
+#   2. unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M
 # Cloud models are identical to config.yaml.
 
 gateway:
@@ -37,11 +37,11 @@ routing:
   default_policy: "adaptive"
   default_scheduler: "slo_aware"
   static_task_map:
-    coding: "unsloth/Qwen3-0.6B-GGUF:Q4_K_M"
-    qa: "unsloth/Qwen3-0.6B-GGUF:Q4_K_M"
+    reasoning: "unsloth/Qwen3-0.6B-GGUF:Q4_K_M"
+    summarization: "unsloth/Qwen3-0.6B-GGUF:Q4_K_M"
     general: "unsloth/Qwen3-0.6B-GGUF:Q4_K_M"
-    reasoning: "unsloth/gemma-3-1b-it-GGUF:Q4_K_M"
-    summarization: "unsloth/gemma-3-1b-it-GGUF:Q4_K_M"
+    coding: "unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M"
+    qa: "unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M"
   policies:
     adaptive:
       weights:
@@ -78,7 +78,7 @@ models:
   # Served inside the single vLLM container (http://vllm:7000/v1)
   # -------------------------------------------------------------
   - model_id: "unsloth/Qwen3-0.6B-GGUF:Q4_K_M"
-    logical_aliases: ["general", "coding", "qa", "summarization", "fast"]
+    logical_aliases: ["general", "reasoning", "summarization", "fast"]
     provider: "vllm"
     execution_type: "local"
     litellm_model: "openai/unsloth/Qwen3-0.6B-GGUF:Q4_K_M"
@@ -86,27 +86,31 @@ models:
     privacy_levels: ["public", "internal_only", "confidential", "restricted"]
     cost_per_1k_input: 0.000010   # GGUF Q4 — very low local compute cost
     cost_per_1k_output: 0.000020
-    quality: 0.78                 # Qwen3-0.6B Q4_K_M quantized
+    quality: 0.44                 # Qwen3-0.6B Q4_K_M quantized (native reasoning)
     max_context: 32768
     replicas:
       - replica_id: "vllm-gpu-gguf-qwen3"
         endpoint: "http://vllm:7000"
         availability: true
         weight: 1.0
+      - replica_id: "vllm-gpu-gguf-qwen3-r2"
+        endpoint: "http://vllm:7000"
+        availability: true
+        weight: 1.0
 
-  - model_id: "unsloth/gemma-3-1b-it-GGUF:Q4_K_M"
-    logical_aliases: ["general", "reasoning", "qa", "summarization", "fast", "complex"]
+  - model_id: "unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M"
+    logical_aliases: ["general", "coding", "qa", "summarization", "fast", "complex"]
     provider: "vllm"
     execution_type: "local"
-    litellm_model: "openai/unsloth/gemma-3-1b-it-GGUF:Q4_K_M"
+    litellm_model: "openai/unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M"
     base_url: "http://vllm:7000/v1"
     privacy_levels: ["public", "internal_only", "confidential", "restricted"]
     cost_per_1k_input: 0.000010   # GGUF Q4 — very low local compute cost
     cost_per_1k_output: 0.000020
-    quality: 0.76                 # Llama-3.2-1B: Arena ELO ~1110, IFEval 59.5%, GSM8K 44.4%
-    max_context: 131072           # Meta Llama 3.2 128k native context window
+    quality: 0.33                 # Qwen2.5-Coder-0.5B: HumanEval 65.9%, MultiPL-E 58.6%
+    max_context: 131072           # Native 128k context window
     replicas:
-      - replica_id: "vllm-gpu-gguf-gemma3"
+      - replica_id: "vllm-gpu-gguf-qwen2.5"
         endpoint: "http://vllm:7000"
         availability: true
         weight: 1.0
@@ -122,14 +126,14 @@ models:
     litellm_model: "gemini/gemini-flash-latest"
     api_key_env: "GOOGLE_API_KEY"
     privacy_levels: ["public"]
-    cost_per_1k_input: 0.000075   # Official Google AI Studio: $0.075 / 1M tokens
-    cost_per_1k_output: 0.000300  # Official Google AI Studio: $0.30 / 1M tokens
-    quality: 0.89                 # LMSYS Chatbot Arena ELO ~1268, MMLU ~80.1%
+    cost_per_1k_input: 0.00075   # Official Google AI Studio: $0.075 / 1M tokens
+    cost_per_1k_output: 0.00375  # Official Google AI Studio: $0.30 / 1M tokens
+    quality: 0.88                 # LMSYS Chatbot Arena ELO ~1268, MMLU ~80.1%
     max_context: 1048576          # 1,048,576 tokens (1M context window)
     replicas: []
 
   - model_id: "groq/qwen/qwen3.8-27b"
-    logical_aliases: ["general", "fast", "coding"]
+    logical_aliases: ["general", "fast", "coding", "reasoning"]
     provider: "groq"
     execution_type: "external"
     litellm_model: "groq/qwen/qwen3.8-27b"
@@ -137,7 +141,7 @@ models:
     privacy_levels: ["public"]
     cost_per_1k_input: 0.00080    # Official Groq pricing: $0.80 / 1M tokens
     cost_per_1k_output: 0.00400   # Official Groq pricing: $4.00 / 1M tokens
-    quality: 0.87                 # Qwen3 27B class, LMSYS Arena ELO ~1250
+    quality: 0.90                 # Qwen3 27B class, LMSYS Arena ELO ~1250
     max_context: 131072           # Groq API verified context length
     replicas: []
 
@@ -150,8 +154,8 @@ models:
     privacy_levels: ["public"]
     cost_per_1k_input: 0.00015    # Official Cohere pricing: $0.15 / 1M tokens
     cost_per_1k_output: 0.00060   # Official Cohere pricing: $0.60 / 1M tokens
-    quality: 0.83                 # LMSYS Arena ELO ~1200
-    max_context: 127000           # Official Cohere Command R context length
+    quality: 0.72                 # LMSYS Arena ELO ~1200
+    max_context: 128000           # Official Cohere Command R context length
     replicas: []
 
   # -------------------------------------------------------------
@@ -165,7 +169,7 @@ models:
     privacy_levels: ["public"]
     cost_per_1k_input: 0.005
     cost_per_1k_output: 0.015
-    quality: 0.98
+    quality: 0.3001             # for testing, lower it from 0.98 to 0.3001
     max_context: 127000
     replicas:
       - replica_id: "replica-gpt-4o-1"
@@ -181,7 +185,7 @@ models:
     privacy_levels: ["public", "internal_only", "confidential", "restricted"]
     cost_per_1k_input: 0.0005
     cost_per_1k_output: 0.0015
-    quality: 0.79
+    quality: 0.3001            # for testing, lower it from 0.78 to 0.3001
     max_context: 8192
     replicas:
       - replica_id: "replica-llama-1"

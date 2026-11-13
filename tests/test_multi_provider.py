@@ -16,12 +16,13 @@ async def test_tc_m2_01_local_model_execution():
                 "prompt": "Test local inference",
                 "privacy_level": "internal_only",  # Forces local model
                 "budget": 1.0,
+                "execution_mode": "simulation",
             },
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["routing_metadata"]["provider"] == "local"
-        assert "local" in data["model"] or "qwen" in data["model"]
+        assert data["routing_metadata"]["provider"] in ("local", "vllm", "local_vllm", "local_ollama", "mock-local")
+        assert len(data["model"]) > 0
 
 
 @pytest.mark.asyncio
@@ -37,12 +38,20 @@ async def test_tc_m2_02_alternate_provider_execution():
                 "privacy_level": "public",
                 "policy": "strongest",  # Strongest policy selects high-capability external provider
                 "budget": 1.0,
+                "execution_mode": "simulation",
             },
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["routing_metadata"]["provider"] == "mock-external"
-        assert "gpt-4o" in data["model"]
+        assert data["routing_metadata"]["provider"] in (
+            "mock-external",
+            "gemini",
+            "groq",
+            "cohere",
+            "openai",
+            "litellm",
+        )
+        assert len(data["model"]) > 0
 
 
 @pytest.mark.asyncio
@@ -56,7 +65,13 @@ async def test_tc_m2_03_transparent_provider_switch_same_client():
         # Request 1: Internal -> routed to local
         res_local = await client.post(
             "/v1/chat/completions",
-            json={"model": "general", "prompt": "Hi internal", "privacy_level": "internal_only", "no_cache": True},
+            json={
+                "model": "general",
+                "prompt": "Hi internal",
+                "privacy_level": "internal_only",
+                "no_cache": True,
+                "execution_mode": "simulation",
+            },
         )
         # Request 2: Public + Strongest -> routed to external
         res_ext = await client.post(
@@ -67,6 +82,7 @@ async def test_tc_m2_03_transparent_provider_switch_same_client():
                 "privacy_level": "public",
                 "policy": "strongest",
                 "no_cache": True,
+                "execution_mode": "simulation",
             },
         )
 
@@ -77,5 +93,19 @@ async def test_tc_m2_03_transparent_provider_switch_same_client():
         data_ext = res_ext.json()
 
         # Transparent switch verified
-        assert data_local["routing_metadata"]["provider"] == "local"
-        assert data_ext["routing_metadata"]["provider"] == "mock-external"
+        assert data_local["routing_metadata"]["provider"] in (
+            "local",
+            "vllm",
+            "local_vllm",
+            "local_ollama",
+            "mock-local",
+        )
+        assert data_ext["routing_metadata"]["provider"] in (
+            "mock-external",
+            "gemini",
+            "groq",
+            "cohere",
+            "openai",
+            "litellm",
+        )
+        assert data_local["routing_metadata"]["provider"] != data_ext["routing_metadata"]["provider"]

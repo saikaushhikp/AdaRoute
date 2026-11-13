@@ -186,6 +186,30 @@ def test_tc_m10_06_semantic_cache_quality_floor_guard():
     hit = cache.get(req, "what is the capital of France?")
     assert hit is None
 
+    # Medium quality request (floor 0.30): accepts 0.65
+    req_med = RequestContext(
+        task_type="general",
+        prompt_tokens=10,
+        privacy_level=PrivacyLevel.PUBLIC,
+        quality_requirement="medium",  # Floor = 0.30
+        tenant_id="user",
+    )
+    hit_med = cache.get(req_med, "what is the capital of France?")
+    assert hit_med is not None
+
+    # Entry with quality 0.20 is rejected for medium requirement (floor 0.30)
+    cache.put(
+        request=req_med,
+        prompt_text="what is quantum computing?",
+        response_content="Computing with qubits",
+        model="local-model",
+        replica_id="local-r1",
+        output_tokens=3,
+        quality_score=0.20,  # Below 0.30
+    )
+    hit_sub_floor = cache.get(req_med, "what is quantum computing?")
+    assert hit_sub_floor is None
+
 
 def test_tc_m10_07_semantic_cache_simulation_isolation():
     cache = SemanticCache(similarity_threshold=0.90)

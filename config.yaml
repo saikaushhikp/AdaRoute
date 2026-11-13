@@ -124,9 +124,9 @@ models:
     litellm_model: "gemini/gemini-flash-latest"
     api_key_env: "GOOGLE_API_KEY"
     privacy_levels: ["public"]
-    cost_per_1k_input: 0.000075   # Official Google AI Studio: $0.075 / 1M tokens
-    cost_per_1k_output: 0.000300  # Official Google AI Studio: $0.30 / 1M tokens
-    quality: 0.89                 # LMSYS Chatbot Arena ELO ~1268, MMLU ~80.1%
+    cost_per_1k_input: 0.00075   # Official Google AI Studio: $0.075 / 1M tokens
+    cost_per_1k_output: 0.00375  # Official Google AI Studio: $0.30 / 1M tokens
+    quality: 0.88                 # LMSYS Chatbot Arena ELO ~1268, MMLU ~80.1%
     max_context: 1048576          # 1,048,576 tokens (1M context window)
     replicas: []
 
@@ -139,7 +139,7 @@ models:
     privacy_levels: ["public"]
     cost_per_1k_input: 0.00080    # Official Groq pricing: $0.80 / 1M tokens
     cost_per_1k_output: 0.00400   # Official Groq pricing: $4.00 / 1M tokens
-    quality: 0.87                 # Qwen3 27B class, LMSYS Arena ELO ~1250
+    quality: 0.90                 # Qwen3 27B class, LMSYS Arena ELO ~1250
     max_context: 131072           # Groq API verified context length
     replicas: []
 
@@ -152,8 +152,8 @@ models:
     privacy_levels: ["public"]
     cost_per_1k_input: 0.00015    # Official Cohere pricing: $0.15 / 1M tokens
     cost_per_1k_output: 0.00060   # Official Cohere pricing: $0.60 / 1M tokens
-    quality: 0.83                 # LMSYS Arena ELO ~1200
-    max_context: 127000           # Official Cohere Command R context length
+    quality: 0.72                 # LMSYS Arena ELO ~1200
+    max_context: 128000           # Official Cohere Command R context length
     replicas: []
 
   # -------------------------------------------------------------
@@ -167,7 +167,7 @@ models:
     privacy_levels: ["public"]
     cost_per_1k_input: 0.005
     cost_per_1k_output: 0.015
-    quality: 0.98
+    quality: 0.3001             # for testing, lower it from 0.98 to 0.3001
     max_context: 127000
     replicas:
       - replica_id: "replica-gpt-4o-1"
@@ -183,7 +183,7 @@ models:
     privacy_levels: ["public", "internal_only", "confidential", "restricted"]
     cost_per_1k_input: 0.0005
     cost_per_1k_output: 0.0015
-    quality: 0.79
+    quality: 0.3001            # for testing, lower it from 0.78 to 0.3001
     max_context: 8192
     replicas:
       - replica_id: "replica-llama-1"

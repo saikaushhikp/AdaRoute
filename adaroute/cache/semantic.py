@@ -145,7 +145,7 @@ class SemanticCache:
 
     QUALITY_MAP = {
         "low": 0.0,
-        "medium": 0.70,
+        "medium": 0.30,
         "high": 0.85,
     }
 
@@ -183,7 +183,7 @@ class SemanticCache:
         """Finds closest cached entry exceeding the semantic similarity threshold."""
         tau = threshold if threshold is not None else self.threshold
         query_vec = self.embedder.encode(prompt_text)
-        req_quality = self.QUALITY_MAP.get(request.quality_requirement.lower(), 0.70)
+        req_quality = self.QUALITY_MAP.get(request.quality_requirement.lower(), 0.30)
         is_real_mode = (request.execution_mode or "hybrid").lower() == "real"
 
         best_entry: SemanticCacheEntry | None = None

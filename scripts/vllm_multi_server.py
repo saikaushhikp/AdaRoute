@@ -34,6 +34,7 @@ import sys
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -60,6 +61,8 @@ class LocalModelConfig:
     process: subprocess.Popen | None = None
     last_healthy: bool = False
     last_check_time: float = 0.0
+    restart_count: int = 0
+    status: str = "starting"  # "starting", "healthy", "crashed", "stopped"
 
 
 # Global server state
@@ -79,12 +82,14 @@ def find_config_file(explicit_path: str | None = None) -> Path:
     if env_config:
         candidates.append(env_config)
 
-    candidates.extend([
-        "/app/config.gpu.yaml",
-        "config.gpu.yaml",
-        "/app/config.yaml",
-        "config.yaml",
-    ])
+    candidates.extend(
+        [
+            "/app/config.gpu.yaml",
+            "config.gpu.yaml",
+            "/app/config.yaml",
+            "config.yaml",
+        ]
+    )
 
     for c in candidates:
         p = Path(c).resolve()
@@ -111,14 +116,45 @@ def infer_tokenizer(model_id: str, configured_tokenizer: str | None = None) -> s
             clean = clean[: -len(suffix)]
             break
 
+    # Strip context length tags like -128K, -64K, -32K, -16K (e.g. unsloth/Qwen2.5-Coder-0.5B-Instruct-128K)
+    clean = re.sub(r"[-_](128|64|32|16)k\b", "", clean, flags=re.IGNORECASE)
+
     # Known repository redirects where tokenizer lives under upstream org
     if clean == "unsloth/Qwen3-0.6B":
         return "Qwen/Qwen3-0.6B"
     if clean.startswith("unsloth/Qwen"):
-        # e.g. unsloth/Qwen2.5-7B -> Qwen/Qwen2.5-7B
+        # e.g. unsloth/Qwen2.5-Coder-0.5B-Instruct -> Qwen/Qwen2.5-Coder-0.5B-Instruct
         return clean.replace("unsloth/", "Qwen/")
 
     return clean
+
+
+def infer_dtype(model_id: str, configured_dtype: str | None = None, is_gguf: bool = False) -> str:
+    """Selects the optimal torch dtype for the model architecture.
+
+    Rules:
+    1. Explicitly configured dtype in catalog YAML or env var always takes precedence.
+    2. Gemma models strictly require bfloat16 (or float32) in vLLM due to numerical instability in float16.
+    3. GGUF models generally use 'half' (weights are dequantized into float16 internally).
+    4. Full-precision models default to 'bfloat16' for stability on modern GPUs.
+    """
+    if configured_dtype:
+        return configured_dtype.strip().lower()
+
+    env_dtype = os.getenv("VLLM_DTYPE")
+    if env_dtype:
+        return env_dtype.strip().lower()
+
+    lower_id = model_id.lower()
+
+    # Gemma architectures (e.g. gemma, gemma2, gemma3, gemma3_text) forbid float16 in vLLM
+    if "gemma" in lower_id:
+        return "bfloat16"
+
+    if is_gguf:
+        return "half"
+
+    return "bfloat16"
 
 
 def is_gguf_model(model_id: str) -> bool:
@@ -153,10 +189,9 @@ def load_local_models_from_catalog(config_path: Path) -> list[LocalModelConfig]:
         base_url = str(m.get("base_url", "")).lower()
 
         # Matches local vLLM models
-        is_local_vllm = (
-            provider in ("vllm", "local", "local_vllm")
-            and exec_type in ("local", "")
-        ) or ("vllm:" in base_url or "localhost:7000" in base_url)
+        is_local_vllm = (provider in ("vllm", "local", "local_vllm") and exec_type in ("local", "")) or (
+            "vllm:" in base_url or "localhost:7000" in base_url
+        )
 
         if is_local_vllm and "model_id" in m:
             local_entries.append(m)
@@ -169,26 +204,29 @@ def load_local_models_from_catalog(config_path: Path) -> list[LocalModelConfig]:
             f"Using fallback model from environment: {fallback_id}",
             flush=True,
         )
-        local_entries.append({
-            "model_id": fallback_id,
-            "logical_aliases": ["general", "default"],
-            "max_context": 8192,
-        })
+        local_entries.append(
+            {
+                "model_id": fallback_id,
+                "logical_aliases": ["general", "default"],
+                "max_context": 8192,
+            }
+        )
 
     num_models = len(local_entries)
 
     # Dynamic GPU memory slicing:
     # If VLLM_GPU_MEM_UTIL is set explicitly, use it as per-model cap.
-    # Otherwise divide safe total budget (default 0.30 for multi-model) across models.
+    # Otherwise divide safe total budget (default 0.50 for multi-model) across models.
     env_mem = os.getenv("VLLM_GPU_MEM_UTIL")
     if env_mem:
         try:
             per_model_mem = float(env_mem)
         except ValueError:
-            per_model_mem = 0.05
+            per_model_mem = 0.20
     else:
-        # Conservative slice per model to fit multiple models concurrently on GPU
-        per_model_mem = min(0.12, max(0.04, round(0.30 / max(num_models, 1), 2)))
+        # Safe allocation per model to fit multiple models concurrently on GPU
+        # e.g. 2 models -> 0.25 each (total 50% VRAM)
+        per_model_mem = min(0.35, max(0.08, round(0.50 / max(num_models, 1), 2)))
 
     resolved: list[LocalModelConfig] = []
     for idx, entry in enumerate(local_entries):
@@ -198,14 +236,21 @@ def load_local_models_from_catalog(config_path: Path) -> list[LocalModelConfig]:
         tok = infer_tokenizer(mid, entry.get("tokenizer"))
 
         # Context length capped for safe memory utilization in concurrent mode
-        raw_ctx = int(entry.get("max_context") or entry.get("context_window") or 8192)
-        safe_ctx = min(raw_ctx, int(os.getenv("VLLM_MAX_MODEL_LEN", "8192")))
+        raw_ctx = int(entry.get("max_model_len") or entry.get("max_context") or entry.get("context_window") or 4096)
+        safe_ctx = min(raw_ctx, int(os.getenv("VLLM_MAX_MODEL_LEN", "4096")))
 
         # Dtype selection
-        if gguf:
-            dtype = os.getenv("VLLM_DTYPE", "half")
+        dtype = infer_dtype(mid, entry.get("dtype"), gguf)
+
+        # Per-model memory override or dynamic slice
+        model_mem = entry.get("gpu_memory_utilization") or entry.get("gpu_mem_util")
+        if model_mem is not None:
+            try:
+                alloc_mem = float(model_mem)
+            except ValueError:
+                alloc_mem = per_model_mem
         else:
-            dtype = os.getenv("VLLM_DTYPE", "bfloat16")
+            alloc_mem = per_model_mem
 
         port = BASE_INTERNAL_PORT + idx
 
@@ -216,7 +261,7 @@ def load_local_models_from_catalog(config_path: Path) -> list[LocalModelConfig]:
             port=port,
             dtype=dtype,
             max_model_len=safe_ctx,
-            gpu_mem_util=per_model_mem,
+            gpu_mem_util=alloc_mem,
             is_gguf=gguf,
         )
         resolved.append(cfg)
@@ -252,7 +297,6 @@ def resolve_target_model(
     lookup: dict[str, LocalModelConfig] | None = None,
 ) -> LocalModelConfig:
     """Matches an incoming requested model string to the best local model config."""
-    global _default_model, _local_models, _model_lookup
     active_models = models if models is not None else _local_models
     active_lookup = lookup if lookup is not None else _model_lookup
     default_m = _default_model or (active_models[0] if active_models else None)
@@ -292,31 +336,88 @@ def is_backend_alive(port: int) -> bool:
         return False
 
 
+def check_engine_health(cfg: LocalModelConfig) -> str:
+    """Checks the live status of an engine process and its HTTP endpoint."""
+    if cfg.process is not None:
+        poll = cfg.process.poll()
+        if poll is not None:
+            cfg.status = f"crashed (exit code {poll})"
+            cfg.last_healthy = False
+            return cfg.status
+
+    if is_backend_alive(cfg.port):
+        cfg.status = "healthy"
+        cfg.last_healthy = True
+        cfg.last_check_time = time.time()
+        return "healthy"
+
+    if cfg.process is not None and cfg.process.poll() is None:
+        cfg.status = "starting"
+        cfg.last_healthy = False
+        return "starting"
+
+    cfg.status = "stopped"
+    cfg.last_healthy = False
+    return "stopped"
+
+
+def start_watchdog_thread() -> None:
+    """Starts a daemon thread that supervises engine processes and performs auto-restart."""
+
+    def _watchdog_loop() -> None:
+        while not _server_shutting_down:
+            for cfg in _local_models:
+                status = check_engine_health(cfg)
+                if "crashed" in status and cfg.restart_count < 3 and not _server_shutting_down:
+                    cfg.restart_count += 1
+                    print(
+                        f"[vLLM Multi-Server] WARNING: Engine for '{cfg.model_id}' died ({status})! "
+                        f"Attempting auto-restart #{cfg.restart_count}/3...",
+                        flush=True,
+                    )
+                    try:
+                        cfg.process = launch_engine(cfg)
+                        cfg.status = "starting"
+                    except Exception as e:
+                        print(f"[vLLM Multi-Server] ERROR: Failed to restart '{cfg.model_id}': {e}", flush=True)
+            time.sleep(3.0)
+
+    t = threading.Thread(target=_watchdog_loop, daemon=True, name="vllm-engine-watchdog")
+    t.start()
+
+
 def build_models_response(models: list[LocalModelConfig]) -> dict[str, Any]:
-    """Generates an OpenAI-compatible /v1/models response for all local models."""
+    """Generates an OpenAI-compatible /v1/models response for available local models."""
     data: list[dict[str, Any]] = []
     now = int(time.time())
     for m in models:
-        data.append({
-            "id": m.model_id,
-            "object": "model",
-            "created": now,
-            "owned_by": "vllm",
-            "root": m.model_id,
-            "parent": None,
-            "permission": [],
-        })
-        # Expose primary aliases as models for standard SDKs
-        for alias in m.aliases:
-            data.append({
-                "id": alias,
+        # Exclude models whose processes have crashed and failed to restart
+        if "crashed" in getattr(m, "status", ""):
+            continue
+        data.append(
+            {
+                "id": m.model_id,
                 "object": "model",
                 "created": now,
-                "owned_by": "vllm-alias",
+                "owned_by": "vllm",
                 "root": m.model_id,
                 "parent": None,
                 "permission": [],
-            })
+            }
+        )
+        # Expose primary aliases as models for standard SDKs
+        for alias in m.aliases:
+            data.append(
+                {
+                    "id": alias,
+                    "object": "model",
+                    "created": now,
+                    "owned_by": "vllm-alias",
+                    "root": m.model_id,
+                    "parent": None,
+                    "permission": [],
+                }
+            )
     return {"object": "list", "data": data}
 
 
@@ -328,25 +429,49 @@ class SystemAgnosticProxyHandler(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self) -> None:
-        if self.path in ("/health", "/healthz"):
+        if self.path.startswith("/health"):
+            parsed_url = urllib.parse.urlparse(self.path)
+            query_params = urllib.parse.parse_qs(parsed_url.query)
+            filter_model = query_params.get("model", [None])[0]
+
             health_status: dict[str, Any] = {}
             any_healthy = False
-            for m in _local_models:
-                alive = is_backend_alive(m.port)
-                health_status[m.model_id] = "healthy" if alive else "starting"
-                if alive:
-                    any_healthy = True
+            all_healthy = True
 
-            code = 200 if any_healthy else 503
+            for m in _local_models:
+                status = check_engine_health(m)
+                health_status[m.model_id] = {
+                    "status": status,
+                    "port": m.port,
+                    "dtype": m.dtype,
+                    "restarts": m.restart_count,
+                }
+                if status == "healthy":
+                    any_healthy = True
+                else:
+                    all_healthy = False
+
+            if filter_model:
+                target_m = resolve_target_model(filter_model)
+                is_ok = target_m.status == "healthy"
+                code = 200 if is_ok else 503
+                payload = {
+                    "model": target_m.model_id,
+                    "status": target_m.status,
+                    "port": target_m.port,
+                    "dtype": target_m.dtype,
+                }
+            else:
+                code = 200 if any_healthy else 503
+                payload = {
+                    "status": "healthy" if all_healthy else ("degraded" if any_healthy else "starting"),
+                    "backends": health_status,
+                }
+
             self.send_response(code)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(
-                json.dumps({
-                    "status": "healthy" if any_healthy else "starting",
-                    "backends": health_status,
-                }).encode("utf-8")
-            )
+            self.wfile.write(json.dumps(payload).encode("utf-8"))
             return
 
         if self.path in ("/v1/models", "/models"):
@@ -376,6 +501,19 @@ class SystemAgnosticProxyHandler(BaseHTTPRequestHandler):
                 parsed_payload = None
 
         target = resolve_target_model(requested_model)
+
+        # Ensure target engine is monitored / attempt recovery if crashed
+        target_status = check_engine_health(target)
+        if "crashed" in target_status and target.restart_count < 3 and not _server_shutting_down:
+            target.restart_count += 1
+            print(
+                f"[vLLM Multi-Server] On-demand restart #{target.restart_count} for '{target.model_id}'...",
+                flush=True,
+            )
+            try:
+                target.process = launch_engine(target)
+            except Exception as e:
+                print(f"[vLLM Multi-Server] Failed on-demand restart: {e}", flush=True)
 
         # Normalize the "model" field to match target engine's served model name
         if parsed_payload is not None and "model" in parsed_payload:
@@ -415,9 +553,13 @@ class SystemAgnosticProxyHandler(BaseHTTPRequestHandler):
             self.send_response(503)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
+            target_status = getattr(target, "status", "unknown")
             err_resp = {
                 "error": {
-                    "message": f"vLLM engine for '{target.model_id}' (port {target.port}) unavailable: {e}",
+                    "message": (
+                        f"vLLM engine for '{target.model_id}' (port {target.port}) unavailable: {e}. "
+                        f"Engine status: {target_status} (dtype: {target.dtype})"
+                    ),
                     "type": "backend_unavailable",
                     "code": 503,
                 }
@@ -517,9 +659,7 @@ def print_discovered_summary(models: list[LocalModelConfig], config_path: Path) 
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="AdaRoute System-Agnostic vLLM Multi-Engine Server"
-    )
+    parser = argparse.ArgumentParser(description="AdaRoute System-Agnostic vLLM Multi-Engine Server")
     parser.add_argument(
         "--config",
         "-c",
@@ -573,7 +713,10 @@ def main() -> None:
         m.process = launch_engine(m)
         time.sleep(1.0)  # Slight stagger to avoid GPU initialization race
 
-    # 5. Start unified reverse proxy
+    # 5. Start engine watchdog thread
+    start_watchdog_thread()
+
+    # 6. Start unified reverse proxy
     server_address = ("0.0.0.0", GATEWAY_PORT)
     httpd = ThreadingHTTPServer(server_address, SystemAgnosticProxyHandler)
     print(

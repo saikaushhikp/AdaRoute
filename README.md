@@ -237,7 +237,7 @@ Compose override that starts the official CUDA vLLM image with the
 `vllm-gguf-plugin` and serves two local models concurrently with Q4_K_M
 quantization for dramatically reduced VRAM usage:
 - `unsloth/Qwen3-0.6B-GGUF:Q4_K_M` (fast, coding, general, qa)
-- `unsloth/gemma-3-1b-it-GGUF:Q4_K_M` (reasoning, summarization, complex, 128k context)
+- `unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M` (reasoning, summarization, complex, 128k context)
 
 On the accelerator host, install the NVIDIA driver and configure Docker with
 the NVIDIA Container Toolkit. NVIDIA documents the host setup with

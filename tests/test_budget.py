@@ -50,8 +50,11 @@ async def test_tc_m3_09_negative_budget_validation_error():
 
 def test_tc_m3_10_budget_differentiates_model_tier(eligibility_checker):
     """[TC_M3_10] Intermediate budget permits local cheap model but excludes expensive cloud model."""
-    local_spec = registry.get_model("qwen2.5:1.5b")
-    ext_spec = registry.get_model("gpt-4o-external")
+    local_candidates = [m for m in registry.get_all_models() if not m.is_external and not m.is_cloud]
+    local_spec = local_candidates[0] if local_candidates else registry.get_model("qwen2.5:1.5b")
+    ext_spec = registry.get_model("gpt-4o-external") or max(
+        registry.get_all_models(), key=lambda m: m.output_price_per_1k
+    )
 
     # Moderate budget sufficient for local ($0.001/k) but too low for GPT-4o ($0.015/k)
     req = RequestContext(
@@ -60,6 +63,7 @@ def test_tc_m3_10_budget_differentiates_model_tier(eligibility_checker):
         estimated_output_tokens=300,
         privacy_level=PrivacyLevel.PUBLIC,
         budget=0.002,  # Local cost: ~0.0007, External cost: ~0.007
+        execution_mode="hybrid",
     )
 
     local_ok, _, _local_cost = eligibility_checker.check_model_eligibility(local_spec, req)

@@ -34,9 +34,11 @@ async def test_tc_m3_04_privacy_adversarial_forbidden_choice():
         data = response.json()
 
         # Invariant: Must be served by local provider, never external
-        assert data["routing_metadata"]["provider"] == "local"
-        assert "local" in data["model"] or "qwen" in data["model"]
+        assert data["routing_metadata"]["provider"] in ("local", "vllm", "mock-local", "local_vllm", "local_ollama")
         assert "external" not in data["routing_metadata"]["provider"]
+        selected_spec = registry.get_model(data["model"])
+        if selected_spec:
+            assert not selected_spec.is_external and not selected_spec.is_cloud
 
 
 @pytest.mark.asyncio

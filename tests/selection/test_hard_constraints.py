@@ -226,3 +226,90 @@ def test_tc_m5_07_session_budget_remaining():
     dec = engine.evaluate(cand_cloud, req, est, session_budget_remaining=0.0005)
     assert dec.is_eligible is False
     assert any("Session budget exhausted" in r for r in dec.rejection_reasons)
+
+
+def test_tc_m3_49_quality_floor_constraint_lowered_to_030():
+    """Validates that the medium quality floor is set to 0.30 (lowered from 0.70)."""
+    assert HardConstraintEngine.QUALITY_FLOORS["medium"] == 0.30
+    assert HardConstraintEngine.QUALITY_FLOORS["low"] == 0.0
+    assert HardConstraintEngine.QUALITY_FLOORS["high"] == 0.85
+
+    catalog = build_test_environment()
+    engine = HardConstraintEngine(execution_mode="hybrid")
+
+    from adaroute.selection.catalog import CapabilityProfile
+
+    # 1. Candidate with quality 0.25 (below 0.30)
+    m_low_qual = ModelDefinition(
+        model_id="low-qual-model",
+        context_window=4096,
+        capability_profiles={
+            "general": CapabilityProfile("general", supported=True, quality_value=0.25),
+        },
+    )
+    catalog.register_model(m_low_qual)
+    d_low_qual = DeploymentDefinition(
+        deployment_id="dep-low-qual",
+        model_id="low-qual-model",
+        provider_id="local_prov",
+        allowed_privacy={PrivacyLevel.PUBLIC},
+        replicas=[ReplicaDefinition(replica_id="r-lq", endpoint="http://h1:11436", availability=True)],
+    )
+    catalog.register_deployment(d_low_qual)
+    cand_low = CandidateDeployment(
+        d_low_qual,
+        m_low_qual,
+        catalog.get_provider("local_prov"),
+        catalog.get_snapshot("dep-low-qual"),
+    )
+
+    # 2. Candidate with quality 0.35 (above 0.30)
+    m_med_qual = ModelDefinition(
+        model_id="med-qual-model",
+        context_window=4096,
+        capability_profiles={
+            "general": CapabilityProfile("general", supported=True, quality_value=0.35),
+        },
+    )
+    catalog.register_model(m_med_qual)
+    d_med_qual = DeploymentDefinition(
+        deployment_id="dep-med-qual",
+        model_id="med-qual-model",
+        provider_id="local_prov",
+        allowed_privacy={PrivacyLevel.PUBLIC},
+        replicas=[ReplicaDefinition(replica_id="r-mq", endpoint="http://h1:11436", availability=True)],
+    )
+    catalog.register_deployment(d_med_qual)
+    cand_med = CandidateDeployment(
+        d_med_qual,
+        m_med_qual,
+        catalog.get_provider("local_prov"),
+        catalog.get_snapshot("dep-med-qual"),
+    )
+
+    est = OutputEstimate(expected_tokens=50, reservation_tokens=70, confidence=0.8, strategy="test", sample_count=10)
+
+    # A. Request with medium quality (floor 0.30): 0.25 fails, 0.35 passes
+    req_med = RequestContext(
+        task_type="general", prompt_tokens=50, privacy_level=PrivacyLevel.PUBLIC, quality_requirement="medium"
+    )
+    dec_low = engine.evaluate(cand_low, req_med, est)
+    assert dec_low.is_eligible is False
+    assert any("Quality floor not met" in r and "0.30" in r for r in dec_low.rejection_reasons)
+
+    dec_med = engine.evaluate(cand_med, req_med, est)
+    assert dec_med.is_eligible is True
+
+    # B. Request with low quality (floor 0.0): 0.25 passes
+    req_low = RequestContext(
+        task_type="general", prompt_tokens=50, privacy_level=PrivacyLevel.PUBLIC, quality_requirement="low"
+    )
+    assert engine.evaluate(cand_low, req_low, est).is_eligible is True
+
+    # C. Request with high quality (floor 0.85): 0.35 fails
+    req_high = RequestContext(
+        task_type="general", prompt_tokens=50, privacy_level=PrivacyLevel.PUBLIC, quality_requirement="high"
+    )
+    dec_high = engine.evaluate(cand_med, req_high, est)
+    assert dec_high.is_eligible is False
+    assert any("Quality floor not met" in r and "0.85" in r for r in dec_high.rejection_reasons)

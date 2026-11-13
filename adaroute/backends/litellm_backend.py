@@ -40,9 +40,10 @@ class LiteLLMBackend(BaseBackend):
         **kwargs: Any,
     ) -> dict[str, Any]:
         start_time = time.perf_counter()
+        eff_mode = (getattr(request, "execution_mode", None) or self.execution_mode).lower()
 
         # If strict simulation mode requested, skip external network call
-        if self.execution_mode == "simulation":
+        if eff_mode == "simulation":
             return await self._execute_simulation(request, model_spec, replica_id, prompt_text, start_time)
 
         # Ensure API keys are loaded
@@ -88,7 +89,7 @@ class LiteLLMBackend(BaseBackend):
                 if model_spec.api_key_env:
                     os.environ[model_spec.api_key_env] = api_key
             else:
-                if self.execution_mode in ("real", "hybrid"):
+                if eff_mode in ("real", "hybrid"):
                     raise ExternalBackendUnavailableError(
                         f"API key missing for {model_spec.model_id} (expected {model_spec.api_key_env or 'API key'})."
                     )
@@ -126,7 +127,7 @@ class LiteLLMBackend(BaseBackend):
                 "response_id": getattr(resp, "id", None),
             }
         except Exception as e:
-            if self.execution_mode in ("real", "hybrid"):
+            if eff_mode in ("real", "hybrid"):
                 # Strict failover: raise error so router tries next candidate model
                 raise ExternalBackendUnavailableError(f"LiteLLM call to {target_model} failed: {e!s}") from e
 

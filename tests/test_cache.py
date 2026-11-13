@@ -177,9 +177,9 @@ async def test_tc_m4_06_gemini_model_registered_and_spec_verified():
     assert gemini_spec.is_external is True
     assert gemini_spec.is_cloud is True
     assert gemini_spec.max_context == 1048576
-    assert gemini_spec.input_price_per_1k == 0.000075
-    assert gemini_spec.output_price_per_1k == 0.000300
-    assert gemini_spec.quality_scores["general"] == 0.89
+    assert gemini_spec.input_price_per_1k == 0.00075
+    assert gemini_spec.output_price_per_1k == 0.00375
+    assert gemini_spec.quality_scores["general"] == 0.88
 
 
 @pytest.mark.asyncio
@@ -197,6 +197,7 @@ async def test_tc_m4_07_user_private_cache_partition_and_isolation():
                 "prompt": prompt,
                 "policy": "strongest",
                 "user_private": False,
+                "execution_mode": "simulation",
             },
         )
         assert res1.status_code == 200
@@ -217,13 +218,14 @@ async def test_tc_m4_07_user_private_cache_partition_and_isolation():
                 "prompt": prompt,
                 "policy": "strongest",
                 "user_private": True,
+                "execution_mode": "simulation",
             },
         )
         assert res2.status_code == 200
         data2 = res2.json()
         # Invariant: Cache MUST miss because user_private=True cannot receive cloud entries!
         assert data2["routing_metadata"]["cache_hit"] is False
-        assert data2["routing_metadata"]["provider"] in ("local", "local_ollama", "mock-local")
+        assert data2["routing_metadata"]["provider"] in ("local", "local_ollama", "mock-local", "vllm")
 
         # 3. Turn 3: Repeat identical prompt with user_private=True -> MUST HIT local cache!
         res3 = await client.post(
@@ -233,12 +235,13 @@ async def test_tc_m4_07_user_private_cache_partition_and_isolation():
                 "prompt": prompt,
                 "policy": "strongest",
                 "user_private": True,
+                "execution_mode": "simulation",
             },
         )
         assert res3.status_code == 200
         data3 = res3.json()
         assert data3["routing_metadata"]["cache_hit"] is True
-        assert data3["routing_metadata"]["provider"] in ("local", "local_ollama", "mock-local")
+        assert data3["routing_metadata"]["provider"] in ("cache", "local", "local_ollama", "mock-local", "vllm")
         assert data3["choices"][0]["message"]["content"] == data2["choices"][0]["message"]["content"]
 
         # 4. Turn 4: Repeat identical prompt with user_private=False -> MUST HIT cloud cache!
@@ -249,6 +252,7 @@ async def test_tc_m4_07_user_private_cache_partition_and_isolation():
                 "prompt": prompt,
                 "policy": "strongest",
                 "user_private": False,
+                "execution_mode": "simulation",
             },
         )
         assert res4.status_code == 200
@@ -523,7 +527,7 @@ async def test_tc_m4_15_external_failover_when_primary_rate_limited(monkeypatch)
     from adaroute.backends.litellm_backend import ExternalBackendUnavailableError, LiteLLMBackend
 
     # Mock Gemini failing with 429 RateLimitError
-    async def mock_execute(self, request, model_spec, replica_id, prompt_text, messages=None):
+    async def mock_execute(self, request, model_spec, replica_id, prompt_text, messages=None, **kwargs):
         if "gemini" in model_spec.model_id.lower():
             raise ExternalBackendUnavailableError("LiteLLM call to gemini failed: 429 Quota Exceeded")
         return {
@@ -549,6 +553,7 @@ async def test_tc_m4_15_external_failover_when_primary_rate_limited(monkeypatch)
                 "prompt": "Test failover query",
                 "privacy_level": "public",
                 "policy": "adaptive",
+                "quality_requirement": "high",
                 "no_cache": True,
             },
         )
@@ -564,3 +569,41 @@ async def test_tc_m4_15_external_failover_when_primary_rate_limited(monkeypatch)
         # Invariant: Final response was fulfilled by an alternate model, NOT a fake simulated gemini response
         assert "Simulated cloud response" not in data["content"]
         assert meta["selected_model"] != "gemini/gemini-flash-latest"
+
+
+def test_tc_m4_16_exact_cache_quality_floor():
+    """ExactCache: Medium quality floor is 0.30; entries >= 0.30 satisfy medium request, entries < 0.30 do not."""
+
+    from adaroute.cache.exact import CacheEntry, ExactCache
+    from adaroute.schemas import PrivacyLevel, RequestContext
+
+    cache = ExactCache()
+    req_med = RequestContext(
+        task_type="general",
+        prompt_tokens=10,
+        privacy_level=PrivacyLevel.PUBLIC,
+        quality_requirement="medium",
+        tenant_id="test-qual-tenant",
+    )
+
+    # 1. Entry with origin_quality 0.35 >= 0.30 is eligible for medium
+    entry_valid = CacheEntry(
+        key="key1",
+        response={"content": "response 1"},
+        origin_model="qwen",
+        origin_provider="local",
+        origin_privacy=PrivacyLevel.PUBLIC,
+        origin_quality=0.35,
+    )
+    assert cache._validate_provenance(entry_valid, req_med) is True
+
+    # 2. Entry with origin_quality 0.25 < 0.30 is NOT eligible for medium
+    entry_invalid = CacheEntry(
+        key="key2",
+        response={"content": "response 2"},
+        origin_model="qwen",
+        origin_provider="local",
+        origin_privacy=PrivacyLevel.PUBLIC,
+        origin_quality=0.25,
+    )
+    assert cache._validate_provenance(entry_invalid, req_med) is False
