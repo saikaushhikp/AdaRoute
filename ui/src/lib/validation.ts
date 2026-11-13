@@ -32,7 +32,7 @@ export function validateSettings(settings: RequestSettings): ValidationResult {
         new URL(settings.gatewayUrl);
       }
     } catch {
-      errors.gatewayUrl = 'Please enter a valid URL (e.g. http://localhost:8000).';
+      errors.gatewayUrl = 'Please enter a valid URL (e.g. http://localhost:7000).';
     }
   }
 

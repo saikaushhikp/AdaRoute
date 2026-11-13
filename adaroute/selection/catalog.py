@@ -272,8 +272,8 @@ class SystemCatalog:
                 mid = m["model_id"]
                 # Parse capabilities
                 cap_profiles: dict[str, CapabilityProfile] = {}
-                raw_caps = m.get("capabilities", {})
-                if isinstance(raw_caps, dict):
+                raw_caps = m.get("capabilities")
+                if raw_caps and isinstance(raw_caps, dict):
                     for cname, cdata in raw_caps.items():
                         if isinstance(cdata, dict):
                             q_info = cdata.get("quality", {})
@@ -375,7 +375,7 @@ class SystemCatalog:
                 reps = [
                     ReplicaDefinition(
                         replica_id=r["replica_id"],
-                        endpoint=r.get("endpoint", "http://localhost:11434"),
+                        endpoint=r.get("endpoint", "http://localhost:11436"),
                         weight=float(r.get("weight", 1.0)),
                         availability=r.get("availability", True),
                     )

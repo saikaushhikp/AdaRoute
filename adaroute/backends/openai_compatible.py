@@ -24,7 +24,7 @@ class OpenAICompatibleUnavailableError(Exception):
 
 
 class OpenAICompatibleBackend(BaseBackend):
-    def __init__(self, default_endpoint: str = "http://localhost:8000/v1", timeout_sec: float = 30.0):
+    def __init__(self, default_endpoint: str = "http://localhost:7000/v1", timeout_sec: float = 30.0):
         self.default_endpoint = default_endpoint.rstrip("/")
         self.timeout_sec = timeout_sec
 

@@ -30,7 +30,7 @@ from adaroute.selection.catalog import (
 async def test_tc_m2_08_ollama_replica_endpoint_preservation():
     """Ollama backend calls the exact replica endpoint provided, not hardcoded host."""
     backend = LocalBackend(execution_mode="real")
-    custom_endpoint = "http://custom-ollama-node:11434"
+    custom_endpoint = "http://custom-ollama-node:11436"
 
     mock_resp = MagicMock()
     mock_resp.status_code = 200
@@ -65,7 +65,7 @@ async def test_tc_m2_08_ollama_replica_endpoint_preservation():
 async def test_tc_m2_09_openai_compatible_vllm_protocol_and_auth():
     """OpenAI-compatible backend invokes /v1/chat/completions with Bearer authorization."""
     backend = OpenAICompatibleBackend()
-    vllm_endpoint = "http://vllm-cluster:8000"
+    vllm_endpoint = "http://vllm-cluster:7000"
 
     pdef = ProviderDefinition(
         provider_id="vllm_prov",

@@ -1,216 +1,70 @@
-❯ just cli
+(base) rongali@IITH-xeon-1:~/AdaRoute$ just cli
 python3 ui/cli/main.py
-╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Workbench ────────────────────────────────────────────────────────────────────────────────────────────╮
-│  AdaRoute Gateway (http://localhost:8000)                                                                         ● Online                                                                                │
-│ Cap: general  Privacy: public  User Private: OFF  History: OFF (single-query)  Budget: $1.0000  Policy: adaptive  Type /help for commands                                                                 │
-╰────────────────────────────────────────────────────────────────────────────────────── Press Ctrl+C or /exit to quit ──────────────────────────────────────────────────────────────────────────────────────╯
 
-user > 1+1?
-╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
-│ 2.                                                                                                                                                                                                        │
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-Model: cohere/command-r-08-2024 Replica: cloud-direct Latency: 15916.2ms Cost: $0.000032 CACHE MISS SLO: ⚠️  (type /diag for details)
-
-user > /private
+user > /help
+                                                      Available CLI Commands                                                      
+                                                                                                                                  
+  Command          Arguments                                        Description                                                   
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 
+  /help                                                             Show this help table                                          
+  /settings                                                         Display all current routing & request constraints             
+  /set cap         <general|coding|reasoning>                       Set target logical capability                                 
+  /set privacy     <public|internal_only|confidential|restricted>   Set privacy isolation level                                   
+  /set budget      <float>                                          Set max request budget in USD                                 
+  /set quality     <low|medium|high>                                Set minimum quality floor                                     
+  /set slo         <seconds>                                        Set target latency SLO                                        
+  /set tokens      <int>                                            Set maximum output tokens                                     
+  /set policy      <adaptive|strongest|cheapest|static>             Set Stage 1 model policy                                      
+  /set scheduler   <slo_aware|least_loaded|round_robin>             Set Stage 2 replica scheduler                                 
+  /history                                                          Toggle conversation history (default: OFF for caching tests)  
+  /set history     <on|off>                                         Enable/disable multi-turn context retention                   
+  /set cache       <on|off>                                         Toggle caching (off sets no_cache=True)                       
+  /set url         <url>                                            Change gateway base URL                                       
+  /diag                                                             Inspect detailed routing telemetry for the last response      
+  /health                                                           Check gateway cluster health & active replicas                
+  /clear                                                            Clear conversation history & reset screen                     
+  /exit                                                             Quit the workbench                                            
+                                                                                                                                  
+user > /private     
 User Private mode is now ENABLED (local only)
 
-user > 1+1?
+user > /set cache off
+Cache bypassed (no_cache=True)
+
+user > /set policy cheapest
+Policy set to 'cheapest'
+
+user > /set quality low
+Quality floor set to 'low'
+
+user > what is quantum physics?
 ╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
-│ 1 + 1 is equal to 2.                                                                                                                                                                                      │
+│ <think>                                                                                                                                                                                                   │
+│ Okay, the user is asking about quantum physics. Let me start by breaking down what I know. Quantum physics is a fundamental part of physics that deals with the smallest particles and their behaviors. I │
+│ should explain the basic concepts like particles at the atomic level, wave-particle duality, and the uncertainty principle.                                                                               │
+│                                                                                                                                                                                                           │
+│ Wait, do I need to mention the dual nature of particles? Yes, that's key. Also, the measurement problem, which is a big topic in quantum mechanics. I should clarify that particles don't have definite   │
+│ positions or directions until measured, which is the Heisenberg uncertainty principle. Oh, and the wavefunction, which describes the probability of finding a particle in a particular place.             │
+│                                                                                                                                                                                                           │
+│ I need to make sure the explanation is clear and avoids jargon. Maybe start with the basics and then move into more complex topics. Also, note that quantum physics has applications in technology like   │
+│ semiconductors and quantum computers. Let me check if I'm covering all important aspects without getting too detailed. Oh, and maybe mention that while it's a complex topic, it's a cornerstone of       │
+│ modern physics. That should cover the user's question comprehensively.                                                                                                                                    │
+│ </think>                                                                                                                                                                                                  │
+│                                                                                                                                                                                                           │
+│ **Quantum Physics** is a fundamental branch of physics that explores the behavior of **subatomic particles                                                                                                │
 ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-Model: Qwen/Qwen2.5-0.5B-Instruct Replica: vllm-r1 Latency: 22776.8ms Cost: $0.000001 CACHE MISS SLO: ⚠️  (type /diag for details)
+Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen3 Latency: 59049.2ms Cost: $0.000008 CACHE MISS SLO: ⚠️  (type /diag for details)
 
-user > 1+1?
-╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
-│ 1 + 1 is equal to 2.                                                                                                                                                                                      │
+user > /set cap reasoning
+Capability set to 'reasoning'
+
+user > what is BFS algo?
+╭────────────────────────────────────────────────────────────────────────────────────────────── Gateway Error ──────────────────────────────────────────────────────────────────────────────────────────────╮
+│ HTTP 503 Error:                                                                                                                                                                                           │
+│ Inference execution failed after 1 attempts: vLLM endpoint http://vllm:7000/v1 returned HTTP 503: {"error": {"message": "vLLM engine for 'unsloth/gemma-3-1b-it-GGUF:Q4_K_M' (port 7002)          │
+│ unavailable: <urlopen error [Errno 111] Connection refused>", "type": "backend_unavailable", "code": 503}}                                                                                                │
 ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-Model: Qwen/Qwen2.5-0.5B-Instruct Replica: vllm-r1 Latency: 2.4ms Cost: $0.000000 CACHE HIT SLO: ✅  (type /diag for details)
-
-user > what about tell me how to make a cake?
-╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
-│ Creating a delicious cake is an exciting project! Here’s a simple guide on how to make one:                                                                                                               │
-│                                                                                                                                                                                                           │
-│ ### Ingredients:                                                                                                                                                                                          │
-│ - 2 cups all-purpose flour                                                                                                                                                                                │
-│ - 1/3 cup granulated sugar                                                                                                                                                                                │
-│ - 1 teaspoon baking soda                                                                                                                                                                                  │
-│ - 1 teaspoon salt                                                                                                                                                                                         │
-│ - 1 cup unsalted butter, at room temperature                                                                                                                                                              │
-│ - 8 large eggs                                                                                                                                                                                            │
-│ - 1 cup granulated sugar                                                                                                                                                                                  │
-│ - 2 teaspoons vanilla extract                                                                                                                                                                             │
-│ - 1 1/4 cups white vinegar (optional)                                                                                                                                                                     │
-│ - 2 tablespoons cornstarch                                                                                                                                                                                │
-│ - 1 tablespoon unsweetened cocoa powder                                                                                                                                                                   │
-│                                                                                                                                                                                                           │
-│ ### Equipment:                                                                                                                                                                                            │
-│ - Mixing bowl                                                                                                                                                                                             │
-│ - Electric mixer or whisk                                                                                                                                                                                 │
-│ - Measuring spoons                                                                                                                                                                                        │
-│ - Oven                                                                                                                                                                                                    │
-│ - Cooling rack                                                                                                                                                                                            │
-│                                                                                                                                                                                                           │
-│ ### Steps:                                                                                                                                                                                                │
-│                                                                                                                                                                                                           │
-│ 1. **Preheat Your Oven:** Place the oven at 350°F (175°C) for best results.                                                                                                                               │
-│                                                                                                                                                                                                           │
-│ 2. **Mix Dry Ingredients:** In a medium bowl, mix together the flour, sugar, baking soda, and salt until well combined. Set aside.                                                                        │
-│                                                                                                                                                                                                           │
-│ 3. **Cream Butter and Eggs:** In a large mixing bowl, beat the butter and eggs using an electric mixer until light and fluffy. Add in the sugar and vanilla extract, beating until smooth. Then add in    │
-│ the egg mixture and continue to beat until                                                                                                                                                                │
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-Model: Qwen/Qwen2.5-0.5B-Instruct Replica: vllm-r2 Latency: 16136.1ms Cost: $0.000006 CACHE MISS SLO: ⚠️  (type /diag for details)
-
-user > make a cake how?
-╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
-│ Sure! Here's a simple recipe for you to try making your very own delicious cake:                                                                                                                          │
-│                                                                                                                                                                                                           │
-│ Ingredients:                                                                                                                                                                                              │
-│ - 1 cup all-purpose flour                                                                                                                                                                                 │
-│ - 2 cups granulated sugar                                                                                                                                                                                 │
-│ - 3/4 cup unsalted butter, softened                                                                                                                                                                       │
-│ - 2 large eggs                                                                                                                                                                                            │
-│ - 2 teaspoons vanilla extract                                                                                                                                                                             │
-│ - 1 teaspoon baking powder                                                                                                                                                                                │
-│                                                                                                                                                                                                           │
-│ Instructions:                                                                                                                                                                                             │
-│                                                                                                                                                                                                           │
-│ 1. Preheat your oven to 350°F (175°C).                                                                                                                                                                    │
-│                                                                                                                                                                                                           │
-│ 2. In a medium bowl, whisk together the flour and baking powder.                                                                                                                                          │
-│                                                                                                                                                                                                           │
-│ 3. In another bowl, beat the butter and sugars until light and fluffy.                                                                                                                                    │
-│                                                                                                                                                                                                           │
-│ 4. Gradually add the eggs to the butter mixture, mixing well after each addition.                                                                                                                         │
-│                                                                                                                                                                                                           │
-│ 5. Stir in the vanilla extract.                                                                                                                                                                           │
-│                                                                                                                                                                                                           │
-│ 6. Add the flour mixture to the butter-sugar batter, alternating with the eggs, stirring until just combined.                                                                                             │
-│                                                                                                                                                                                                           │
-│ 7. Fold in the baking powder.                                                                                                                                                                             │
-│                                                                                                                                                                                                           │
-│ 8. Pour the batter into a greased loaf pan or cake tin.                                                                                                                                                   │
-│                                                                                                                                                                                                           │
-│ 9. Bake for about 30 minutes or until a toothpick inserted comes out clean.                                                                                                                               │
-│                                                                                                                                                                                                           │
-│ 10. Let the cake cool in the pan for 10 minutes before removing it from the pan using a rubber spatula.                                                                                                   │
-│                                                                                                                                                                                                           │
-│ 11. Allow the cake to cool completely on a wire rack before frosting.                                                                                                                                     │
-│                                                                                                                                                                                                           │
-│ 12.                                                                                                                                                                                                       │
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-Model: Qwen/Qwen2.5-0.5B-Instruct Replica: vllm-r2 Latency: 15795.1ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for details)
-
-user > make a cake how?
-╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
-│ Sure! Here's a simple recipe for you to try making your very own delicious cake:                                                                                                                          │
-│                                                                                                                                                                                                           │
-│ Ingredients:                                                                                                                                                                                              │
-│ - 1 cup all-purpose flour                                                                                                                                                                                 │
-│ - 2 cups granulated sugar                                                                                                                                                                                 │
-│ - 3/4 cup unsalted butter, softened                                                                                                                                                                       │
-│ - 2 large eggs                                                                                                                                                                                            │
-│ - 2 teaspoons vanilla extract                                                                                                                                                                             │
-│ - 1 teaspoon baking powder                                                                                                                                                                                │
-│                                                                                                                                                                                                           │
-│ Instructions:                                                                                                                                                                                             │
-│                                                                                                                                                                                                           │
-│ 1. Preheat your oven to 350°F (175°C).                                                                                                                                                                    │
-│                                                                                                                                                                                                           │
-│ 2. In a medium bowl, whisk together the flour and baking powder.                                                                                                                                          │
-│                                                                                                                                                                                                           │
-│ 3. In another bowl, beat the butter and sugars until light and fluffy.                                                                                                                                    │
-│                                                                                                                                                                                                           │
-│ 4. Gradually add the eggs to the butter mixture, mixing well after each addition.                                                                                                                         │
-│                                                                                                                                                                                                           │
-│ 5. Stir in the vanilla extract.                                                                                                                                                                           │
-│                                                                                                                                                                                                           │
-│ 6. Add the flour mixture to the butter-sugar batter, alternating with the eggs, stirring until just combined.                                                                                             │
-│                                                                                                                                                                                                           │
-│ 7. Fold in the baking powder.                                                                                                                                                                             │
-│                                                                                                                                                                                                           │
-│ 8. Pour the batter into a greased loaf pan or cake tin.                                                                                                                                                   │
-│                                                                                                                                                                                                           │
-│ 9. Bake for about 30 minutes or until a toothpick inserted comes out clean.                                                                                                                               │
-│                                                                                                                                                                                                           │
-│ 10. Let the cake cool in the pan for 10 minutes before removing it from the pan using a rubber spatula.                                                                                                   │
-│                                                                                                                                                                                                           │
-│ 11. Allow the cake to cool completely on a wire rack before frosting.                                                                                                                                     │
-│                                                                                                                                                                                                           │
-│ 12.                                                                                                                                                                                                       │
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-Model: Qwen/Qwen2.5-0.5B-Instruct Replica: vllm-r2 Latency: 3.6ms Cost: $0.000000 CACHE HIT SLO: ✅  (type /diag for details)
-
-user > what about tell me how to make a cake?
-╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
-│ Creating a delicious cake is an exciting project! Here’s a simple guide on how to make one:                                                                                                               │
-│                                                                                                                                                                                                           │
-│ ### Ingredients:                                                                                                                                                                                          │
-│ - 2 cups all-purpose flour                                                                                                                                                                                │
-│ - 1/3 cup granulated sugar                                                                                                                                                                                │
-│ - 1 teaspoon baking soda                                                                                                                                                                                  │
-│ - 1 teaspoon salt                                                                                                                                                                                         │
-│ - 1 cup unsalted butter, at room temperature                                                                                                                                                              │
-│ - 8 large eggs                                                                                                                                                                                            │
-│ - 1 cup granulated sugar                                                                                                                                                                                  │
-│ - 2 teaspoons vanilla extract                                                                                                                                                                             │
-│ - 1 1/4 cups white vinegar (optional)                                                                                                                                                                     │
-│ - 2 tablespoons cornstarch                                                                                                                                                                                │
-│ - 1 tablespoon unsweetened cocoa powder                                                                                                                                                                   │
-│                                                                                                                                                                                                           │
-│ ### Equipment:                                                                                                                                                                                            │
-│ - Mixing bowl                                                                                                                                                                                             │
-│ - Electric mixer or whisk                                                                                                                                                                                 │
-│ - Measuring spoons                                                                                                                                                                                        │
-│ - Oven                                                                                                                                                                                                    │
-│ - Cooling rack                                                                                                                                                                                            │
-│                                                                                                                                                                                                           │
-│ ### Steps:                                                                                                                                                                                                │
-│                                                                                                                                                                                                           │
-│ 1. **Preheat Your Oven:** Place the oven at 350°F (175°C) for best results.                                                                                                                               │
-│                                                                                                                                                                                                           │
-│ 2. **Mix Dry Ingredients:** In a medium bowl, mix together the flour, sugar, baking soda, and salt until well combined. Set aside.                                                                        │
-│                                                                                                                                                                                                           │
-│ 3. **Cream Butter and Eggs:** In a large mixing bowl, beat the butter and eggs using an electric mixer until light and fluffy. Add in the sugar and vanilla extract, beating until smooth. Then add in    │
-│ the egg mixture and continue to beat until                                                                                                                                                                │
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-Model: Qwen/Qwen2.5-0.5B-Instruct Replica: vllm-r2 Latency: 3.8ms Cost: $0.000000 CACHE HIT SLO: ✅  (type /diag for details)
-
-user > /private
-User Private mode is now DISABLED (cloud allowed)
-
-user > 1+1?
-╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
-│ 2.                                                                                                                                                                                                        │
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-Model: cohere/command-r-08-2024 Replica: cloud-direct Latency: 3.2ms Cost: $0.000000 CACHE HIT SLO: ✅  (type /diag for details)
-
-user > 2+2?
-╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
-│ The answer to 2 + 2 is 4.                                                                                                                                                                                 │
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-Model: cohere/command-r-08-2024 Replica: cloud-direct Latency: 7295.4ms Cost: $0.000038 CACHE MISS SLO: ⚠️  (type /diag for details)
-
-user > create a clone of github of our own . with full functionalities of gihub. Code it all
-╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
-│ [Simulated vLLM] llama-3-8b via replica-llama-1: Processed general request (privacy=public).                                                                                                              │
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-Model: llama-3-8b Replica: replica-llama-1 Latency: 20071.3ms Cost: $0.000000 CACHE MISS SLO: ⚠️  (type /diag for details)
-
-user > create a clone of github of our own . with full functionalities of gihub. Code it all 
-╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
-│ [Simulated vLLM] llama-3-8b via replica-llama-1: Processed general request (privacy=public).                                                                                                              │
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-Model: llama-3-8b Replica: replica-llama-1 Latency: 1.3ms Cost: $0.000000 CACHE HIT SLO: ✅  (type /diag for details)
-
-user > create a clone of github of our own . with full functionalities of gihub. Code it all. or tell me what to do. i will start coding and you will verify it
-╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
-│ [Simulated vLLM] llama-3-8b via replica-llama-1: Processed general request (privacy=public).                                                                                                              │
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-Model: llama-3-8b Replica: replica-llama-1 Latency: 24845.3ms Cost: $0.000000 CACHE MISS SLO: ⚠️  (type /diag for details)
-
-user > /bye
-Unknown command '/bye'. Type /help for available commands.
 
 user > /exit
 Goodbye!
+(base) rongali@IITH-xeon-1:~/AdaRoute$ 

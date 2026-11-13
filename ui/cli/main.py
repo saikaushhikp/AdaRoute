@@ -19,7 +19,7 @@ console = Console()
 
 
 class AdaRouteCLI:
-    def __init__(self, base_url: str = "http://localhost:8000"):
+    def __init__(self, base_url: str = "http://localhost:7000"):
         self.client = GatewayCLIClient(base_url)
         self.messages: list[dict[str, str]] = []
         self.last_metadata: dict[str, Any] | None = None
@@ -466,7 +466,7 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] in ("--help", "-h"):
         console.print("[bold cyan]AdaRoute Terminal Workbench CLI[/bold cyan]")
         console.print("Usage: python3 ui/cli/main.py [GATEWAY_URL]")
-        console.print("Default GATEWAY_URL: http://localhost:8000\n")
+        console.print("Default GATEWAY_URL: http://localhost:7000\n")
         console.print("Interactive Commands:")
         console.print("  /help                     Show available commands")
         console.print("  /history [on|off]         Toggle conversation history (default: OFF for caching tests)")
@@ -477,7 +477,7 @@ def main():
         console.print("  /exit                     Exit the workbench")
         return
 
-    base_url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
+    base_url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:7000"
     cli = AdaRouteCLI(base_url=base_url)
     cli.run()
 

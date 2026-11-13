@@ -1,7 +1,7 @@
 # System S1 Deployment Configuration (Edge AI Workstation)
 gateway:
   host: "0.0.0.0"
-  port: 8000
+  port: 7000
   title: "AdaRoute Gateway - System S1"
   default_policy: "adaptive"
 
@@ -37,7 +37,7 @@ models:
     logical_aliases: ["general", "coding", "fast"]
     provider: "local"
     execution_type: "local"
-    base_url: "http://localhost:11434"
+    base_url: "http://localhost:11436"
     privacy_levels: ["public", "internal_only", "confidential", "restricted"]
     cost_per_1k_input: 0.000010
     cost_per_1k_output: 0.000020
@@ -45,11 +45,11 @@ models:
     max_context: 32768
     replicas:
       - replica_id: "s1-r1"
-        endpoint: "http://localhost:11434"
+        endpoint: "http://localhost:11436"
         availability: true
         weight: 1.0
       - replica_id: "s1-r2"
-        endpoint: "http://localhost:11434"
+        endpoint: "http://localhost:11436"
         availability: true
         weight: 1.0
 

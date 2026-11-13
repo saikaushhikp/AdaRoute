@@ -298,7 +298,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   className="control-input"
                   value={settings.gatewayUrl}
                   onChange={(e) => update('gatewayUrl', e.target.value)}
-                  placeholder="Direct: http://localhost:8000"
+                  placeholder="Direct: http://localhost:7000"
                 />
                 {errors.gatewayUrl && <div className="control-error">{errors.gatewayUrl}</div>}
               </div>

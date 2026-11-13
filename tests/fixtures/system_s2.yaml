@@ -1,7 +1,7 @@
 # System S2 Deployment Configuration (Enterprise On-Prem Node)
 gateway:
   host: "0.0.0.0"
-  port: 8000
+  port: 7000
   title: "AdaRoute Gateway - System S2"
   default_policy: "cost_first"
 
@@ -44,7 +44,7 @@ models:
     logical_aliases: ["general", "coding", "fast"]
     provider: "local_vllm"
     execution_type: "local"
-    base_url: "http://localhost:8000/v1"
+    base_url: "http://localhost:7000/v1"
     privacy_levels: ["public", "internal_only", "confidential", "restricted"]
     cost_per_1k_input: 0.000005
     cost_per_1k_output: 0.000010
@@ -52,11 +52,11 @@ models:
     max_context: 16384
     replicas:
       - replica_id: "s2-gpu-0"
-        endpoint: "http://localhost:8000/v1"
+        endpoint: "http://localhost:7000/v1"
         availability: true
         weight: 1.0
       - replica_id: "s2-gpu-1"
-        endpoint: "http://localhost:8001/v1"
+        endpoint: "http://localhost:7001/v1"
         availability: true
         weight: 1.0
 
@@ -70,5 +70,5 @@ models:
     cost_per_1k_input: 0.00015
     cost_per_1k_output: 0.00060
     quality: 0.83
-    max_context: 128000
+    max_context: 127000
     replicas: []

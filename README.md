@@ -219,7 +219,7 @@ docker compose ps
 
 Verify that the Gateway is healthy:
 ```bash
-curl -s http://localhost:8000/health | jq .
+curl -s http://localhost:7000/health | jq .
 ```
 Expected output:
 ```json
@@ -233,33 +233,25 @@ Expected output:
 ### GPU vLLM profile (NVIDIA CUDA)
 
 The normal `just up` flow remains CPU-safe. The GPU profile is an opt-in
-Compose override that starts the official CUDA vLLM image and uses a dedicated
-model catalog, so the gateway only requests the model actually served by that
-profile.
+Compose override that starts the official CUDA vLLM image with the
+`vllm-gguf-plugin` and serves two local models concurrently with Q4_K_M
+quantization for dramatically reduced VRAM usage:
+- `unsloth/Qwen3-0.6B-GGUF:Q4_K_M` (fast, coding, general, qa)
+- `unsloth/gemma-3-1b-it-GGUF:Q4_K_M` (reasoning, summarization, complex, 128k context)
 
 On the accelerator host, install the NVIDIA driver and configure Docker with
 the NVIDIA Container Toolkit. NVIDIA documents the host setup with
 `sudo nvidia-ctk runtime configure --runtime=docker`, followed by a Docker
-restart. Then prepare the GPU settings and start the desired profile:
+restart. Then prepare the API keys and start the GPU profile:
 
 ```bash
 cp .env.gpu.example .env.gpu
-# Tune model size, memory limits, and GPU parallelism in .env.gpu.
+# Add your API keys (GOOGLE_API_KEY, GROQ_API_KEY, etc.) in .env.gpu.
 just gpu-up
 ```
 
-`gpu-up` serves `Qwen/Qwen2.5-7B-Instruct` by default. A vLLM process serves
-one model; use `VLLM_TENSOR_PARALLEL_SIZE` to shard that model across the same
-number of visible GPUs. Set `NVIDIA_VISIBLE_DEVICES` to restrict the selected
-devices. For the CUDA-only GPTQ Int4 profile, run:
-
-```bash
-just gpu-gptq-up
-```
-
-The GPU recipes use `config.gpu.yaml` and `config.gptq.yaml` respectively to
-keep their aliases aligned with the vLLM served-model name. Do not replace the
-model variables independently of the matching catalog entry.
+All model and vLLM configuration is hardcoded in `docker-compose.gpu.yml` and
+`config.gpu.yaml`. The `.env.gpu` file is solely for API keys.
 
 References: [vLLM Docker deployment](https://docs.vllm.ai/en/latest/deployment/docker/),
 [Docker Compose GPU support](https://docs.docker.com/compose/how-tos/gpu-support/),
@@ -295,7 +287,7 @@ just cli
 
 ```text
 ╭───────────────────────────────── AdaRoute Workbench ─────────────────────────────────╮
-│ ⚡ AdaRoute AI Gateway (http://localhost:8000)       ● Online                        │
+│ ⚡ AdaRoute AI Gateway (http://localhost:7000)       ● Online                        │
 │ Cap: general  Privacy: public  User Private: OFF  Budget: $1.0000  Policy: adaptive  │
 ╰───────────────────────────────────────────────────────────────────────────────────────╯
 
@@ -350,7 +342,7 @@ user > /diag
 
 ### Step 3: Using the AdaRoute Workbench Web UI
 
-1. Open your browser at [http://localhost:8080](http://localhost:8080).
+1. Open your browser at [http://localhost:7070](http://localhost:7070).
 2. **Select Logical Capability**: Choose `General`, `Coding`, or `Reasoning` from the sidebar.
 3. **Toggle User Private**:
    - Click the `🛡️ User Private: OFF` badge in the composer footer or toggle **User Private** in the sidebar.
@@ -371,7 +363,7 @@ AdaRoute exposes an OpenAI-compatible `/v1/chat/completions` endpoint. Because A
 #### Example 1: Standard Public Chat Request (Cloud & Local Eligible)
 
 ```bash
-curl -X POST http://localhost:8000/v1/chat/completions \
+curl -X POST http://localhost:7000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "general",
@@ -386,7 +378,7 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 When `user_private: true` is passed, the request will strictly execute on local self-hosted models, even if public and with unlimited budget:
 
 ```bash
-curl -X POST http://localhost:8000/v1/chat/completions \
+curl -X POST http://localhost:7000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "coding",
@@ -399,7 +391,7 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 #### Example 3: Budget-Constrained & Quality-Floor Gated Request
 
 ```bash
-curl -X POST http://localhost:8000/v1/chat/completions \
+curl -X POST http://localhost:7000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "reasoning",
@@ -507,5 +499,5 @@ just down
    - `GROQ_API_KEY`: Groq API key for cloud models (`qwen-2.5-32b`, `llama-3.3-70b-versatile`).
    - `COHERE_API_KEY`: Cohere API key for cloud models (`command-r-08-2024`).
    - `EXECUTION_MODE`: `real`, `simulation`, or `hybrid` (default: `hybrid`).
-   - `OLLAMA_BASE_URL`: Local Ollama HTTP endpoint (default: `http://localhost:11434`).
+   - `OLLAMA_BASE_URL`: Local Ollama HTTP endpoint (default: `http://localhost:11436`).
 3. Model catalog and routing metadata are centrally defined in `config.yaml`.

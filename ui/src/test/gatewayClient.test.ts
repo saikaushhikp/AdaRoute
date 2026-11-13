@@ -6,7 +6,7 @@ describe('GatewayClient', () => {
   let client: GatewayClient;
 
   beforeEach(() => {
-    client = new GatewayClient('http://localhost:8000');
+    client = new GatewayClient('http://localhost:7000');
     vi.restoreAllMocks();
   });
 

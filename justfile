@@ -2,7 +2,7 @@ build:
     docker build -t adaroute .
 
 test:
-    docker run --rm --add-host=host.docker.internal:host-gateway -e UI_BASE_URL=http://host.docker.internal:8080 -v "{{justfile_directory()}}:/app" -w /app adaroute pytest -v tests/ adaroute/experiments/test_integration.py
+    docker run --rm --add-host=host.docker.internal:host-gateway -e UI_BASE_URL=http://host.docker.internal:7070 -v "{{justfile_directory()}}:/app" -w /app adaroute pytest -v tests/ adaroute/experiments/test_integration.py
 
 test-local:
     pytest -v tests/ adaroute/experiments/test_integration.py
@@ -32,7 +32,7 @@ benchmark-event-local:
     python -m adaroute.experiments.event_runner
 
 load-test:
-    docker run --rm --add-host=host.docker.internal:host-gateway -e GATEWAY_URL=http://host.docker.internal:8000 -v "{{justfile_directory()}}:/app" -w /app adaroute python -m adaroute.experiments.load_test
+    docker run --rm --add-host=host.docker.internal:host-gateway -e GATEWAY_URL=http://host.docker.internal:7000 -v "{{justfile_directory()}}:/app" -w /app adaroute python -m adaroute.experiments.load_test
 
 load-test-local:
     python -m adaroute.experiments.load_test
@@ -43,17 +43,14 @@ ui-build:
 ui-test:
     cd ui && npm run test
 
+# CPU profile (default). Uses config.yaml with vLLM CPU image.
 up:
     docker compose up --build -d
 
-# CUDA/NVIDIA profile. Copy .env.gpu.example to .env.gpu and tune it for the
-# accelerator host before using these recipes.
+# CUDA/NVIDIA GPU profile. Uses config.gpu.yaml with GGUF Q4_K_M quantization.
+# Copy .env.gpu.example to .env.gpu and add your API keys before using.
 gpu-up:
     docker compose --env-file .env.gpu -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
-
-# CUDA-only GPTQ Int4 profile. It layers onto the standard GPU profile.
-gpu-gptq-up:
-    docker compose --env-file .env.gpu -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.gptq.yml up --build -d
 
 down:
     docker compose down

@@ -5,16 +5,14 @@ services:
   #
   # For GPU acceleration run:
   #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
-  #
-  # For the CUDA-only GPTQ Int4 test profile, see docker-compose.gptq.yml.
   # ---------------------------------------------------------------------------
   vllm:
     image: vllm/vllm-openai-cpu:latest-x86_64
     container_name: adaroute-vllm
     ports:
-      - "${VLLM_PORT:-8001}:8000"
+      - "${VLLM_PORT:-7001}:7000"
     expose:
-      - "8000"
+      - "7000"
     ipc: host
     networks:
       - adaroute-net
@@ -28,13 +26,13 @@ services:
     command: >
       ${VLLM_MODEL:-Qwen/Qwen2.5-0.5B-Instruct}
       --served-model-name ${VLLM_SERVED_MODEL_NAME:-Qwen/Qwen2.5-0.5B-Instruct}
-      --port 8000
+      --port 7000
       --host 0.0.0.0
       --dtype ${VLLM_DTYPE:-bfloat16}
       --max-model-len ${VLLM_MAX_MODEL_LEN:-2048}
       --enforce-eager
     healthcheck:
-      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" 2>/dev/null || exit 1"]
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:7000/health')\" 2>/dev/null || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -60,9 +58,9 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: adaroute-gateway
-    command: uvicorn adaroute.api:app --host 0.0.0.0 --port 8000
+    command: uvicorn adaroute.api:app --host 0.0.0.0 --port 7000
     ports:
-      - "8000:8000"
+      - "7000:7000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
@@ -70,7 +68,7 @@ services:
         required: false
     environment:
       - PYTHONUNBUFFERED=1
-      - VLLM_BASE_URL=http://vllm:8000/v1
+      - VLLM_BASE_URL=http://vllm:7000/v1
       - REDIS_URL=redis://redis:6379/0
       - EXECUTION_MODE=${EXECUTION_MODE:-hybrid}
     volumes:
@@ -81,7 +79,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7000/health')"]
       interval: 3s
       timeout: 3s
       retries: 5
@@ -95,7 +93,7 @@ services:
       dockerfile: Dockerfile
     container_name: adaroute-ui
     ports:
-      - "8080:80"
+      - "7070:70"
     depends_on:
       gateway:
         condition: service_healthy

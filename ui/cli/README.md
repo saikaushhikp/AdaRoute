@@ -9,11 +9,11 @@ An interactive, minimal, and high-performance terminal client for interacting wi
 Run the CLI directly against a running AdaRoute Gateway:
 
 ```bash
-# Direct port 8000 (standard gateway)
+# Direct port 7000 (standard gateway)
 python3 ui/cli/main.py
 
 # Or via reverse proxy / alternate URL
-python3 ui/cli/main.py http://localhost:8080
+python3 ui/cli/main.py http://localhost:7070
 
 # Or via justfile recipe
 just cli
@@ -47,7 +47,7 @@ Within the workbench prompt, use slash commands to inspect or reconfigure gatewa
 | `/set policy <val>` | `adaptive`, `strongest`, `cheapest`, `static` | `/set policy strongest` |
 | `/set scheduler <val>` | `slo_aware`, `least_loaded`, `round_robin` | `/set scheduler least_loaded` |
 | `/set cache <on\|off>` | `on`, `off` | `/set cache off` |
-| `/set url <url>` | Gateway endpoint | `/set url http://localhost:8080` |
+| `/set url <url>` | Gateway endpoint | `/set url http://localhost:7070` |
 
 ---
 

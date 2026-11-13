@@ -1,40 +1,45 @@
 # GPU override — merges on top of docker-compose.yml.
 #
-# Use `just gpu-up` after copying .env.gpu.example to .env.gpu. This profile
-# serves one GPU model per vLLM process; set VLLM_TENSOR_PARALLEL_SIZE to the
-# number of selected GPUs when sharding a single model across devices.
+# Use `just gpu-up` after copying .env.gpu.example to .env.gpu (API keys only).
 #
-# vLLM Docker: https://docs.vllm.ai/en/latest/deployment/docker/
-# Compose GPU reservations: https://docs.docker.com/compose/how-tos/gpu-support/
+# Serves both local GGUF models concurrently inside a SINGLE vLLM container
+# (adaroute-vllm) via scripts/vllm_multi_server.py:
+#   - unsloth/Qwen3-0.6B-GGUF:Q4_K_M
+#   - unsloth/gemma-3-1b-it-GGUF:Q4_K_M
 #
-# Requires: NVIDIA Container Toolkit installed on the host
-# Install guide: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+# The model selector routes requests to http://vllm:7000/v1, where the internal
+# router dispatches to the selected model engine.
 
 services:
   vllm:
     image: vllm/vllm-openai:latest
+    container_name: adaroute-vllm
+    gpus: all
     environment:
       - HF_TOKEN=${HF_TOKEN:-}
       - VLLM_TARGET_DEVICE=cuda
-      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
-      - NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES:-compute,utility}
-    command: >
-      ${VLLM_MODEL:-Qwen/Qwen2.5-7B-Instruct}
-      --served-model-name ${VLLM_SERVED_MODEL_NAME:-Qwen/Qwen2.5-7B-Instruct}
-      --port 8000
-      --host 0.0.0.0
-      --dtype ${VLLM_DTYPE:-bfloat16}
-      --max-model-len ${VLLM_MAX_MODEL_LEN:-8192}
-      --gpu-memory-utilization ${VLLM_GPU_MEM_UTIL:-0.90}
-      --tensor-parallel-size ${VLLM_TENSOR_PARALLEL_SIZE:-1}
-      --pipeline-parallel-size ${VLLM_PIPELINE_PARALLEL_SIZE:-1}
-      --max-num-seqs ${VLLM_MAX_NUM_SEQS:-128}
-      --swap-space ${VLLM_SWAP_SPACE_GB:-4}
-      --enable-prefix-caching
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - ADAROUTE_CONFIG=/app/config.gpu.yaml
+    volumes:
+      - huggingface-cache:/root/.cache/huggingface
+      - .:/app:ro
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        pip install vllm-gguf-plugin && \
+        python3 /app/scripts/vllm_multi_server.py
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:7000/health')\" 2>/dev/null || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
+
   gateway:
     environment:
-      # The GPU catalog maps logical aliases to the model served above.
       - ADAROUTE_CONFIG=/app/config.gpu.yaml
+      - EXECUTION_MODE=real
     deploy:
       resources:
         reservations:

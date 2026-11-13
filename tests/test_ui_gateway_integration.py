@@ -7,7 +7,7 @@ import os
 import httpx
 import pytest
 
-UI_BASE_URL = os.getenv("UI_BASE_URL", "http://localhost:8080")
+UI_BASE_URL = os.getenv("UI_BASE_URL", "http://localhost:7070")
 
 
 @pytest.mark.asyncio
@@ -20,7 +20,7 @@ async def test_tc_m1_06_ui_static_asset_serving():
             assert "AdaRoute AI Gateway" in res.text
             assert '<div id="root"></div>' in res.text
         except httpx.ConnectError:
-            pytest.skip("UI container is not currently running on port 8080 (optional live test)")
+            pytest.skip("UI container is not currently running on port 7070 (optional live test)")
 
 
 @pytest.mark.asyncio
@@ -35,7 +35,7 @@ async def test_tc_m1_07_ui_health_reverse_proxy():
             assert "models" in data
             assert "replicas" in data
         except httpx.ConnectError:
-            pytest.skip("UI container is not currently running on port 8080")
+            pytest.skip("UI container is not currently running on port 7070")
 
 
 @pytest.mark.asyncio
@@ -73,4 +73,4 @@ async def test_tc_m1_08_ui_chat_completion_reverse_proxy_and_cache():
             assert data2["routing_metadata"]["cache_hit"] is True
             assert data2["routing_metadata"]["estimated_cost"] == 0.0
         except httpx.ConnectError:
-            pytest.skip("UI container is not currently running on port 8080")
+            pytest.skip("UI container is not currently running on port 7070")

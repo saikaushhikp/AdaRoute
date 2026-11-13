@@ -9,11 +9,11 @@ export default defineConfig({
     host: true,
     proxy: {
       '/health': {
-        target: process.env.GATEWAY_URL || 'http://localhost:8000',
+        target: process.env.GATEWAY_URL || 'http://localhost:7000',
         changeOrigin: true,
       },
       '/v1': {
-        target: process.env.GATEWAY_URL || 'http://localhost:8000',
+        target: process.env.GATEWAY_URL || 'http://localhost:7000',
         changeOrigin: true,
       },
     },

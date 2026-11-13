@@ -97,7 +97,7 @@ class LiveLoadTestRunner:
 
     def __init__(
         self,
-        gateway_url: str = "http://localhost:8000",
+        gateway_url: str = "http://localhost:7000",
         arrival_rate_rps: float = 10.0,
         concurrency: int = 5,
         timeout_sec: float = 15.0,
@@ -262,7 +262,7 @@ def _save_summary(out_file: Path, data: dict[str, Any]) -> None:
 
 
 async def main():
-    gateway_url = os.getenv("GATEWAY_URL", "http://localhost:8000")
+    gateway_url = os.getenv("GATEWAY_URL", "http://localhost:7000")
     runner = LiveLoadTestRunner(
         gateway_url=gateway_url,
         arrival_rate_rps=15.0,

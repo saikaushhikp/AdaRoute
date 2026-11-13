@@ -4,7 +4,7 @@
 
 gateway:
   host: "0.0.0.0"
-  port: 8000
+  port: 7000
   title: "AdaRoute Unified AI Gateway"
   version: "3.0.0"
   default_policy: "adaptive"
@@ -73,14 +73,14 @@ routing:
 models:
   # -------------------------------------------------------------
   # Local vLLM Models (Self-Hosted, GPU-accelerated, Internal/Confidential Safe)
-  # Served via vLLM OpenAI-compatible API (http://vllm:8000/v1 inside Docker)
+  # Served via vLLM OpenAI-compatible API (http://vllm:7000/v1 inside Docker)
   # -------------------------------------------------------------
   - model_id: "Qwen/Qwen2.5-0.5B-Instruct"
     logical_aliases: ["general", "coding", "qa", "summarization", "fast"]
     provider: "vllm"
     execution_type: "local"
     litellm_model: "openai/Qwen/Qwen2.5-0.5B-Instruct"
-    base_url: "http://vllm:8000/v1"
+    base_url: "http://vllm:7000/v1"
     privacy_levels: ["public", "internal_only", "confidential", "restricted"]
     cost_per_1k_input: 0.000010   # Local GPU compute amortization
     cost_per_1k_output: 0.000020
@@ -88,29 +88,11 @@ models:
     max_context: 32768
     replicas:
       - replica_id: "vllm-r1"
-        endpoint: "http://vllm:8000"
+        endpoint: "http://vllm:7000"
         availability: true
         weight: 1.0
       - replica_id: "vllm-r2"
-        endpoint: "http://vllm:8000"
-        availability: true
-        weight: 1.0
-
-  # Enabled by docker-compose.gptq.yml on a CUDA host.
-  - model_id: "Qwen/Qwen2.5-0.5B-Instruct-GPTQ-Int4"
-    logical_aliases: ["gptq-4bit"]
-    provider: "vllm"
-    execution_type: "local"
-    litellm_model: "openai/Qwen/Qwen2.5-0.5B-Instruct-GPTQ-Int4"
-    base_url: "http://vllm:8000/v1"
-    privacy_levels: ["public", "internal_only", "confidential", "restricted"]
-    cost_per_1k_input: 0.000010
-    cost_per_1k_output: 0.000020
-    quality: 0.73
-    max_context: 32768
-    replicas:
-      - replica_id: "vllm-gptq-r1"
-        endpoint: "http://vllm:8000"
+        endpoint: "http://vllm:7000"
         availability: true
         weight: 1.0
 
@@ -119,7 +101,7 @@ models:
     provider: "vllm"
     execution_type: "local"
     litellm_model: "openai/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
-    base_url: "http://vllm:8000/v1"
+    base_url: "http://vllm:7000/v1"
     privacy_levels: ["public", "internal_only", "confidential", "restricted"]
     cost_per_1k_input: 0.000030   # Local GPU compute amortization
     cost_per_1k_output: 0.000080
@@ -127,7 +109,7 @@ models:
     max_context: 131072
     replicas:
       - replica_id: "vllm-deepseek-r1"
-        endpoint: "http://vllm:8000"
+        endpoint: "http://vllm:7000"
         availability: true
         weight: 1.0
 
@@ -171,7 +153,7 @@ models:
     cost_per_1k_input: 0.00015    # Official Cohere pricing: $0.15 / 1M tokens
     cost_per_1k_output: 0.00060   # Official Cohere pricing: $0.60 / 1M tokens
     quality: 0.83                 # LMSYS Arena ELO ~1200
-    max_context: 128000           # Official Cohere Command R context length
+    max_context: 127000           # Official Cohere Command R context length
     replicas: []
 
   # -------------------------------------------------------------
@@ -186,7 +168,7 @@ models:
     cost_per_1k_input: 0.005
     cost_per_1k_output: 0.015
     quality: 0.98
-    max_context: 128000
+    max_context: 127000
     replicas:
       - replica_id: "replica-gpt-4o-1"
         endpoint: "mock://external-1"

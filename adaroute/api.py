@@ -206,15 +206,16 @@ async def health():
     local_backend = backend_runners.get("local")
     if local_backend and hasattr(local_backend, "ping"):
         try:
-            if await local_backend.ping():
-                now = time.time()
-                for r in registry.get_all_replicas():
-                    if r.provider in ("local", "local_vllm", "vllm"):
+            now = time.time()
+            for r in registry.get_all_replicas():
+                if r.provider in ("local", "local_vllm", "vllm"):
+                    endpoint = getattr(r, "endpoint", None)
+                    if await local_backend.ping(endpoint):
                         r.last_heartbeat = now
                         r.consecutive_failures = 0
                         r.availability = True
-                    elif r.provider.startswith("mock"):
-                        r.last_heartbeat = now
+                elif r.provider.startswith("mock"):
+                    r.last_heartbeat = now
         except Exception:
             pass
     return {

@@ -12,7 +12,7 @@ from adaroute.experiments.load_test import LiveLoadTestRunner, LoadTestMetrics
 @pytest.mark.asyncio
 async def test_tc_m9_01_live_load_test_metrics_calculation():
     """Validates empirical metrics computation (p50, p90, p95, p99, RPS, savings)."""
-    runner = LiveLoadTestRunner(gateway_url="http://localhost:8000")
+    runner = LiveLoadTestRunner(gateway_url="http://localhost:7000")
 
     mock_results = [
         {
@@ -82,7 +82,7 @@ async def test_tc_m9_01_live_load_test_metrics_calculation():
 async def test_tc_m9_02_live_load_test_runner_mock_execution(tmp_path):
     """Executes full multi-client load test loop with mocked httpx client."""
     runner = LiveLoadTestRunner(
-        gateway_url="http://test-gw:8000",
+        gateway_url="http://test-gw:7000",
         arrival_rate_rps=100.0,
         concurrency=3,
         seed=123,
@@ -119,7 +119,7 @@ async def test_tc_m9_02_live_load_test_runner_mock_execution(tmp_path):
 async def test_tc_m9_03_live_load_test_network_error_handling():
     """Verifies that network exceptions are safely converted to failures without aborting the run."""
     runner = LiveLoadTestRunner(
-        gateway_url="http://unreachable-gw:8000",
+        gateway_url="http://unreachable-gw:7000",
         arrival_rate_rps=1000.0,
         concurrency=2,
     )

@@ -1,8 +1,8 @@
 """vLLM Provider Backend Adapter for AdaRoute.
 
 Connects to a self-hosted vLLM server exposing the OpenAI-compatible
-/v1/chat/completions endpoint (default port 8000 inside Docker, exposed
-as 8001 on the host via docker-compose).
+/v1/chat/completions endpoint (default port 7000 inside Docker, exposed
+as 7001 on the host via docker-compose).
 
 Execution modes:
 - "real"       : strictly requires a reachable vLLM endpoint; fails closed.
@@ -10,7 +10,7 @@ Execution modes:
 - "hybrid"     : tries real vLLM, transparent simulation fallback if unreachable.
 
 Environment variables (checked in order):
-  VLLM_BASE_URL   – e.g. http://vllm:8000/v1
+  VLLM_BASE_URL   – e.g. http://vllm:7000/v1
   VLLM_HOST       – base host without path (appended with /v1 automatically)
   VLLM_API_KEY    – optional Bearer token for secured vLLM deployments
 """
@@ -48,7 +48,7 @@ class VLLMBackend(BaseBackend):
             base_url
             or os.getenv("VLLM_BASE_URL")
             or os.getenv("VLLM_HOST")
-            or "http://vllm:8000"
+            or "http://vllm:7000"
         ).rstrip("/")
         # Normalise: always end with /v1
         self.base_url = raw_url if raw_url.endswith("/v1") else f"{raw_url}/v1"
@@ -62,12 +62,15 @@ class VLLMBackend(BaseBackend):
     # Health probe
     # ------------------------------------------------------------------
 
-    async def ping(self) -> bool:
+    async def ping(self, endpoint: str | None = None) -> bool:
         """Returns True when the vLLM server responds to its /v1/models probe."""
         try:
+            base = endpoint.rstrip("/") if endpoint else self.base_url
+            if not base.endswith("/v1"):
+                base = f"{base}/v1"
             async with httpx.AsyncClient(timeout=5.0) as client:
                 res = await client.get(
-                    f"{self.base_url}/models",
+                    f"{base}/models",
                     headers=self._auth_headers(),
                 )
                 return res.status_code == 200
@@ -212,7 +215,7 @@ class VLLMBackend(BaseBackend):
             getattr(candidate, "provider_model_name", None)
             or getattr(candidate, "model_id", None)
             or (getattr(model_spec, "model_id", None) if model_spec else None)
-            or "Qwen/Qwen2.5-1.5B-Instruct"
+            or "unsloth/Qwen3-0.6B-GGUF:Q4_K_M"
         )
 
     async def _simulate(
