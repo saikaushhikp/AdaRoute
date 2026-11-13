@@ -25,17 +25,17 @@
     "avg_completed_requests": 27.0,
     "avg_rejected_requests": 3.0,
     "avg_rejection_rate_pct": 10.0,
-    "avg_latency_p95_ms": 5732.79,
-    "avg_latency_p50_ms": 1219.94,
-    "avg_queue_wait_p95_ms": 3385.89,
-    "avg_queue_delay_ms": 547.57,
+    "avg_latency_p95_ms": 5883.89,
+    "avg_latency_p50_ms": 1230.45,
+    "avg_queue_wait_p95_ms": 3853.47,
+    "avg_queue_delay_ms": 623.2,
     "avg_ttft_ms": 56.83,
     "avg_tpot_ms": 5.93,
-    "avg_arrival_to_first_token_ms": 604.41,
+    "avg_arrival_to_first_token_ms": 680.03,
     "avg_slo_attainment_pct": 79.08,
-    "avg_total_cost": 0.045989,
-    "avg_quality": 0.8997,
-    "effective_throughput_rps": 3.75,
+    "avg_total_cost": 0.045872,
+    "avg_quality": 0.862,
+    "effective_throughput_rps": 3.4,
     "runs": [
       {
         "policy": "strongest",
@@ -47,20 +47,20 @@
         "completed_requests": 28,
         "rejected_requests": 2,
         "rejection_rate_pct": 6.67,
-        "latency_p50_ms": 1438.1,
-        "latency_p95_ms": 5931.71,
-        "latency_p99_ms": 6385.01,
-        "queue_wait_p95_ms": 2844.19,
-        "avg_queue_delay_ms": 417.22,
+        "latency_p50_ms": 1469.64,
+        "latency_p95_ms": 6385.01,
+        "latency_p99_ms": 10073.22,
+        "queue_wait_p95_ms": 4246.93,
+        "avg_queue_delay_ms": 644.09,
         "avg_ttft_ms": 53.45,
         "avg_tpot_ms": 6.46,
-        "avg_arrival_to_first_token_ms": 470.68,
-        "arrival_to_first_token_p95_ms": 2873.75,
+        "avg_arrival_to_first_token_ms": 697.55,
+        "arrival_to_first_token_p95_ms": 4285.01,
         "slo_attainment_pct": 67.86,
-        "total_cost": 0.046705,
-        "avg_quality": 0.8832,
-        "effective_throughput_rps": 3.32,
-        "simulated_duration_sec": 8.42,
+        "total_cost": 0.046608,
+        "avg_quality": 0.8457,
+        "effective_throughput_rps": 2.29,
+        "simulated_duration_sec": 12.22,
         "cloud_requests_completed": 18,
         "local_requests_completed": 10,
         "per_request_records": [
@@ -94,7 +94,7 @@
             "arrival_to_first_token_ms": 65.68,
             "total_latency_ms": 1604.68,
             "cost": 0.005215,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": false,
             "status": "completed"
           },
@@ -110,7 +110,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 29.56,
             "total_latency_ms": 2179.56,
-            "cost": 1.8e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -213,7 +213,7 @@
             "arrival_to_first_token_ms": 65.6,
             "total_latency_ms": 1438.1,
             "cost": 0.00465,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -229,7 +229,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 1494.81,
             "total_latency_ms": 4164.81,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -247,7 +247,7 @@
             "arrival_to_first_token_ms": 65.68,
             "total_latency_ms": 794.68,
             "cost": 0.002515,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -298,7 +298,7 @@
             "arrival_to_first_token_ms": 66.32,
             "total_latency_ms": 1191.32,
             "cost": 0.003915,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -315,7 +315,7 @@
             "arrival_to_first_token_ms": 65.68,
             "total_latency_ms": 1402.18,
             "cost": 0.00454,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -355,18 +355,18 @@
           },
           {
             "request_id": "req-0018",
-            "model": "llama-3-8b",
-            "provider": "mock-local",
+            "model": "qwen2.5:1.5b",
+            "provider": "local",
             "is_cloud": false,
-            "replica_id": "replica-llama-1",
+            "replica_id": "local-r2",
             "prompt_tokens": 13,
             "output_tokens": 35,
-            "queue_delay_ms": 0.0,
+            "queue_delay_ms": 2210.86,
             "ttft_ms": 26.56,
-            "arrival_to_first_token_ms": 26.56,
-            "total_latency_ms": 376.56,
-            "cost": 5.9e-05,
-            "quality": 0.79,
+            "arrival_to_first_token_ms": 2237.42,
+            "total_latency_ms": 2587.42,
+            "cost": 1e-06,
+            "quality": 0.73,
             "slo_met": true,
             "status": "completed"
           },
@@ -383,7 +383,7 @@
             "arrival_to_first_token_ms": 65.64,
             "total_latency_ms": 1469.64,
             "cost": 0.00476,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -392,13 +392,13 @@
             "model": "qwen2.5:1.5b",
             "provider": "local",
             "is_cloud": false,
-            "replica_id": "local-r2",
+            "replica_id": "local-r1",
             "prompt_tokens": 17,
             "output_tokens": 377,
-            "queue_delay_ms": 2134.67,
+            "queue_delay_ms": 6276.18,
             "ttft_ms": 27.04,
-            "arrival_to_first_token_ms": 2161.71,
-            "total_latency_ms": 5931.71,
+            "arrival_to_first_token_ms": 6303.22,
+            "total_latency_ms": 10073.22,
             "cost": 8e-06,
             "quality": 0.73,
             "slo_met": false,
@@ -417,7 +417,7 @@
             "arrival_to_first_token_ms": 65.6,
             "total_latency_ms": 1420.1,
             "cost": 0.00459,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -434,7 +434,7 @@
             "arrival_to_first_token_ms": 65.68,
             "total_latency_ms": 1658.68,
             "cost": 0.005395,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -450,7 +450,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 2873.75,
             "total_latency_ms": 4113.75,
-            "cost": 1.1e-05,
+            "cost": 3e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -495,7 +495,7 @@
             "arrival_to_first_token_ms": 66.52,
             "total_latency_ms": 318.52,
             "cost": 0.00103,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -512,7 +512,7 @@
             "arrival_to_first_token_ms": 65.68,
             "total_latency_ms": 1708.18,
             "cost": 0.00556,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -529,7 +529,7 @@
             "arrival_to_first_token_ms": 67.96,
             "total_latency_ms": 1197.46,
             "cost": 0.004135,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -572,8 +572,8 @@
         "avg_arrival_to_first_token_ms": 1277.84,
         "arrival_to_first_token_p95_ms": 7340.99,
         "slo_attainment_pct": 73.08,
-        "total_cost": 0.040654,
-        "avg_quality": 0.8896,
+        "total_cost": 0.040502,
+        "avg_quality": 0.8562,
         "effective_throughput_rps": 1.74,
         "simulated_duration_sec": 14.92,
         "cloud_requests_completed": 16,
@@ -618,7 +618,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 27.52,
             "total_latency_ms": 2837.52,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -669,7 +669,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 2644.53,
             "total_latency_ms": 4664.53,
-            "cost": 1.7e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -703,7 +703,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 4315.29,
             "total_latency_ms": 6945.29,
-            "cost": 2.2e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -720,7 +720,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 6939.87,
             "total_latency_ms": 8929.87,
-            "cost": 1.7e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -738,7 +738,7 @@
             "arrival_to_first_token_ms": 66.52,
             "total_latency_ms": 1322.02,
             "cost": 0.004375,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -755,7 +755,7 @@
             "arrival_to_first_token_ms": 66.24,
             "total_latency_ms": 1483.74,
             "cost": 0.00488,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -772,7 +772,7 @@
             "arrival_to_first_token_ms": 65.68,
             "total_latency_ms": 1271.68,
             "cost": 0.004105,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -794,7 +794,7 @@
             "arrival_to_first_token_ms": 66.16,
             "total_latency_ms": 1461.16,
             "cost": 0.004795,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -879,7 +879,7 @@
             "arrival_to_first_token_ms": 66.32,
             "total_latency_ms": 1069.82,
             "cost": 0.00351,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -917,7 +917,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 7340.99,
             "total_latency_ms": 9670.99,
-            "cost": 1.9e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -935,7 +935,7 @@
             "arrival_to_first_token_ms": 66.24,
             "total_latency_ms": 1726.74,
             "cost": 0.00569,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -952,7 +952,7 @@
             "arrival_to_first_token_ms": 65.68,
             "total_latency_ms": 1708.18,
             "cost": 0.00556,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -969,7 +969,7 @@
             "arrival_to_first_token_ms": 66.64,
             "total_latency_ms": 1317.64,
             "cost": 0.004375,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -1003,7 +1003,7 @@
             "arrival_to_first_token_ms": 66.52,
             "total_latency_ms": 921.52,
             "cost": 0.00304,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -1019,25 +1019,25 @@
             "ttft_ms": 33.88,
             "arrival_to_first_token_ms": 9031.45,
             "total_latency_ms": 11491.45,
-            "cost": 2.2e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
           },
           {
             "request_id": "req-0030",
-            "model": "llama-3-8b",
-            "provider": "mock-local",
+            "model": "qwen2.5:1.5b",
+            "provider": "local",
             "is_cloud": false,
-            "replica_id": "replica-llama-1",
+            "replica_id": "local-r2",
             "prompt_tokens": 13,
             "output_tokens": 38,
             "queue_delay_ms": 0.0,
             "ttft_ms": 26.56,
             "arrival_to_first_token_ms": 26.56,
             "total_latency_ms": 406.56,
-            "cost": 6.3e-05,
-            "quality": 0.79,
+            "cost": 1e-06,
+            "quality": 0.73,
             "slo_met": true,
             "status": "completed"
           }
@@ -1063,8 +1063,8 @@
         "avg_arrival_to_first_token_ms": 64.7,
         "arrival_to_first_token_p95_ms": 67.92,
         "slo_attainment_pct": 96.3,
-        "total_cost": 0.050607,
-        "avg_quality": 0.9263,
+        "total_cost": 0.050507,
+        "avg_quality": 0.8841,
         "effective_throughput_rps": 6.18,
         "simulated_duration_sec": 4.37,
         "cloud_requests_completed": 26,
@@ -1106,18 +1106,18 @@
           },
           {
             "request_id": "req-0003",
-            "model": "llama-3-8b",
-            "provider": "mock-local",
+            "model": "qwen2.5:1.5b",
+            "provider": "local",
             "is_cloud": false,
-            "replica_id": "replica-llama-1",
+            "replica_id": "local-r1",
             "prompt_tokens": 14,
             "output_tokens": 63,
             "queue_delay_ms": 0.0,
             "ttft_ms": 26.68,
             "arrival_to_first_token_ms": 26.68,
             "total_latency_ms": 656.68,
-            "cost": 0.000102,
-            "quality": 0.79,
+            "cost": 1e-06,
+            "quality": 0.73,
             "slo_met": true,
             "status": "completed"
           },
@@ -1134,7 +1134,7 @@
             "arrival_to_first_token_ms": 65.84,
             "total_latency_ms": 1096.34,
             "cost": 0.00354,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -1151,7 +1151,7 @@
             "arrival_to_first_token_ms": 65.6,
             "total_latency_ms": 1024.1,
             "cost": 0.00327,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -1168,7 +1168,7 @@
             "arrival_to_first_token_ms": 65.6,
             "total_latency_ms": 1676.6,
             "cost": 0.005445,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -1224,7 +1224,7 @@
             "arrival_to_first_token_ms": 65.68,
             "total_latency_ms": 1595.68,
             "cost": 0.005185,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -1258,7 +1258,7 @@
             "arrival_to_first_token_ms": 66.52,
             "total_latency_ms": 980.02,
             "cost": 0.003235,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -1314,7 +1314,7 @@
             "arrival_to_first_token_ms": 66.52,
             "total_latency_ms": 1110.52,
             "cost": 0.00367,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -1331,7 +1331,7 @@
             "arrival_to_first_token_ms": 65.64,
             "total_latency_ms": 1303.14,
             "cost": 0.004205,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -1382,7 +1382,7 @@
             "arrival_to_first_token_ms": 65.6,
             "total_latency_ms": 1307.6,
             "cost": 0.004215,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -1472,7 +1472,7 @@
             "arrival_to_first_token_ms": 65.84,
             "total_latency_ms": 1519.34,
             "cost": 0.00495,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": false,
             "status": "completed"
           },
@@ -1506,7 +1506,7 @@
             "arrival_to_first_token_ms": 66.32,
             "total_latency_ms": 1096.82,
             "cost": 0.0036,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -1523,7 +1523,7 @@
             "arrival_to_first_token_ms": 65.6,
             "total_latency_ms": 1411.1,
             "cost": 0.00456,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -1540,7 +1540,7 @@
             "arrival_to_first_token_ms": 65.84,
             "total_latency_ms": 1294.34,
             "cost": 0.0042,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           }
@@ -1564,7 +1564,7 @@
     "avg_tpot_ms": 8.58,
     "avg_arrival_to_first_token_ms": 3020.6,
     "avg_slo_attainment_pct": 35.88,
-    "avg_total_cost": 0.00064,
+    "avg_total_cost": 0.000548,
     "avg_quality": 0.7998,
     "effective_throughput_rps": 1.59,
     "runs": [
@@ -1588,7 +1588,7 @@
         "avg_arrival_to_first_token_ms": 3003.98,
         "arrival_to_first_token_p95_ms": 11590.75,
         "slo_attainment_pct": 32.14,
-        "total_cost": 0.000818,
+        "total_cost": 0.000758,
         "avg_quality": 0.7971,
         "effective_throughput_rps": 1.53,
         "simulated_duration_sec": 18.29,
@@ -1641,7 +1641,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 29.56,
             "total_latency_ms": 2179.56,
-            "cost": 1.8e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -1760,7 +1760,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 1494.81,
             "total_latency_ms": 4164.81,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -1981,7 +1981,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 2873.75,
             "total_latency_ms": 4113.75,
-            "cost": 1.1e-05,
+            "cost": 3e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -2025,7 +2025,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 3965.55,
             "total_latency_ms": 4525.55,
-            "cost": 6e-06,
+            "cost": 2e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -2059,7 +2059,7 @@
             "ttft_ms": 33.88,
             "arrival_to_first_token_ms": 4433.04,
             "total_latency_ms": 6943.04,
-            "cost": 2.2e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -2103,7 +2103,7 @@
         "avg_arrival_to_first_token_ms": 3616.57,
         "arrival_to_first_token_p95_ms": 14662.15,
         "slo_attainment_pct": 38.46,
-        "total_cost": 0.000559,
+        "total_cost": 0.000422,
         "avg_quality": 0.8085,
         "effective_throughput_rps": 1.16,
         "simulated_duration_sec": 22.48,
@@ -2149,7 +2149,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 27.52,
             "total_latency_ms": 2837.52,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -2200,7 +2200,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 2644.53,
             "total_latency_ms": 4664.53,
-            "cost": 1.7e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -2234,7 +2234,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 4315.29,
             "total_latency_ms": 6945.29,
-            "cost": 2.2e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -2251,7 +2251,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 6939.87,
             "total_latency_ms": 8929.87,
-            "cost": 1.7e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -2268,7 +2268,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 8802.96,
             "total_latency_ms": 11592.96,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -2448,7 +2448,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 10160.55,
             "total_latency_ms": 12490.55,
-            "cost": 1.9e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -2499,7 +2499,7 @@
             "ttft_ms": 29.92,
             "arrival_to_first_token_ms": 12326.56,
             "total_latency_ms": 15106.56,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -2533,7 +2533,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 14662.15,
             "total_latency_ms": 16562.15,
-            "cost": 1.6e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -2550,7 +2550,7 @@
             "ttft_ms": 33.88,
             "arrival_to_first_token_ms": 16590.49,
             "total_latency_ms": 19050.49,
-            "cost": 2.2e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -2594,7 +2594,7 @@
         "avg_arrival_to_first_token_ms": 2441.24,
         "arrival_to_first_token_p95_ms": 7026.34,
         "slo_attainment_pct": 37.04,
-        "total_cost": 0.000542,
+        "total_cost": 0.000464,
         "avg_quality": 0.7937,
         "effective_throughput_rps": 2.09,
         "simulated_duration_sec": 12.9,
@@ -2664,7 +2664,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 27.52,
             "total_latency_ms": 2317.52,
-            "cost": 1.9e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -2788,7 +2788,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 1474.26,
             "total_latency_ms": 3504.26,
-            "cost": 1.7e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -2844,7 +2844,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 2835.6,
             "total_latency_ms": 5155.6,
-            "cost": 2e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -3002,7 +3002,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 4382.51,
             "total_latency_ms": 7612.51,
-            "cost": 2.6e-05,
+            "cost": 7e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -3070,7 +3070,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 7205.02,
             "total_latency_ms": 9935.02,
-            "cost": 2.2e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -3095,8 +3095,8 @@
     "avg_tpot_ms": 7.22,
     "avg_arrival_to_first_token_ms": 1113.19,
     "avg_slo_attainment_pct": 63.24,
-    "avg_total_cost": 0.045753,
-    "avg_quality": 0.86,
+    "avg_total_cost": 0.04571,
+    "avg_quality": 0.8245,
     "effective_throughput_rps": 3.06,
     "runs": [
       {
@@ -3119,8 +3119,8 @@
         "avg_arrival_to_first_token_ms": 1607.35,
         "arrival_to_first_token_p95_ms": 6149.23,
         "slo_attainment_pct": 46.43,
-        "total_cost": 0.046507,
-        "avg_quality": 0.8525,
+        "total_cost": 0.046468,
+        "avg_quality": 0.8171,
         "effective_throughput_rps": 2.03,
         "simulated_duration_sec": 13.77,
         "cloud_requests_completed": 13,
@@ -3156,7 +3156,7 @@
             "arrival_to_first_token_ms": 65.68,
             "total_latency_ms": 1604.68,
             "cost": 0.005215,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": false,
             "status": "completed"
           },
@@ -3172,7 +3172,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 29.56,
             "total_latency_ms": 2179.56,
-            "cost": 1.8e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -3275,7 +3275,7 @@
             "arrival_to_first_token_ms": 65.6,
             "total_latency_ms": 1438.1,
             "cost": 0.00465,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -3291,7 +3291,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 1494.81,
             "total_latency_ms": 4164.81,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -3309,7 +3309,7 @@
             "arrival_to_first_token_ms": 65.68,
             "total_latency_ms": 794.68,
             "cost": 0.002515,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -3360,7 +3360,7 @@
             "arrival_to_first_token_ms": 66.32,
             "total_latency_ms": 1191.32,
             "cost": 0.003915,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -3377,7 +3377,7 @@
             "arrival_to_first_token_ms": 65.68,
             "total_latency_ms": 1402.18,
             "cost": 0.00454,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -3445,7 +3445,7 @@
             "arrival_to_first_token_ms": 65.64,
             "total_latency_ms": 1469.64,
             "cost": 0.00476,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -3479,7 +3479,7 @@
             "arrival_to_first_token_ms": 65.6,
             "total_latency_ms": 1420.1,
             "cost": 0.00459,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -3496,7 +3496,7 @@
             "arrival_to_first_token_ms": 65.68,
             "total_latency_ms": 1658.68,
             "cost": 0.005395,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -3512,7 +3512,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 2873.75,
             "total_latency_ms": 4113.75,
-            "cost": 1.1e-05,
+            "cost": 3e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -3557,7 +3557,7 @@
             "arrival_to_first_token_ms": 66.52,
             "total_latency_ms": 318.52,
             "cost": 0.00103,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -3574,7 +3574,7 @@
             "arrival_to_first_token_ms": 65.68,
             "total_latency_ms": 1708.18,
             "cost": 0.00556,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -3591,7 +3591,7 @@
             "arrival_to_first_token_ms": 67.96,
             "total_latency_ms": 1197.46,
             "cost": 0.004135,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -3634,8 +3634,8 @@
         "avg_arrival_to_first_token_ms": 1349.09,
         "arrival_to_first_token_p95_ms": 7340.99,
         "slo_attainment_pct": 69.23,
-        "total_cost": 0.040505,
-        "avg_quality": 0.8627,
+        "total_cost": 0.040415,
+        "avg_quality": 0.8315,
         "effective_throughput_rps": 1.74,
         "simulated_duration_sec": 14.92,
         "cloud_requests_completed": 12,
@@ -3680,7 +3680,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 27.52,
             "total_latency_ms": 2837.52,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -3731,7 +3731,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 2644.53,
             "total_latency_ms": 4664.53,
-            "cost": 1.7e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -3765,7 +3765,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 4315.29,
             "total_latency_ms": 6945.29,
-            "cost": 2.2e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -3782,7 +3782,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 6939.87,
             "total_latency_ms": 8929.87,
-            "cost": 1.7e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -3800,7 +3800,7 @@
             "arrival_to_first_token_ms": 66.52,
             "total_latency_ms": 1322.02,
             "cost": 0.004375,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -3817,7 +3817,7 @@
             "arrival_to_first_token_ms": 66.24,
             "total_latency_ms": 1483.74,
             "cost": 0.00488,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -3834,7 +3834,7 @@
             "arrival_to_first_token_ms": 65.68,
             "total_latency_ms": 1271.68,
             "cost": 0.004105,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -3856,7 +3856,7 @@
             "arrival_to_first_token_ms": 66.16,
             "total_latency_ms": 1461.16,
             "cost": 0.004795,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -3941,7 +3941,7 @@
             "arrival_to_first_token_ms": 66.32,
             "total_latency_ms": 1069.82,
             "cost": 0.00351,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -3979,7 +3979,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 7340.99,
             "total_latency_ms": 9670.99,
-            "cost": 1.9e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -3997,7 +3997,7 @@
             "arrival_to_first_token_ms": 66.24,
             "total_latency_ms": 1726.74,
             "cost": 0.00569,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -4014,7 +4014,7 @@
             "arrival_to_first_token_ms": 65.68,
             "total_latency_ms": 1708.18,
             "cost": 0.00556,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -4031,7 +4031,7 @@
             "arrival_to_first_token_ms": 66.64,
             "total_latency_ms": 1317.64,
             "cost": 0.004375,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -4065,7 +4065,7 @@
             "arrival_to_first_token_ms": 66.52,
             "total_latency_ms": 921.52,
             "cost": 0.00304,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -4081,7 +4081,7 @@
             "ttft_ms": 33.88,
             "arrival_to_first_token_ms": 9031.45,
             "total_latency_ms": 11491.45,
-            "cost": 2.2e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -4126,7 +4126,7 @@
         "arrival_to_first_token_p95_ms": 1651.38,
         "slo_attainment_pct": 74.07,
         "total_cost": 0.050248,
-        "avg_quality": 0.8648,
+        "avg_quality": 0.8248,
         "effective_throughput_rps": 5.41,
         "simulated_duration_sec": 4.99,
         "cloud_requests_completed": 16,
@@ -4196,7 +4196,7 @@
             "arrival_to_first_token_ms": 65.84,
             "total_latency_ms": 1096.34,
             "cost": 0.00354,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -4213,7 +4213,7 @@
             "arrival_to_first_token_ms": 65.6,
             "total_latency_ms": 1024.1,
             "cost": 0.00327,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -4230,7 +4230,7 @@
             "arrival_to_first_token_ms": 65.6,
             "total_latency_ms": 1676.6,
             "cost": 0.005445,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -4286,7 +4286,7 @@
             "arrival_to_first_token_ms": 65.68,
             "total_latency_ms": 1595.68,
             "cost": 0.005185,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -4320,7 +4320,7 @@
             "arrival_to_first_token_ms": 66.52,
             "total_latency_ms": 980.02,
             "cost": 0.003235,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -4376,7 +4376,7 @@
             "arrival_to_first_token_ms": 66.52,
             "total_latency_ms": 1110.52,
             "cost": 0.00367,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -4393,7 +4393,7 @@
             "arrival_to_first_token_ms": 65.64,
             "total_latency_ms": 1303.14,
             "cost": 0.004205,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -4444,7 +4444,7 @@
             "arrival_to_first_token_ms": 65.6,
             "total_latency_ms": 1307.6,
             "cost": 0.004215,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -4534,7 +4534,7 @@
             "arrival_to_first_token_ms": 65.84,
             "total_latency_ms": 1519.34,
             "cost": 0.00495,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": false,
             "status": "completed"
           },
@@ -4568,7 +4568,7 @@
             "arrival_to_first_token_ms": 66.32,
             "total_latency_ms": 1096.82,
             "cost": 0.0036,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -4585,7 +4585,7 @@
             "arrival_to_first_token_ms": 65.6,
             "total_latency_ms": 1411.1,
             "cost": 0.00456,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           },
@@ -4602,7 +4602,7 @@
             "arrival_to_first_token_ms": 65.84,
             "total_latency_ms": 1294.34,
             "cost": 0.0042,
-            "quality": 0.98,
+            "quality": 0.89,
             "slo_met": true,
             "status": "completed"
           }
@@ -4626,7 +4626,7 @@
     "avg_tpot_ms": 7.16,
     "avg_arrival_to_first_token_ms": 1289.88,
     "avg_slo_attainment_pct": 64.3,
-    "avg_total_cost": 0.001135,
+    "avg_total_cost": 0.001066,
     "avg_quality": 0.83,
     "effective_throughput_rps": 2.47,
     "runs": [
@@ -4650,7 +4650,7 @@
         "avg_arrival_to_first_token_ms": 1081.18,
         "arrival_to_first_token_p95_ms": 4641.69,
         "slo_attainment_pct": 53.57,
-        "total_cost": 0.001249,
+        "total_cost": 0.00121,
         "avg_quality": 0.8243,
         "effective_throughput_rps": 2.23,
         "simulated_duration_sec": 12.58,
@@ -4703,7 +4703,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 29.56,
             "total_latency_ms": 2179.56,
-            "cost": 1.8e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -4822,7 +4822,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 1494.81,
             "total_latency_ms": 4164.81,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -5043,7 +5043,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 2873.75,
             "total_latency_ms": 4113.75,
-            "cost": 1.1e-05,
+            "cost": 3e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -5165,7 +5165,7 @@
         "avg_arrival_to_first_token_ms": 2481.6,
         "arrival_to_first_token_p95_ms": 12326.56,
         "slo_attainment_pct": 61.54,
-        "total_cost": 0.000908,
+        "total_cost": 0.000784,
         "avg_quality": 0.8262,
         "effective_throughput_rps": 1.27,
         "simulated_duration_sec": 20.55,
@@ -5211,7 +5211,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 27.52,
             "total_latency_ms": 2837.52,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -5262,7 +5262,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 2644.53,
             "total_latency_ms": 4664.53,
-            "cost": 1.7e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -5296,7 +5296,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 4315.29,
             "total_latency_ms": 6945.29,
-            "cost": 2.2e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -5313,7 +5313,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 6939.87,
             "total_latency_ms": 8929.87,
-            "cost": 1.7e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -5330,7 +5330,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 8802.96,
             "total_latency_ms": 11592.96,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -5510,7 +5510,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 10160.55,
             "total_latency_ms": 12490.55,
-            "cost": 1.9e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -5561,7 +5561,7 @@
             "ttft_ms": 29.92,
             "arrival_to_first_token_ms": 12326.56,
             "total_latency_ms": 15106.56,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -5612,7 +5612,7 @@
             "ttft_ms": 33.88,
             "arrival_to_first_token_ms": 14660.93,
             "total_latency_ms": 17120.93,
-            "cost": 2.2e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -5656,7 +5656,7 @@
         "avg_arrival_to_first_token_ms": 306.85,
         "arrival_to_first_token_p95_ms": 1474.26,
         "slo_attainment_pct": 77.78,
-        "total_cost": 0.001247,
+        "total_cost": 0.001205,
         "avg_quality": 0.8396,
         "effective_throughput_rps": 3.92,
         "simulated_duration_sec": 6.89,
@@ -5726,7 +5726,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 27.52,
             "total_latency_ms": 2317.52,
-            "cost": 1.9e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -5850,7 +5850,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 1474.26,
             "total_latency_ms": 3504.26,
-            "cost": 1.7e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -5906,7 +5906,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 2835.6,
             "total_latency_ms": 5155.6,
-            "cost": 2e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -6157,7 +6157,7 @@
     "avg_tpot_ms": 7.16,
     "avg_arrival_to_first_token_ms": 1307.33,
     "avg_slo_attainment_pct": 61.78,
-    "avg_total_cost": 0.001135,
+    "avg_total_cost": 0.001066,
     "avg_quality": 0.83,
     "effective_throughput_rps": 2.53,
     "runs": [
@@ -6181,7 +6181,7 @@
         "avg_arrival_to_first_token_ms": 1081.18,
         "arrival_to_first_token_p95_ms": 5038.58,
         "slo_attainment_pct": 53.57,
-        "total_cost": 0.001249,
+        "total_cost": 0.00121,
         "avg_quality": 0.8243,
         "effective_throughput_rps": 2.41,
         "simulated_duration_sec": 11.63,
@@ -6234,7 +6234,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 29.56,
             "total_latency_ms": 2179.56,
-            "cost": 1.8e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -6353,7 +6353,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 1494.81,
             "total_latency_ms": 4164.81,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -6574,7 +6574,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 2873.75,
             "total_latency_ms": 4113.75,
-            "cost": 1.1e-05,
+            "cost": 3e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -6696,7 +6696,7 @@
         "avg_arrival_to_first_token_ms": 2509.72,
         "arrival_to_first_token_p95_ms": 12326.56,
         "slo_attainment_pct": 57.69,
-        "total_cost": 0.000908,
+        "total_cost": 0.000784,
         "avg_quality": 0.8262,
         "effective_throughput_rps": 1.27,
         "simulated_duration_sec": 20.55,
@@ -6742,7 +6742,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 27.52,
             "total_latency_ms": 2837.52,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -6793,7 +6793,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 2644.53,
             "total_latency_ms": 4664.53,
-            "cost": 1.7e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -6827,7 +6827,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 4315.29,
             "total_latency_ms": 6945.29,
-            "cost": 2.2e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -6844,7 +6844,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 6939.87,
             "total_latency_ms": 8929.87,
-            "cost": 1.7e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -6861,7 +6861,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 8802.96,
             "total_latency_ms": 11592.96,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -7041,7 +7041,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 10160.55,
             "total_latency_ms": 12490.55,
-            "cost": 1.9e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -7092,7 +7092,7 @@
             "ttft_ms": 29.92,
             "arrival_to_first_token_ms": 12326.56,
             "total_latency_ms": 15106.56,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -7143,7 +7143,7 @@
             "ttft_ms": 33.88,
             "arrival_to_first_token_ms": 14660.93,
             "total_latency_ms": 17120.93,
-            "cost": 2.2e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -7187,7 +7187,7 @@
         "avg_arrival_to_first_token_ms": 331.1,
         "arrival_to_first_token_p95_ms": 1474.26,
         "slo_attainment_pct": 74.07,
-        "total_cost": 0.001247,
+        "total_cost": 0.001205,
         "avg_quality": 0.8396,
         "effective_throughput_rps": 3.92,
         "simulated_duration_sec": 6.89,
@@ -7257,7 +7257,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 27.52,
             "total_latency_ms": 2317.52,
-            "cost": 1.9e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -7381,7 +7381,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 1474.26,
             "total_latency_ms": 3504.26,
-            "cost": 1.7e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -7437,7 +7437,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 2835.6,
             "total_latency_ms": 5155.6,
-            "cost": 2e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -7688,7 +7688,7 @@
     "avg_tpot_ms": 7.16,
     "avg_arrival_to_first_token_ms": 1373.9,
     "avg_slo_attainment_pct": 61.78,
-    "avg_total_cost": 0.001135,
+    "avg_total_cost": 0.001066,
     "avg_quality": 0.83,
     "effective_throughput_rps": 2.43,
     "runs": [
@@ -7712,7 +7712,7 @@
         "avg_arrival_to_first_token_ms": 1207.28,
         "arrival_to_first_token_p95_ms": 7176.66,
         "slo_attainment_pct": 53.57,
-        "total_cost": 0.001249,
+        "total_cost": 0.00121,
         "avg_quality": 0.8243,
         "effective_throughput_rps": 2.09,
         "simulated_duration_sec": 13.4,
@@ -7765,7 +7765,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 29.56,
             "total_latency_ms": 2179.56,
-            "cost": 1.8e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -7884,7 +7884,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 1494.81,
             "total_latency_ms": 4164.81,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -8105,7 +8105,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 2873.75,
             "total_latency_ms": 4113.75,
-            "cost": 1.1e-05,
+            "cost": 3e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -8227,7 +8227,7 @@
         "avg_arrival_to_first_token_ms": 2535.33,
         "arrival_to_first_token_p95_ms": 12326.56,
         "slo_attainment_pct": 57.69,
-        "total_cost": 0.000908,
+        "total_cost": 0.000784,
         "avg_quality": 0.8262,
         "effective_throughput_rps": 1.27,
         "simulated_duration_sec": 20.55,
@@ -8273,7 +8273,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 27.52,
             "total_latency_ms": 2837.52,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -8324,7 +8324,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 2644.53,
             "total_latency_ms": 4664.53,
-            "cost": 1.7e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -8358,7 +8358,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 4315.29,
             "total_latency_ms": 6945.29,
-            "cost": 2.2e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -8375,7 +8375,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 6939.87,
             "total_latency_ms": 8929.87,
-            "cost": 1.7e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -8392,7 +8392,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 8802.96,
             "total_latency_ms": 11592.96,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -8572,7 +8572,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 10160.55,
             "total_latency_ms": 12490.55,
-            "cost": 1.9e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -8623,7 +8623,7 @@
             "ttft_ms": 29.92,
             "arrival_to_first_token_ms": 12326.56,
             "total_latency_ms": 15106.56,
-            "cost": 2.3e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -8674,7 +8674,7 @@
             "ttft_ms": 33.88,
             "arrival_to_first_token_ms": 14660.93,
             "total_latency_ms": 17120.93,
-            "cost": 2.2e-05,
+            "cost": 6e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -8718,7 +8718,7 @@
         "avg_arrival_to_first_token_ms": 379.09,
         "arrival_to_first_token_p95_ms": 1772.04,
         "slo_attainment_pct": 74.07,
-        "total_cost": 0.001247,
+        "total_cost": 0.001205,
         "avg_quality": 0.8396,
         "effective_throughput_rps": 3.92,
         "simulated_duration_sec": 6.89,
@@ -8788,7 +8788,7 @@
             "ttft_ms": 27.52,
             "arrival_to_first_token_ms": 27.52,
             "total_latency_ms": 2317.52,
-            "cost": 1.9e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -8912,7 +8912,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 1474.26,
             "total_latency_ms": 3504.26,
-            "cost": 1.7e-05,
+            "cost": 4e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"
@@ -8968,7 +8968,7 @@
             "ttft_ms": 29.56,
             "arrival_to_first_token_ms": 2835.6,
             "total_latency_ms": 5155.6,
-            "cost": 2e-05,
+            "cost": 5e-06,
             "quality": 0.85,
             "slo_met": false,
             "status": "completed"

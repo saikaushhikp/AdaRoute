@@ -10,7 +10,6 @@ from pathlib import Path
 import httpx
 import yaml
 
-
 OLLAMA_URL = os.getenv("OLLAMA_BASE_URL", "http://ollama:11436").rstrip("/")
 CONFIG_PATH = Path(os.getenv("ADAROUTE_CONFIG", "/app/config.yaml"))
 REQUEST_TIMEOUT = httpx.Timeout(connect=5.0, read=None, write=30.0, pool=5.0)
@@ -23,9 +22,7 @@ def configured_local_models() -> list[str]:
     models = config.get("models", [])
     return list(
         dict.fromkeys(
-            model["model_id"]
-            for model in models
-            if model.get("provider") == "local" and model.get("model_id")
+            model["model_id"] for model in models if model.get("provider") == "local" and model.get("model_id")
         )
     )
 
