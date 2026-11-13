@@ -79,8 +79,8 @@ def build_test_environment():
     catalog.register_deployment(d_cloud)
 
     reps = [
-        ReplicaDefinition(replica_id="r1", endpoint="http://h1:11434", availability=True),
-        ReplicaDefinition(replica_id="r2", endpoint="http://h2:11434", availability=False),
+        ReplicaDefinition(replica_id="r1", endpoint="http://h1:11436", availability=True),
+        ReplicaDefinition(replica_id="r2", endpoint="http://h2:11436", availability=False),
     ]
     d_local = DeploymentDefinition(
         deployment_id="dep-local",

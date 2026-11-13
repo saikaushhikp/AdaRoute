@@ -9,7 +9,7 @@ gateway:
   version: "3.0.0"
   default_policy: "adaptive"
   default_scheduler: "slo_aware"
-  execution_mode: "hybrid"  # "real" (strict fail-closed if unreachable) | "simulation" | "hybrid"
+  execution_mode: "real"  # "real" (strict fail-closed if unreachable) | "simulation" | "hybrid"
   auth_required: false       # When true, strictly requires Bearer API key in Authorization header
 
 registry:
@@ -80,19 +80,19 @@ models:
     provider: "local"
     execution_type: "local"
     litellm_model: "ollama/qwen2.5:1.5b"
-    base_url: "http://localhost:11434"
+    base_url: "http://ollama:11436"
     privacy_levels: ["public", "internal_only", "confidential", "restricted"]
-    cost_per_1k_input: 0.000010   # Local CPU compute amortization
-    cost_per_1k_output: 0.000020
+    cost_per_1k_input: 0.000000   # Local CPU compute amortization
+    cost_per_1k_output: 0.000000
     quality: 0.73                 # Open LLM Leaderboard / MMLU ~61%
     max_context: 32768            # Ollama verified native context length
     replicas:
       - replica_id: "local-r1"
-        endpoint: "http://localhost:11434"
+        endpoint: "http://ollama:11436"
         availability: true
         weight: 1.0
       - replica_id: "local-r2"
-        endpoint: "http://localhost:11434"
+        endpoint: "http://ollama:11436"
         availability: true
         weight: 1.0
 
@@ -101,15 +101,15 @@ models:
     provider: "local"
     execution_type: "local"
     litellm_model: "ollama/deepseek-r1:1.5b"
-    base_url: "http://localhost:11434"
+    base_url: "http://ollama:11436"
     privacy_levels: ["public", "internal_only", "confidential", "restricted"]
-    cost_per_1k_input: 0.000030   # Local CPU compute amortization
-    cost_per_1k_output: 0.000080
+    cost_per_1k_input: 0.000000   # Local CPU compute amortization
+    cost_per_1k_output: 0.000000
     quality: 0.85                 # Distill Qwen 1.5B, MATH-500: 83.9%
     max_context: 131072           # Ollama verified native context length
     replicas:
       - replica_id: "local-deepseek-r1"
-        endpoint: "http://localhost:11434"
+        endpoint: "http://ollama:11436"
         availability: true
         weight: 1.0
 
@@ -167,7 +167,7 @@ models:
     privacy_levels: ["public"]
     cost_per_1k_input: 0.005
     cost_per_1k_output: 0.015
-    quality: 0.98
+    quality: 0.01             # for testing, lower it from 0.98 to 0.01
     max_context: 128000
     replicas:
       - replica_id: "replica-gpt-4o-1"
@@ -183,7 +183,7 @@ models:
     privacy_levels: ["public", "internal_only", "confidential", "restricted"]
     cost_per_1k_input: 0.0005
     cost_per_1k_output: 0.0015
-    quality: 0.79
+    quality: 0.01            # for testing, lower it from 0.78 to 0.01
     max_context: 8192
     replicas:
       - replica_id: "replica-llama-1"

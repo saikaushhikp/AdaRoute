@@ -101,8 +101,8 @@ def test_tc_m3_24_duplicate_ids_fail_validation():
 
     # Duplicate replica IDs within deployment
     reps = [
-        ReplicaDefinition(replica_id="rep-1", endpoint="http://h1:11434"),
-        ReplicaDefinition(replica_id="rep-1", endpoint="http://h2:11434"),
+        ReplicaDefinition(replica_id="rep-1", endpoint="http://h1:11436"),
+        ReplicaDefinition(replica_id="rep-1", endpoint="http://h2:11436"),
     ]
     dep = DeploymentDefinition(
         deployment_id="d1",

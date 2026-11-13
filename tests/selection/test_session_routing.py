@@ -51,7 +51,7 @@ def build_session_catalog() -> SystemCatalog:
             model_id="fast-model",
             provider_id="local_p",
             allowed_privacy={PrivacyLevel.PUBLIC, PrivacyLevel.INTERNAL_ONLY},
-            replicas=[ReplicaDefinition("r-fast", "http://localhost:11434", availability=True)],
+            replicas=[ReplicaDefinition("r-fast", "http://localhost:11436", availability=True)],
         )
     )
 
@@ -71,7 +71,7 @@ def build_session_catalog() -> SystemCatalog:
             model_id="reason-model",
             provider_id="local_p",
             allowed_privacy={PrivacyLevel.PUBLIC},  # Public only
-            replicas=[ReplicaDefinition("r-reason", "http://localhost:11434", availability=True)],
+            replicas=[ReplicaDefinition("r-reason", "http://localhost:11436", availability=True)],
         )
     )
 

@@ -30,7 +30,7 @@ from adaroute.selection.catalog import (
 async def test_tc_m2_08_ollama_replica_endpoint_preservation():
     """Ollama backend calls the exact replica endpoint provided, not hardcoded host."""
     backend = LocalBackend(execution_mode="real")
-    custom_endpoint = "http://custom-ollama-node:11434"
+    custom_endpoint = "http://custom-ollama-node:11436"
 
     mock_resp = MagicMock()
     mock_resp.status_code = 200

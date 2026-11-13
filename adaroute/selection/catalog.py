@@ -375,7 +375,7 @@ class SystemCatalog:
                 reps = [
                     ReplicaDefinition(
                         replica_id=r["replica_id"],
-                        endpoint=r.get("endpoint", "http://localhost:11434"),
+                        endpoint=r.get("endpoint", "http://localhost:11436"),
                         weight=float(r.get("weight", 1.0)),
                         availability=r.get("availability", True),
                     )

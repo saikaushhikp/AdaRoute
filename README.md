@@ -472,5 +472,5 @@ just down
    - `GROQ_API_KEY`: Groq API key for cloud models (`qwen-2.5-32b`, `llama-3.3-70b-versatile`).
    - `COHERE_API_KEY`: Cohere API key for cloud models (`command-r-08-2024`).
    - `EXECUTION_MODE`: `real`, `simulation`, or `hybrid` (default: `hybrid`).
-   - `OLLAMA_BASE_URL`: Local Ollama HTTP endpoint (default: `http://localhost:11434`).
+   - `OLLAMA_BASE_URL`: Local Ollama HTTP endpoint (default: `http://localhost:11436`).
 3. Model catalog and routing metadata are centrally defined in `config.yaml`.

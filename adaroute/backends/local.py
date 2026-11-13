@@ -34,7 +34,7 @@ class LocalBackend(BaseBackend):
         execution_mode: str | None = None,
     ):
         self.ollama_host = (
-            ollama_host or os.getenv("OLLAMA_BASE_URL") or os.getenv("OLLAMA_HOST") or "http://localhost:11434"
+            ollama_host or os.getenv("OLLAMA_BASE_URL") or os.getenv("OLLAMA_HOST") or "http://localhost:11436"
         ).rstrip("/")
         self.timeout_sec = timeout_sec
         self.execution_mode = (execution_mode or os.getenv("EXECUTION_MODE", "hybrid")).lower()

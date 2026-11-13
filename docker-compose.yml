@@ -1,11 +1,14 @@
 services:
   ollama:
     image: ollama/ollama:latest
+    gpus: all
     container_name: adaroute-ollama
     ports:
-      - "${OLLAMA_PORT:-11435}:11434"
+      - "${OLLAMA_PORT:-11435}:11436"
     expose:
-      - "11434"
+      - "11436"
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11436
     volumes:
       - ollama-data:/root/.ollama
     networks:
@@ -16,6 +19,24 @@ services:
       timeout: 5s
       retries: 5
       start_period: 3s
+
+  ollama-models:
+    image: adaroute:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: adaroute-ollama-models
+    command: python3 /app/scripts/ensure_ollama_models.py
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11436
+    volumes:
+      - .:/app:ro
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - adaroute-net
+    restart: "no"
 
   redis:
     image: redis:7-alpine
@@ -60,13 +81,15 @@ services:
         required: false
     environment:
       - PYTHONUNBUFFERED=1
-      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=http://ollama:11436
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - .:/app
     depends_on:
-      - ollama
-      - redis
+      ollama-models:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 3s
