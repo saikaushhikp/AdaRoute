@@ -70,6 +70,16 @@ class CircuitBreaker:
             return False
         return False  # OPEN rejects traffic immediately
 
+    def is_available(self, resource_id: str) -> bool:
+        """Inspects if resource is available without consuming a HALF_OPEN canary probe."""
+        state = self.get_state(resource_id)
+        if state == CircuitState.CLOSED:
+            return True
+        if state == CircuitState.HALF_OPEN:
+            probes = self._half_open_probes.get(resource_id, 0)
+            return probes < 1
+        return False
+
     def record_success(self, resource_id: str) -> None:
         self._failure_counts[resource_id] = 0
         self._half_open_probes[resource_id] = 0

@@ -132,3 +132,78 @@ async def test_tc_m9_03_live_load_test_network_error_handling():
     assert metrics.failed == 4
     assert metrics.cache_hits == 0
     assert metrics.actual_incurred_cost == 0.0
+
+
+def test_tc_m9_04_diverse_prompt_catalog_and_scenarios():
+    """Validates diverse prompt catalog and scenario request generation."""
+    runner = LiveLoadTestRunner(gateway_url="http://localhost:7000", arrival_rate_rps=20.0, seed=42)
+
+    # 1. Catalog diversity checks
+    categories = {p["category"] for p in runner.DIVERSE_PROMPT_CATALOG}
+    expected_categories = {"coding", "reasoning", "qa", "summarization", "structured_extraction", "fast", "complex"}
+    assert expected_categories.issubset(categories)
+
+    lengths = {p["length_tier"] for p in runner.DIVERSE_PROMPT_CATALOG}
+    assert {"short", "medium", "long"}.issubset(lengths)
+
+    # 2. Standard scenario
+    std_reqs = runner.generate_requests(scenario="standard", total_requests=10)
+    assert len(std_reqs) == 10
+    assert all("payload" in r and "target_arrival_time" in r for r in std_reqs)
+
+    # 3. Stress scenario forces no_cache and unique prompt nonces
+    stress_reqs = runner.generate_requests(scenario="stress", total_requests=8)
+    assert len(stress_reqs) == 8
+    for r in stress_reqs:
+        assert r["payload"]["no_cache"] is True
+        assert "[nonce:" in r["payload"]["prompt"]
+
+    # 4. Burst scenario schedules concurrent arrival batches
+    burst_reqs = runner.generate_requests(scenario="burst", total_requests=12)
+    assert len(burst_reqs) == 12
+    # At least some requests share identical arrival timestamps (burst waves)
+    times = [r["target_arrival_time"] for r in burst_reqs]
+    assert len(set(times)) < len(times)
+
+    # 5. Local-only scenario forces user_private = True
+    local_reqs = runner.generate_requests(scenario="local_only", total_requests=6)
+    assert len(local_reqs) == 6
+    assert all(r["payload"]["user_private"] is True for r in local_reqs)
+    assert all(r["payload"]["privacy_level"] == "internal_only" for r in local_reqs)
+
+
+@pytest.mark.asyncio
+async def test_tc_m9_05_live_policy_benchmark_mock():
+    """Validates live policy benchmark matrix evaluation across multiple policies."""
+    runner = LiveLoadTestRunner(gateway_url="http://test-gw:7000", arrival_rate_rps=50.0, concurrency=2)
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.text = "{}"
+    mock_resp.json.return_value = {
+        "id": "req-mock-pol",
+        "routing_metadata": {
+            "selected_model": "unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M",
+            "actual_cost": 0.00001,
+            "cache_hit": False,
+        },
+        "usage": {
+            "prompt_tokens": 20,
+            "completion_tokens": 30,
+        },
+    }
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_resp):
+        matrix = await runner.run_live_policy_benchmark(
+            requests_per_policy=3,
+            policies=["adaptive", "cost_first", "latency_first"],
+            no_cache=True,
+        )
+
+    assert "adaptive" in matrix
+    assert "cost_first" in matrix
+    assert "latency_first" in matrix
+    assert matrix["adaptive"]["completed"] == 3
+    assert matrix["adaptive"]["failed"] == 0
+    assert "model_distribution" in matrix["adaptive"]
+    assert "capability_distribution" in matrix["adaptive"]

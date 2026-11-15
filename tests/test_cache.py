@@ -526,10 +526,14 @@ async def test_tc_m4_15_external_failover_when_primary_rate_limited(monkeypatch)
     """
     from adaroute.backends.litellm_backend import ExternalBackendUnavailableError, LiteLLMBackend
 
-    # Mock Gemini failing with 429 RateLimitError
+    first_attempt = True
+
+    # Primary model encounters 429 RateLimitError on first attempt
     async def mock_execute(self, request, model_spec, replica_id, prompt_text, messages=None, **kwargs):
-        if "gemini" in model_spec.model_id.lower():
-            raise ExternalBackendUnavailableError("LiteLLM call to gemini failed: 429 Quota Exceeded")
+        nonlocal first_attempt
+        if first_attempt:
+            first_attempt = False
+            raise ExternalBackendUnavailableError(f"LiteLLM call to {model_spec.model_id} failed: 429 Quota Exceeded")
         return {
             "content": f"Real response from fallback model {model_spec.model_id}",
             "prompt_tokens": 5,
@@ -566,9 +570,9 @@ async def test_tc_m4_15_external_failover_when_primary_rate_limited(monkeypatch)
         # Invariant: Failed attempt recorded with cost_state="unknown_unbilled"
         assert meta["attempt_history"][0]["status"] == "failed"
         assert meta["attempt_history"][0]["cost_state"] == "unknown_unbilled"
-        # Invariant: Final response was fulfilled by an alternate model, NOT a fake simulated gemini response
+        # Invariant: Final response was fulfilled by an alternate model, NOT a fake simulated response
         assert "Simulated cloud response" not in data["content"]
-        assert meta["selected_model"] != "gemini/gemini-flash-latest"
+        assert meta["selected_model"] != meta["attempt_history"][0]["model_id"]
 
 
 def test_tc_m4_16_exact_cache_quality_floor():

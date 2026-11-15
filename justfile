@@ -23,10 +23,13 @@ dev:
     pip install -e .[dev]
 
 benchmark:
-    docker run --rm -v "{{justfile_directory()}}:/app" -w /app adaroute python -m adaroute.experiments.runner
+    docker run --rm --add-host=host.docker.internal:host-gateway -e GATEWAY_URL=http://host.docker.internal:7000 -v "{{justfile_directory()}}:/app" -w /app adaroute python -m adaroute.experiments.runner
+
+benchmark-local:
+    python -m adaroute.experiments.runner
 
 benchmark-event:
-    docker run --rm -v "{{justfile_directory()}}:/app" -w /app adaroute python -m adaroute.experiments.event_runner
+    docker run --rm --add-host=host.docker.internal:host-gateway -e GATEWAY_URL=http://host.docker.internal:7000 -v "{{justfile_directory()}}:/app" -w /app adaroute python -m adaroute.experiments.event_runner
 
 benchmark-event-local:
     python -m adaroute.experiments.event_runner
@@ -36,6 +39,18 @@ load-test:
 
 load-test-local:
     python -m adaroute.experiments.load_test
+
+stress-test:
+    docker run --rm --add-host=host.docker.internal:host-gateway -e GATEWAY_URL=http://host.docker.internal:7000 -v "{{justfile_directory()}}:/app" -w /app adaroute python -m adaroute.experiments.load_test --scenario stress -n 50 -c 12 -r 25.0 --no-cache
+
+stress-test-local:
+    python -m adaroute.experiments.load_test --scenario stress -n 50 -c 12 -r 25.0 --no-cache
+
+benchmark-live:
+    docker run --rm --add-host=host.docker.internal:host-gateway -e GATEWAY_URL=http://host.docker.internal:7000 -v "{{justfile_directory()}}:/app" -w /app adaroute python -m adaroute.experiments.load_test --scenario live_benchmark -n 25
+
+benchmark-live-local:
+    python -m adaroute.experiments.load_test --scenario live_benchmark -n 25
 
 ui-build:
     docker build -t adaroute-ui ./ui

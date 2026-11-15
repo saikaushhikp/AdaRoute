@@ -11,6 +11,7 @@ Provides comprehensive observability across:
 from __future__ import annotations
 
 import time
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -38,6 +39,8 @@ class AttemptRecord(BaseModel):
     error: str | None = None
     execution_mode: str = "simulated"
     is_simulated: bool = False
+    selected_deployment: str | None = None
+    explanation: dict[str, Any] | None = None
 
 
 class RequestEvent(BaseModel):
@@ -66,6 +69,8 @@ class RequestEvent(BaseModel):
     timestamp: float = Field(default_factory=time.time)
     execution_mode: str = "simulated"
     is_simulated: bool = False
+    selected_deployment: str | None = None
+    explanation: dict[str, Any] | None = None
 
 
 class StructuredTracer:
@@ -210,6 +215,8 @@ class StructuredTracer:
         execution_mode: str = "simulated",
         is_simulated: bool = False,
         provider: str | None = None,
+        selected_deployment: str | None = None,
+        explanation: dict[str, Any] | None = None,
     ) -> RequestEvent | None:
         event = self._traces.get(request_id)
         sanitized_error = sanitize_secrets(error_detail) if error_detail else None
@@ -225,6 +232,10 @@ class StructuredTracer:
             event.error_detail = sanitized_error
             event.execution_mode = execution_mode
             event.is_simulated = is_simulated
+            if selected_deployment:
+                event.selected_deployment = selected_deployment
+            if explanation:
+                event.explanation = explanation
 
             # Reconcile actual cost: sum of all billable attempts, or explicit cost
             if actual_cost is not None:

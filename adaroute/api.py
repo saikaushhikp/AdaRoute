@@ -70,7 +70,14 @@ from adaroute.workloads.tokenizer import count_tokens
 
 # Core Engine Components (Config-Driven & System-Agnostic)
 registry = default_registry
-estimator = OutputLengthEstimator.from_config(registry.raw_config)
+session_store = SessionStore()
+if hasattr(registry, "selector") and registry.selector:
+    registry.selector.session_store = session_store
+estimator = (
+    registry.selector.estimator
+    if (hasattr(registry, "selector") and registry.selector and registry.selector.estimator)
+    else OutputLengthEstimator.from_config(registry.raw_config)
+)
 cache = ExactCache()
 circuit_breaker = CircuitBreaker()
 retry_policy = RetryPolicy(max_attempts=3)
@@ -113,7 +120,6 @@ backend_runners = {
     "openai_compatible": OpenAICompatibleBackend(),
     "vllm": _vllm_backend,
 }
-session_store = SessionStore()
 bayesian_estimator = BayesianLinearEstimator(persistence_path="data/bayesian_estimator.json")
 try:
     bayesian_estimator.load("data/bayesian_estimator.json")
@@ -268,24 +274,29 @@ async def chat_completions(
     scheduler_name = validated_req.scheduler
     user_private = validated_req.user_private
 
-    # Validate policy name against registered and declarative policies
-    valid_policies = set(model_policies.keys())
-    if hasattr(registry, "selector") and registry.selector and hasattr(registry.selector, "policies"):
-        valid_policies.update(registry.selector.policies.keys())
-    if policy_name not in valid_policies:
+    # Validate policy name against authoritative unified selector
+    if not hasattr(registry, "selector") or not registry.selector:
+        err = getattr(registry, "_selector_init_error", "Catalog or selector initialization failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unified model selector failed to initialize: {err}",
+        )
+
+    if policy_name not in registry.selector.policies:
         tracer.record_validation_error(req_id, f"Unknown routing policy: '{policy_name}'")
         raise HTTPException(
             status_code=400,
-            detail=f"Unknown routing policy: '{policy_name}'. Valid policies: {sorted(valid_policies)}",
+            detail=f"Unknown routing policy: '{policy_name}'. Valid policies: {sorted(registry.selector.policies.keys())}",
         )
 
     # 3. Pre-Routing Request Characterization
     p_tokens = count_tokens(prompt_text)
-    est_out_tokens = estimator.estimate(
-        task_type=task_type,
+    est_out_tokens = registry.selector.estimator.estimate(
+        deployment_id="default",
+        capability=task_type,
         prompt_tokens=p_tokens,
         max_tokens=max_tokens,
-    )
+    ).expected_tokens
 
     ctx = RequestContext(
         task_type=task_type,
@@ -335,6 +346,16 @@ async def chat_completions(
     if cached_res:
         total_lat = (time.perf_counter() - start_total_time) * 1000.0
         slo_met = (total_lat / 1000.0) <= latency_slo if latency_slo else True
+        cached_dep_id = cached_res.get("deployment_id", cached_res["model"])
+        if validated_req.session_id:
+            session_store.record_turn(
+                session_id=validated_req.session_id,
+                tenant_id=tenant_id,
+                selected_deployment_id=cached_dep_id,
+                selected_model_id=cached_res["model"],
+                capability=task_type,
+                billed_cost=0.0,
+            )
         tracer.finish_trace(
             request_id=req_id,
             selected_model=cached_res["model"],
@@ -345,6 +366,7 @@ async def chat_completions(
             actual_cost=0.0,
             cache_outcome="hit",
             final_status="success",
+            selected_deployment=cached_dep_id,
         )
         return ChatCompletionResponse(
             id=req_id,
@@ -360,6 +382,7 @@ async def chat_completions(
                 request_id=req_id,
                 logical_model=logical_model,
                 selected_model=cached_res["model"],
+                selected_deployment=cached_dep_id,
                 selected_replica=cached_res["replica_id"],
                 provider=cached_res.get("provider", "cache"),
                 latency_ms=round(total_lat, 2),
@@ -375,14 +398,26 @@ async def chat_completions(
             content=cached_res["content"],
             replica_id=cached_res["replica_id"],
             provider=cached_res.get("provider", "cache"),
+            deployment_id=cached_dep_id,
         )
 
-    # 6. Stage 1: Candidate Ranking
-    model_policy = model_policies.get(policy_name, model_policies["adaptive"])
-    ranked_candidates = model_policy.rank_models(ctx)
+    # 6. Authoritative Stage 1: Candidate Resolution, Hard Constraints, Pareto Pruning & Objective Ranking
+    failed_replicas: set[str] = set()
+    decision = registry.selector.route(
+        request=ctx,
+        prompt_text=prompt_text,
+        session_id=validated_req.session_id,
+        circuit_breaker=circuit_breaker,
+        failed_replicas=failed_replicas,
+    )
 
-    if not ranked_candidates:
-        err_msg = "No eligible models satisfy hard constraints (privacy/budget/availability)"
+    if not decision.selected_candidate or not decision.ranked_candidates:
+        err_reasons = []
+        for r in decision.rejected_candidates:
+            for reason in r.rejection_reasons:
+                if reason and reason not in err_reasons:
+                    err_reasons.append(reason)
+        err_msg = "; ".join(err_reasons) or "No eligible models satisfy hard constraints (privacy/budget/availability)"
         tracer.finish_trace(
             request_id=req_id,
             selected_model="none",
@@ -404,15 +439,15 @@ async def chat_completions(
     last_error = None
     execution_result = None
     attempt_history: list[AttemptRecord] = []
-    failed_replicas: set[str] = set()
     candidate_idx = 0
 
-    selected_spec = ranked_candidates[0][0]
-    est_cost = ranked_candidates[0][1]
+    cand, score_rec = decision.ranked_candidates[0]
+    selected_spec = registry.get_model(cand.model_id)
+    est_cost = decision.estimated_cost
     effective_replica_id = "none"
     effective_scheduler_name = scheduler_name
 
-    while attempt < max_attempts and candidate_idx < len(ranked_candidates):
+    while attempt < max_attempts and candidate_idx < len(decision.ranked_candidates):
         # Check cumulative total deadline
         elapsed_so_far = time.perf_counter() - start_total_time
         if elapsed_so_far >= retry_policy.max_total_timeout_sec:
@@ -421,20 +456,41 @@ async def chat_completions(
             )
             break
 
-        selected_spec, est_cost = ranked_candidates[candidate_idx]
+        cand, score_rec = decision.ranked_candidates[candidate_idx]
+        est_cost = score_rec.raw_values.get("cost", cand.calculate_expected_cost(p_tokens, est_out_tokens))
+        selected_spec = registry.get_model(cand.model_id)
+        if not selected_spec:
+            selected_spec = ModelSpec(
+                model_id=cand.model_id,
+                logical_capabilities=[cand.model_id],
+                provider=cand.provider_id,
+                execution_type=cand.execution_type,
+                litellm_model=cand.provider_model_name,
+                api_key_env=cand.credential_reference,
+                base_url=cand.endpoint,
+                input_price_per_1k=cand.input_price_per_1k,
+                output_price_per_1k=cand.output_price_per_1k,
+                allowed_privacy=cand.allowed_privacy,
+                replicas=[r.replica_id for r in cand.replicas],
+                max_context=cand.context_window,
+                is_external=cand.is_cloud,
+            )
 
         # Stage 2: Replica Selection (Local models only; skipped for external cloud models)
-        if selected_spec.is_cloud:
+        if cand.is_cloud:
             selected_replica = None
-            rep_id = f"cloud-{selected_spec.provider}"
+            rep_id = f"cloud-{cand.provider_id}"
             effective_replica_id = "cloud-direct"
             effective_scheduler_name = "skipped"
             scheduler = None
         else:
             scheduler = replica_schedulers.get(scheduler_name, replica_schedulers["slo_aware"])
-            selected_replica = scheduler.select_replica(selected_spec, ctx, exclude_ids=failed_replicas)
+            cand_replicas = [registry.get_replica(r.replica_id) or r for r in cand.replicas]
+            selected_replica = scheduler.select_replica(
+                selected_spec, ctx, exclude_ids=failed_replicas, candidate_replicas=cand_replicas
+            )
             if not selected_replica:
-                # No more healthy replicas for this model; try next candidate model
+                # No more healthy replicas for this deployment candidate; advance to next candidate
                 candidate_idx += 1
                 continue
             rep_id = selected_replica.replica_id
@@ -444,14 +500,14 @@ async def chat_completions(
         # Check circuit breaker before invoking candidate
         if not circuit_breaker.allow_request(rep_id):
             failed_replicas.add(rep_id)
-            if not selected_spec.is_cloud:
-                all_reps = registry.get_replicas_for_model(selected_spec.model_id)
+            if not cand.is_cloud:
+                cand_replicas = [registry.get_replica(r.replica_id) or r for r in cand.replicas]
                 alt_candidates = [
                     r
-                    for r in all_reps
+                    for r in cand_replicas
                     if r.replica_id not in failed_replicas
-                    and r.is_alive()
-                    and circuit_breaker.allow_request(r.replica_id)
+                    and (r.is_alive() if hasattr(r, "is_alive") else getattr(r, "availability", True))
+                    and circuit_breaker.is_available(r.replica_id)
                 ]
                 if not alt_candidates:
                     candidate_idx += 1
@@ -463,26 +519,27 @@ async def chat_completions(
         attempt += 1
 
         # Dynamic state update: W_q increases (local models only)
-        if not selected_spec.is_cloud and scheduler:
+        if not cand.is_cloud and scheduler:
             scheduler.dispatch(rep_id, p_tokens, est_out_tokens)
         attempt_start = time.perf_counter()
         dispatched = True
 
         try:
             try:
-                runner = get_backend_runner(selected_spec)
+                runner = get_backend_runner(selected_spec, candidate=cand)
                 res = await runner.execute(
                     request=ctx,
                     model_spec=selected_spec,
                     replica_id=rep_id,
                     prompt_text=prompt_text,
                     messages=raw_messages,
-                    endpoint=selected_replica.endpoint if selected_replica else None,
+                    endpoint=selected_replica.endpoint if selected_replica else cand.endpoint,
+                    candidate=cand,
                 )
                 attempt_lat = (time.perf_counter() - attempt_start) * 1000.0
 
                 # Dynamic state update: W_q decreases & success recorded (local models only)
-                if not selected_spec.is_cloud and scheduler:
+                if not cand.is_cloud and scheduler:
                     scheduler.complete(rep_id, p_tokens, est_out_tokens, attempt_lat, success=True)
                     dispatched = False
                 circuit_breaker.record_success(rep_id)
@@ -490,20 +547,20 @@ async def chat_completions(
                 attempt_out_tokens = res.get("output_tokens", est_out_tokens)
                 attempt_cost = res.get("actual_cost")
                 if attempt_cost is None:
-                    attempt_cost = (p_tokens / 1000.0) * selected_spec.input_price_per_1k + (
+                    attempt_cost = (p_tokens / 1000.0) * cand.input_price_per_1k + (
                         attempt_out_tokens / 1000.0
-                    ) * selected_spec.output_price_per_1k
+                    ) * cand.output_price_per_1k
 
                 attempt_cost_state = (
                     "invoiced_real"
-                    if selected_spec.is_external and not getattr(selected_spec, "is_simulated", False)
+                    if cand.is_cloud and not getattr(selected_spec, "is_simulated", False)
                     else "allocated_estimate"
                 )
                 record = AttemptRecord(
                     attempt_number=attempt,
                     replica_id=effective_replica_id,
-                    model_id=selected_spec.model_id,
-                    provider=selected_spec.provider,
+                    model_id=cand.model_id,
+                    provider=cand.provider_id,
                     prompt_tokens=p_tokens,
                     completion_tokens=attempt_out_tokens,
                     latency_ms=round(attempt_lat, 2),
@@ -517,8 +574,8 @@ async def chat_completions(
                     request_id=req_id,
                     attempt_number=attempt,
                     replica_id=effective_replica_id,
-                    model_id=selected_spec.model_id,
-                    provider=selected_spec.provider,
+                    model_id=cand.model_id,
+                    provider=cand.provider_id,
                     prompt_tokens=p_tokens,
                     completion_tokens=attempt_out_tokens,
                     latency_ms=attempt_lat,
@@ -531,8 +588,8 @@ async def chat_completions(
                     session_store.record_turn(
                         session_id=validated_req.session_id,
                         tenant_id=tenant_id,
-                        selected_deployment_id=selected_spec.model_id,
-                        selected_model_id=selected_spec.model_id,
+                        selected_deployment_id=cand.deployment_id,
+                        selected_model_id=cand.model_id,
                         capability=task_type,
                         billed_cost=attempt_cost,
                     )
@@ -540,7 +597,7 @@ async def chat_completions(
 
             except Exception as exc:
                 attempt_lat = (time.perf_counter() - attempt_start) * 1000.0
-                if not selected_spec.is_cloud and scheduler and dispatched:
+                if not cand.is_cloud and scheduler and dispatched:
                     scheduler.complete(rep_id, p_tokens, est_out_tokens, attempt_lat, success=False)
                     dispatched = False
                 circuit_breaker.record_failure(rep_id)
@@ -552,8 +609,8 @@ async def chat_completions(
                 record = AttemptRecord(
                     attempt_number=attempt,
                     replica_id=effective_replica_id,
-                    model_id=selected_spec.model_id,
-                    provider=selected_spec.provider,
+                    model_id=cand.model_id,
+                    provider=cand.provider_id,
                     prompt_tokens=p_tokens,
                     completion_tokens=0,
                     latency_ms=round(attempt_lat, 2),
@@ -568,8 +625,8 @@ async def chat_completions(
                     request_id=req_id,
                     attempt_number=attempt,
                     replica_id=effective_replica_id,
-                    model_id=selected_spec.model_id,
-                    provider=selected_spec.provider,
+                    model_id=cand.model_id,
+                    provider=cand.provider_id,
                     prompt_tokens=p_tokens,
                     completion_tokens=0,
                     latency_ms=attempt_lat,
@@ -580,7 +637,7 @@ async def chat_completions(
                 )
 
                 if not retry_policy.is_retryable(exc):
-                    if selected_spec.is_cloud or (candidate_idx + 1 < len(ranked_candidates)):
+                    if cand.is_cloud or (candidate_idx + 1 < len(decision.ranked_candidates)):
                         candidate_idx += 1
                         continue
                     else:
@@ -590,21 +647,21 @@ async def chat_completions(
                     backoff_delay = retry_policy.get_backoff(attempt)
                     await asyncio.sleep(backoff_delay)
 
-                if selected_spec.is_cloud:
+                if cand.is_cloud:
                     candidate_idx += 1
                 else:
-                    all_reps = registry.get_replicas_for_model(selected_spec.model_id)
+                    cand_replicas = [registry.get_replica(r.replica_id) or r for r in cand.replicas]
                     remaining = [
                         r
-                        for r in all_reps
+                        for r in cand_replicas
                         if r.replica_id not in failed_replicas
-                        and r.is_alive()
-                        and circuit_breaker.allow_request(r.replica_id)
+                        and (r.is_alive() if hasattr(r, "is_alive") else getattr(r, "availability", True))
+                        and circuit_breaker.is_available(r.replica_id)
                     ]
                     if not remaining:
                         candidate_idx += 1
         finally:
-            if dispatched and not selected_spec.is_cloud and scheduler:
+            if dispatched and not cand.is_cloud and scheduler:
                 scheduler.complete(rep_id, p_tokens, est_out_tokens, 0.0, success=False)
 
     if not execution_result:
@@ -613,7 +670,7 @@ async def chat_completions(
         sanitized_final_err = sanitize_message(str(last_error)) or "Execution failed"
         tracer.finish_trace(
             request_id=req_id,
-            selected_model=selected_spec.model_id,
+            selected_model=cand.model_id,
             selected_replica=effective_replica_id,
             actual_output_tokens=0,
             total_latency_ms=total_lat,
@@ -622,6 +679,8 @@ async def chat_completions(
             cache_outcome="miss",
             final_status="failed",
             error_detail=sanitized_final_err,
+            selected_deployment=cand.deployment_id,
+            explanation=decision.explanation.to_dict(),
         )
         raise HTTPException(
             status_code=503,
@@ -634,7 +693,13 @@ async def chat_completions(
     total_actual_cost = sum(a.cost for a in attempt_history)
 
     # Update estimator observation for calibration
-    estimator.record_observation(task_type, est_out_tokens, actual_out_tokens)
+    if hasattr(registry, "selector") and registry.selector and registry.selector.estimator:
+        registry.selector.estimator.record_observation(
+            deployment_id=cand.deployment_id,
+            capability=task_type,
+            prompt_tokens=p_tokens,
+            actual_output_tokens=actual_out_tokens,
+        )
 
     # Online recursive Bayesian conjugate updating
     is_code = (
@@ -650,7 +715,7 @@ async def chat_completions(
     )
 
     # Ingest into Provenance-Aware Cache
-    model_q = selected_spec.quality_scores.get(task_type, 0.80)
+    model_q = cand.get_capability_quality(task_type)
     is_sim = "simulated" in str(execution_result.get("source", "")).lower()
     cache.put(
         request=ctx,
@@ -660,13 +725,14 @@ async def chat_completions(
         messages=validated_req.messages,
         response={
             "content": execution_result["content"],
-            "model": selected_spec.model_id,
+            "model": cand.model_id,
+            "deployment_id": cand.deployment_id,
             "replica_id": effective_replica_id,
-            "provider": selected_spec.provider,
+            "provider": cand.provider_id,
             "output_tokens": actual_out_tokens,
         },
-        origin_model=selected_spec.model_id,
-        origin_provider=selected_spec.provider,
+        origin_model=cand.model_id,
+        origin_provider=cand.provider_id,
         origin_privacy=privacy,
         origin_quality=model_q,
         origin_policy=policy_name,
@@ -678,7 +744,7 @@ async def chat_completions(
     # Finish trace
     tracer.finish_trace(
         request_id=req_id,
-        selected_model=selected_spec.model_id,
+        selected_model=cand.model_id,
         selected_replica=effective_replica_id,
         actual_output_tokens=actual_out_tokens,
         total_latency_ms=total_lat,
@@ -686,13 +752,15 @@ async def chat_completions(
         actual_cost=total_actual_cost,
         cache_outcome="miss",
         final_status="success",
+        selected_deployment=cand.deployment_id,
+        explanation=decision.explanation.to_dict(),
     )
 
     slo_met = (total_lat / 1000.0) <= latency_slo if latency_slo else True
 
     return ChatCompletionResponse(
         id=req_id,
-        model=selected_spec.model_id,
+        model=cand.model_id,
         logical_model=logical_model,
         choices=[ChatCompletionChoice(message=ChatMessage(role="assistant", content=execution_result["content"]))],
         usage=UsageInfo(
@@ -703,9 +771,10 @@ async def chat_completions(
         routing_metadata=RoutingMetadata(
             request_id=req_id,
             logical_model=logical_model,
-            selected_model=selected_spec.model_id,
+            selected_model=cand.model_id,
+            selected_deployment=cand.deployment_id,
             selected_replica=effective_replica_id,
-            provider=selected_spec.provider,
+            provider=cand.provider_id,
             latency_ms=round(total_lat, 2),
             attempts=attempt,
             cache_hit=False,
@@ -715,10 +784,12 @@ async def chat_completions(
             policy_name=policy_name,
             scheduler_name=effective_scheduler_name,
             attempt_history=attempt_history,
+            explanation=decision.explanation.to_dict(),
         ),
         content=execution_result["content"],
         replica_id=effective_replica_id,
-        provider=selected_spec.provider,
+        provider=cand.provider_id,
+        deployment_id=cand.deployment_id,
     )
 
 

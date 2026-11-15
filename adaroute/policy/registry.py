@@ -127,10 +127,19 @@ class ModelRegistry:
 
         try:
             self.catalog = SystemCatalog.from_dict(cfg, strict_catalog=strict_cat)
+            # Synchronize any compatibility models in _models to catalog
+            if self.registry_config.get("compatibility_models", True) and not strict_cat:
+                for spec in self._models.values():
+                    if spec.model_id not in self.catalog.models:
+                        self._sync_spec_to_catalog(spec)
             self.selector = UnifiedModelSelector(catalog=self.catalog, config=cfg)
-        except Exception:
+        except Exception as e:
+            import logging
+
+            logging.getLogger("adaroute.registry").exception("Catalog/Selector initialization error")
             self.catalog = None
             self.selector = None
+            self._selector_init_error = str(e)
 
     def get_policy_weights(self, policy_name: str) -> dict[str, float] | None:
         """Retrieves objective weights for a named policy from declarative config."""
@@ -285,11 +294,106 @@ class ModelRegistry:
 
         self._ensure_backward_compatibility()
 
+    def _sync_spec_to_catalog(self, spec: ModelSpec) -> None:
+        if not hasattr(self, "catalog") or not self.catalog:
+            return
+        from adaroute.selection.catalog import (
+            CapabilityProfile,
+            DeploymentDefinition,
+            ModelDefinition,
+            ProviderDefinition,
+            ReplicaDefinition,
+        )
+
+        pid = spec.provider or "local"
+        if pid not in self.catalog.providers:
+            exec_type = spec.execution_type or (
+                "external" if spec.is_external else ("mock" if "mock" in pid else "local")
+            )
+            adapter = (
+                "litellm"
+                if spec.is_external
+                else ("mock" if "mock" in pid else ("vllm" if pid in ("vllm", "local_vllm", "local") else "ollama"))
+            )
+            self.catalog.register_provider(
+                ProviderDefinition(
+                    provider_id=pid,
+                    adapter_kind=adapter,
+                    execution_type=exec_type,
+                    credential_reference=spec.api_key_env,
+                    default_endpoint=spec.base_url,
+                )
+            )
+
+        if spec.model_id not in self.catalog.models:
+            cap_profiles = {
+                c.lower(): CapabilityProfile(
+                    name=c.lower(),
+                    supported=True,
+                    quality_value=spec.quality_scores.get(c.lower(), 0.80),
+                )
+                for c in spec.logical_capabilities
+            }
+            if "general" not in cap_profiles:
+                cap_profiles["general"] = CapabilityProfile(name="general", supported=True, quality_value=0.80)
+            self.catalog.register_model(
+                ModelDefinition(
+                    model_id=spec.model_id,
+                    capability_profiles=cap_profiles,
+                    context_window=spec.max_context or 4096,
+                )
+            )
+
+        dep_id = f"deploy-{spec.model_id}"
+        if dep_id not in self.catalog.deployments:
+            reps = [
+                ReplicaDefinition(
+                    replica_id=rid,
+                    endpoint=spec.base_url or "http://localhost:7000",
+                    availability=True,
+                )
+                for rid in spec.replicas
+            ]
+            self.catalog.register_deployment(
+                DeploymentDefinition(
+                    deployment_id=dep_id,
+                    model_id=spec.model_id,
+                    provider_id=pid,
+                    endpoint=spec.base_url,
+                    input_price_per_1k=spec.input_price_per_1k,
+                    output_price_per_1k=spec.output_price_per_1k,
+                    allowed_privacy=spec.allowed_privacy,
+                    replicas=reps,
+                    enabled=True,
+                    provider_model_name=spec.litellm_model or spec.model_id,
+                )
+            )
+
     def register_model(self, spec: ModelSpec) -> None:
         self._models[spec.model_id] = spec
+        self._sync_spec_to_catalog(spec)
 
     def register_replica(self, replica: ReplicaState) -> None:
         self._replicas[replica.replica_id] = replica
+        if hasattr(self, "catalog") and self.catalog:
+            from adaroute.selection.catalog import ReplicaDefinition
+
+            # Find matching deployment
+            dep = self.catalog.get_deployment(f"deploy-{replica.model_id}")
+            if not dep:
+                for d in self.catalog.deployments.values():
+                    if d.model_id == replica.model_id:
+                        dep = d
+                        break
+            if dep and not any(r.replica_id == replica.replica_id for r in dep.replicas):
+                dep.replicas.append(
+                    ReplicaDefinition(
+                        replica_id=replica.replica_id,
+                        endpoint=replica.endpoint or "",
+                        weight=replica.weight,
+                        availability=replica.availability,
+                    )
+                )
 
     def get_model(self, model_id: str) -> ModelSpec | None:
         return self._models.get(model_id)
@@ -314,6 +418,12 @@ class ModelRegistry:
         for m in self._models.values():
             if any(c.lower() == target for c in m.logical_capabilities):
                 return True
+        if hasattr(self, "catalog") and self.catalog:
+            if self.catalog.get_deployment(alias_or_id) or self.catalog.get_model(alias_or_id):
+                return True
+            for mdef in self.catalog.models.values():
+                if target in [c.lower() for c in mdef.capability_profiles]:
+                    return True
         return False
 
     def get_models_for_capability(self, capability: str) -> list[ModelSpec]:

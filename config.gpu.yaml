@@ -89,7 +89,7 @@ models:
     quality: 0.44                 # Qwen3-0.6B Q4_K_M quantized (native reasoning)
     max_context: 32768
     replicas:
-      - replica_id: "vllm-gpu-gguf-qwen3"
+      - replica_id: "vllm-gpu-gguf-qwen3-r1"
         endpoint: "http://vllm:7000"
         availability: true
         weight: 1.0

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import time
 from dataclasses import asdict, dataclass, field
 from typing import Any
@@ -76,6 +77,7 @@ class SessionStore:
         self.default_ttl = default_ttl_seconds
         self._memory_store: dict[str, tuple[SessionState, float]] = {}
         self.redis_client = None
+        self._lock = threading.RLock()
 
         r_url = redis_url or os.getenv("REDIS_URL", "redis://localhost:6379/0")
         if redis is not None and r_url:
@@ -93,38 +95,47 @@ class SessionStore:
         self, session_id: str, tenant_id: str = "user", initial_budget: float | None = None
     ) -> SessionState:
         """Retrieves active session state or initializes a new one."""
-        key = self._get_key(tenant_id, session_id)
-        now = time.time()
+        with self._lock:
+            key = self._get_key(tenant_id, session_id)
+            now = time.time()
 
-        if self.redis_client:
-            try:
-                raw = self.redis_client.get(key)
-                if raw:
-                    data = json.loads(raw)
-                    return SessionState.from_dict(data)
-            except Exception:
-                pass
+            if self.redis_client:
+                try:
+                    raw = self.redis_client.get(key)
+                    if raw:
+                        data = json.loads(raw)
+                        sess = SessionState.from_dict(data)
+                        if sess.session_budget is None and initial_budget is not None:
+                            sess.session_budget = initial_budget
+                            sess.session_budget_remaining = max(0.0, initial_budget - sess.accumulated_cost)
+                            self._save_session_unlocked(sess)
+                        return sess
+                except Exception:
+                    pass
 
-        # Check in-memory store
-        if key in self._memory_store:
-            sess, expiry = self._memory_store[key]
-            if now < expiry:
-                return sess
-            del self._memory_store[key]
+            # Check in-memory store
+            if key in self._memory_store:
+                sess, expiry = self._memory_store[key]
+                if now < expiry:
+                    if sess.session_budget is None and initial_budget is not None:
+                        sess.session_budget = initial_budget
+                        sess.session_budget_remaining = max(0.0, initial_budget - sess.accumulated_cost)
+                        self._save_session_unlocked(sess)
+                    return sess
+                del self._memory_store[key]
 
-        # Initialize fresh session
-        new_sess = SessionState(
-            session_id=session_id,
-            tenant_id=tenant_id,
-            session_budget=initial_budget,
-            session_budget_remaining=initial_budget,
-            last_active=now,
-        )
-        self.save_session(new_sess)
-        return new_sess
+            # Initialize fresh session
+            new_sess = SessionState(
+                session_id=session_id,
+                tenant_id=tenant_id,
+                session_budget=initial_budget,
+                session_budget_remaining=initial_budget,
+                last_active=now,
+            )
+            self._save_session_unlocked(new_sess)
+            return new_sess
 
-    def save_session(self, session: SessionState) -> None:
-        """Atomically saves session state with TTL."""
+    def _save_session_unlocked(self, session: SessionState) -> None:
         key = self._get_key(session.tenant_id, session.session_id)
         session.last_active = time.time()
         payload = json.dumps(session.to_dict())
@@ -140,6 +151,11 @@ class SessionStore:
         expiry = time.time() + self.default_ttl
         self._memory_store[key] = (session, expiry)
 
+    def save_session(self, session: SessionState) -> None:
+        """Atomically saves session state with TTL."""
+        with self._lock:
+            self._save_session_unlocked(session)
+
     def record_turn(
         self,
         session_id: str,
@@ -150,29 +166,31 @@ class SessionStore:
         billed_cost: float,
     ) -> SessionState:
         """Updates session state following request completion."""
-        sess = self.get_session(session_id, tenant_id)
-        sess.turn_index += 1
+        with self._lock:
+            sess = self.get_session(session_id, tenant_id)
+            sess.turn_index += 1
 
-        if sess.previous_deployment_id and sess.previous_deployment_id != selected_deployment_id:
-            sess.model_switch_count += 1
+            if sess.previous_deployment_id and sess.previous_deployment_id != selected_deployment_id:
+                sess.model_switch_count += 1
 
-        sess.previous_deployment_id = selected_deployment_id
-        sess.previous_model_id = selected_model_id
-        sess.current_capability = capability
-        sess.accumulated_cost += billed_cost
+            sess.previous_deployment_id = selected_deployment_id
+            sess.previous_model_id = selected_model_id
+            sess.current_capability = capability
+            sess.accumulated_cost += billed_cost
 
-        if sess.session_budget_remaining is not None:
-            sess.session_budget_remaining = max(0.0, sess.session_budget_remaining - billed_cost)
+            if sess.session_budget_remaining is not None:
+                sess.session_budget_remaining = max(0.0, sess.session_budget_remaining - billed_cost)
 
-        self.save_session(sess)
-        return sess
+            self._save_session_unlocked(sess)
+            return sess
 
     def reset_session(self, session_id: str, tenant_id: str = "user") -> None:
         """Explicitly resets/deletes session state."""
-        key = self._get_key(tenant_id, session_id)
-        if self.redis_client:
-            try:
-                self.redis_client.delete(key)
-            except Exception:
-                pass
-        self._memory_store.pop(key, None)
+        with self._lock:
+            key = self._get_key(tenant_id, session_id)
+            if self.redis_client:
+                try:
+                    self.redis_client.delete(key)
+                except Exception:
+                    pass
+            self._memory_store.pop(key, None)

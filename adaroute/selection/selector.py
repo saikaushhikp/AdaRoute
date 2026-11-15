@@ -72,6 +72,7 @@ class UnifiedModelSelector:
         self.resolver = CandidateResolver(catalog)
         self.estimator = estimator or DeploymentOutputEstimator()
         self.session_store = session_store or SessionStore()
+        self.static_task_map: dict[str, str] = dict(self.config.get("routing", {}).get("static_task_map", {}))
 
         # Configurable signal extractor
         sig_cfg = self.config.get("semantic_signals", {}).get("reasoning", {})
@@ -139,8 +140,25 @@ class UnifiedModelSelector:
             ],
             normalization=self.normalization_engine,
         )
-        self.policies["strongest"] = self.policies["quality_first"]
-        self.policies["cheapest"] = self.policies["cost_first"]
+        self.policies["strongest"] = ConfigurableObjectiveEngine(
+            objectives=[
+                {"name": "quality_loss", "direction": "minimize", "weight": 1.0},
+            ],
+            normalization=self.normalization_engine,
+        )
+        self.policies["cheapest"] = ConfigurableObjectiveEngine(
+            objectives=[
+                {"name": "cost", "direction": "minimize", "weight": 1.0},
+            ],
+            normalization=self.normalization_engine,
+        )
+        self.policies["static"] = ConfigurableObjectiveEngine(
+            objectives=[
+                {"name": "cost", "direction": "minimize", "weight": 0.50},
+                {"name": "quality_loss", "direction": "minimize", "weight": 0.50},
+            ],
+            normalization=self.normalization_engine,
+        )
 
         # Parse user-defined policies from config
         if isinstance(policies_cfg, dict):
@@ -178,7 +196,9 @@ class UnifiedModelSelector:
         """Executes the complete selection pipeline and returns a typed RoutingDecision."""
         req_id = request.request_id or "req-" + str(int(time.time() * 1000))
         policy_name = (request.policy_name or "adaptive").lower()
-        active_policy = self.policies.get(policy_name, self.policies["adaptive"])
+        active_policy = self.policies.get(policy_name)
+        if not active_policy:
+            raise ValueError(f"Unknown routing policy: '{policy_name}'. Valid policies: {sorted(self.policies.keys())}")
 
         # 1. Signals Extraction
         signals = self.signal_extractor.extract(prompt_text, request.prompt_tokens)
@@ -187,16 +207,30 @@ class UnifiedModelSelector:
         sess_state: SessionState | None = None
         eff_session_id = session_id or getattr(request, "session_id", None)
         if eff_session_id and self.session_store:
-            sess_state = self.session_store.get_session(eff_session_id, request.tenant_id)
+            sess_state = self.session_store.get_session(
+                eff_session_id, request.tenant_id, initial_budget=getattr(request, "session_budget", None)
+            )
 
         # 3. Candidate Resolution
         target_cap = request.task_type
+        is_explicit_model = (
+            self.catalog.get_model(target_cap) is not None
+            or self.catalog.get_deployment(target_cap) is not None
+            or any(
+                d.model_id.lower() == target_cap.lower() or d.deployment_id.lower() == target_cap.lower()
+                for d in self.catalog.deployments.values()
+            )
+        )
         # If 'When to Reason' signals strict reasoning demand and user requested general, adjust target
-        if signals.reasoning_mode == "reasoning_required" and target_cap.lower() in ("general", "qa"):
+        if (
+            not is_explicit_model
+            and signals.reasoning_mode == "reasoning_required"
+            and target_cap.lower() in ("general", "qa")
+        ):
             target_cap = "reasoning"
 
         candidates = self.resolver.resolve_candidates(target_cap)
-        if not candidates and target_cap != "general":
+        if not candidates and not is_explicit_model and target_cap != "general":
             # Fall back to general capability if specific task has no registered candidates
             candidates = self.resolver.resolve_candidates("general")
 
@@ -271,6 +305,20 @@ class UnifiedModelSelector:
         survivor_features = [item[1] for item in survivor_pairs]
         ranked_scored_features = active_policy.rank_candidates(survivor_features)
 
+        if policy_name == "static":
+            preferred_model_id = self.static_task_map.get(request.task_type.lower())
+            if preferred_model_id:
+                pref_clean = preferred_model_id.lower()
+                cand_map_temp = {item[0].deployment_id: item[0] for item in survivor_pairs}
+
+                def _static_sort_key(item: tuple[CandidateFeatures, CandidateScoreRecord]) -> int:
+                    c_dep = cand_map_temp.get(item[0].candidate_id)
+                    if c_dep and (c_dep.model_id.lower() == pref_clean or c_dep.deployment_id.lower() == pref_clean):
+                        return 0
+                    return 1
+
+                ranked_scored_features.sort(key=_static_sort_key)
+
         # Map back to CandidateDeployment objects
         cand_map = {item[0].deployment_id: item[0] for item in survivor_pairs}
         ranked_candidates: list[tuple[CandidateDeployment, CandidateScoreRecord]] = [
@@ -278,6 +326,16 @@ class UnifiedModelSelector:
             for feat, score_rec in ranked_scored_features
             if feat.candidate_id in cand_map
         ]
+
+        # Append dominated eligible candidates at the end for resilient fallback
+        dominated_pairs = [item for item in eligible_candidates if item[0].deployment_id in dominated_ids]
+        if dominated_pairs:
+            dominated_features = [item[1] for item in dominated_pairs]
+            ranked_dominated = active_policy.rank_candidates(dominated_features)
+            dominated_map = {item[0].deployment_id: item[0] for item in dominated_pairs}
+            for feat, score_rec in ranked_dominated:
+                if feat.candidate_id in dominated_map:
+                    ranked_candidates.append((dominated_map[feat.candidate_id], score_rec))
 
         # 7. Build Explanation Record
         explanation = ExplanationBuilder.build(

@@ -107,7 +107,7 @@ class HardConstraintEngine:
             )
 
         # 6. Credential Availability (Cloud deployments)
-        if candidate.is_cloud and candidate.credential_reference:
+        if eff_mode != "simulation" and candidate.is_cloud and candidate.credential_reference:
             cred_val = os.getenv(candidate.credential_reference)
             if not cred_val:
                 rejection_reasons.append(
@@ -119,6 +119,17 @@ class HardConstraintEngine:
             rejection_reasons.append(
                 f"Provider cooldown active on '{candidate.deployment_id}' until {candidate.runtime.cooldown_until:.1f}"
             )
+        if circuit_breaker is not None:
+            cb_check = getattr(
+                circuit_breaker, "is_available", getattr(circuit_breaker, "allow_request", lambda _: True)
+            )
+            cb_keys = [candidate.deployment_id]
+            if candidate.is_cloud:
+                cb_keys.append(f"cloud-{candidate.provider_id}")
+            for k in cb_keys:
+                if not cb_check(k):
+                    rejection_reasons.append(f"Circuit breaker open for '{k}' on candidate '{candidate.deployment_id}'")
+                    break
 
         # 8. Local Replica Availability
         if candidate.is_local:
@@ -126,9 +137,16 @@ class HardConstraintEngine:
             available_reps = [
                 r
                 for r in candidate.replicas
-                if r.availability
+                if getattr(r, "availability", True)
                 and r.replica_id not in excluded
-                and (circuit_breaker is None or circuit_breaker.allow_request(r.replica_id))
+                and (
+                    circuit_breaker is None
+                    or (
+                        getattr(
+                            circuit_breaker, "is_available", getattr(circuit_breaker, "allow_request", lambda _: True)
+                        )(r.replica_id)
+                    )
+                )
             ]
             if not available_reps:
                 rejection_reasons.append(

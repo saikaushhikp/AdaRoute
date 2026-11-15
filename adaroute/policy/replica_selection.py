@@ -7,6 +7,7 @@ memory pressure, and recent latency to prevent queue buildup and SLO violations.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Any
 
 from adaroute.schemas import ModelSpec, ReplicaState, RequestContext
 
@@ -23,8 +24,36 @@ class BaseReplicaScheduler(ABC):
         model: ModelSpec,
         request: RequestContext,
         exclude_ids: set[str] | None = None,
+        candidate_replicas: list[Any] | None = None,
     ) -> ReplicaState | None:
         """Select specific replica among healthy instances of the selected model."""
+
+    def _resolve_replicas(
+        self,
+        model: ModelSpec,
+        candidate_replicas: list[Any] | None = None,
+        exclude_ids: set[str] | None = None,
+    ) -> list[ReplicaState]:
+        if candidate_replicas is not None:
+            resolved = []
+            for cr in candidate_replicas:
+                r_id = getattr(cr, "replica_id", str(cr))
+                reg_r = self.registry.get_replica(r_id)
+                if reg_r:
+                    resolved.append(reg_r)
+                elif hasattr(cr, "is_alive") or hasattr(cr, "availability"):
+                    resolved.append(cr)
+            reps = resolved
+        else:
+            reps = self.registry.get_replicas_for_model(model.model_id)
+
+        healthy = [
+            r
+            for r in reps
+            if (r.is_alive() if hasattr(r, "is_alive") else getattr(r, "availability", True))
+            and (not exclude_ids or getattr(r, "replica_id", str(r)) not in exclude_ids)
+        ]
+        return healthy
 
     def dispatch(self, replica_id: str, prompt_tokens: int, estimated_output_tokens: int):
         """Update replica dynamic state on dispatch (W_q increases)."""
@@ -71,9 +100,9 @@ class RoundRobinScheduler(BaseReplicaScheduler):
         model: ModelSpec,
         request: RequestContext,
         exclude_ids: set[str] | None = None,
+        candidate_replicas: list[Any] | None = None,
     ) -> ReplicaState | None:
-        replicas = self.registry.get_replicas_for_model(model.model_id)
-        healthy = [r for r in replicas if r.is_alive() and (not exclude_ids or r.replica_id not in exclude_ids)]
+        healthy = self._resolve_replicas(model, candidate_replicas=candidate_replicas, exclude_ids=exclude_ids)
         if not healthy:
             return None
 
@@ -91,9 +120,9 @@ class LeastLoadedScheduler(BaseReplicaScheduler):
         model: ModelSpec,
         request: RequestContext,
         exclude_ids: set[str] | None = None,
+        candidate_replicas: list[Any] | None = None,
     ) -> ReplicaState | None:
-        replicas = self.registry.get_replicas_for_model(model.model_id)
-        healthy = [r for r in replicas if r.is_alive() and (not exclude_ids or r.replica_id not in exclude_ids)]
+        healthy = self._resolve_replicas(model, candidate_replicas=candidate_replicas, exclude_ids=exclude_ids)
         if not healthy:
             return None
 
@@ -113,9 +142,9 @@ class SLOAwareScheduler(BaseReplicaScheduler):
         model: ModelSpec,
         request: RequestContext,
         exclude_ids: set[str] | None = None,
+        candidate_replicas: list[Any] | None = None,
     ) -> ReplicaState | None:
-        replicas = self.registry.get_replicas_for_model(model.model_id)
-        healthy = [r for r in replicas if r.is_alive() and (not exclude_ids or r.replica_id not in exclude_ids)]
+        healthy = self._resolve_replicas(model, candidate_replicas=candidate_replicas, exclude_ids=exclude_ids)
         if not healthy:
             return None
 
@@ -135,7 +164,7 @@ class SLOAwareScheduler(BaseReplicaScheduler):
             )
 
             # Extra penalty if degraded
-            if r.is_degraded:
+            if getattr(r, "is_degraded", False):
                 score += 10.0
 
             if score < best_score:

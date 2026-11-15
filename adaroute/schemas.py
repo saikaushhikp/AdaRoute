@@ -348,6 +348,8 @@ class RoutingMetadata(BaseModel):
     policy_name: str = "adaptive"
     scheduler_name: str = "slo_aware"
     attempt_history: list[AttemptRecord] = Field(default_factory=list)
+    selected_deployment: str | None = None
+    explanation: dict[str, Any] | None = None
 
 
 class ChatCompletionResponse(BaseModel):
@@ -362,6 +364,7 @@ class ChatCompletionResponse(BaseModel):
     content: str | None = None
     replica_id: str | None = None
     provider: str | None = None
+    deployment_id: str | None = None
 
 
 class PolicyRollbackRequest(BaseModel):
