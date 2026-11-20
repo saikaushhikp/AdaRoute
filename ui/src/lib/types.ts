@@ -9,7 +9,7 @@ export type PrivacyLevel = 'public' | 'internal_only' | 'confidential' | 'restri
 
 export type QualityRequirement = 'low' | 'medium' | 'high';
 
-export type RoutingPolicy = 'adaptive' | 'strongest' | 'cheapest' | 'static';
+export type RoutingPolicy = 'adaptive' | 'strongest' | 'cheapest' | 'static' | 'vllm_semantic_router';
 
 export type ReplicaScheduler = 'slo_aware' | 'least_loaded' | 'round_robin';
 

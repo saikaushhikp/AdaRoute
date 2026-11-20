@@ -12,6 +12,8 @@ Requires-Dist: python-dotenv>=1.0.0
 Requires-Dist: litellm>=1.40.0
 Requires-Dist: httpx>=0.25.0
 Requires-Dist: redis>=5.0.0
+Requires-Dist: numpy>=1.24.0
+Requires-Dist: fastembed>=0.3.0
 Provides-Extra: dev
 Requires-Dist: pytest>=7.0.0; extra == "dev"
 Requires-Dist: pytest-asyncio; extra == "dev"

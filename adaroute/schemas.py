@@ -350,6 +350,9 @@ class RoutingMetadata(BaseModel):
     attempt_history: list[AttemptRecord] = Field(default_factory=list)
     selected_deployment: str | None = None
     explanation: dict[str, Any] | None = None
+    cache_type: str | None = None  # "exact" | "semantic" | None
+    similarity: float | None = None  # Semantic similarity score [0.0, 1.0]
+    matched_prompt: str | None = None  # Matched prompt for semantic cache hit
 
 
 class ChatCompletionResponse(BaseModel):

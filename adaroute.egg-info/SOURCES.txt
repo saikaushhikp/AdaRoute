@@ -53,6 +53,7 @@ adaroute/selection/pareto.py
 adaroute/selection/selector.py
 adaroute/selection/session.py
 adaroute/selection/signals.py
+adaroute/selection/vllm_router.py
 adaroute/telemetry/__init__.py
 adaroute/telemetry/ledger.py
 adaroute/telemetry/tracer.py
@@ -81,4 +82,5 @@ tests/test_system_agnostic.py
 tests/test_ui_gateway_integration.py
 tests/test_unified_selection_endpoint.py
 tests/test_vllm_multi_server.py
+tests/test_vllm_semantic_router_policy.py
 tests/test_w3_suite.py

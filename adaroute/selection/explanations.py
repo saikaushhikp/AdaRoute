@@ -35,6 +35,7 @@ class RoutingExplanation:
     selected_provider: str = "none"
     objective_contributions: dict[str, float] = field(default_factory=dict)
     fallback_sequence: list[str] = field(default_factory=list)
+    router_metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -50,6 +51,7 @@ class RoutingExplanation:
             "selected_provider": self.selected_provider,
             "objective_contributions": self.objective_contributions,
             "fallback_sequence": self.fallback_sequence,
+            "router_metadata": self.router_metadata,
         }
 
 
@@ -65,6 +67,7 @@ class ExplanationBuilder:
         rejected: list[EligibilityDecision],
         dominated_ids: list[str],
         ranked: list[tuple[CandidateDeployment, CandidateScoreRecord]],
+        router_metadata: dict[str, Any] | None = None,
     ) -> RoutingExplanation:
         hard_rej_records = [{"candidate_id": r.candidate_id, "reasons": r.rejection_reasons} for r in rejected]
 
@@ -97,4 +100,5 @@ class ExplanationBuilder:
             selected_provider=sel_prov,
             objective_contributions=contribs,
             fallback_sequence=fallbacks,
+            router_metadata=router_metadata or {},
         )

@@ -41,6 +41,7 @@ from adaroute.policy.model_selection import (
     QualityFirstPolicy,
     StaticRulePolicy,
     StrongestModelPolicy,
+    VLLMSemanticRouterPolicy,
 )
 from adaroute.policy.registry import default_registry
 from adaroute.policy.replica_selection import (
@@ -92,6 +93,7 @@ model_policies = {
     "latency_first": LatencyFirstPolicy(registry),
     "cost_first": CostFirstPolicy(registry),
     "quality_first": QualityFirstPolicy(registry),
+    "vllm_semantic_router": VLLMSemanticRouterPolicy(registry),
 }
 
 # Stage 2 Schedulers
@@ -144,6 +146,27 @@ default_active_policy = "adaptive"
 async def lifespan(app: FastAPI):
     # Background heartbeat task to maintain healthy replica state
     stop_event = asyncio.Event()
+
+    # Start local vLLM Semantic Router daemon on port 50050 if configured and free
+    import socket
+    import threading
+    import uvicorn
+    from adaroute.services.vllm_router_service import router_app
+
+    def is_port_in_use(port: int) -> bool:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            return s.connect_ex(("127.0.0.1", port)) == 0
+
+    if not is_port_in_use(50050):
+        def _run_router():
+            try:
+                cfg = uvicorn.Config(router_app, host="0.0.0.0", port=50050, log_level="warning")
+                server = uvicorn.Server(cfg)
+                server.run()
+            except Exception:
+                pass
+        router_thread = threading.Thread(target=_run_router, daemon=True)
+        router_thread.start()
 
     async def heartbeat_loop():
         while not stop_event.is_set():
@@ -347,6 +370,9 @@ async def chat_completions(
         total_lat = (time.perf_counter() - start_total_time) * 1000.0
         slo_met = (total_lat / 1000.0) <= latency_slo if latency_slo else True
         cached_dep_id = cached_res.get("deployment_id", cached_res["model"])
+        cache_type = cached_res.get("cache_type", "exact")
+        sim_score = cached_res.get("similarity")
+        matched_p = cached_res.get("matched_prompt")
         if validated_req.session_id:
             session_store.record_turn(
                 session_id=validated_req.session_id,
@@ -388,6 +414,9 @@ async def chat_completions(
                 latency_ms=round(total_lat, 2),
                 attempts=0,
                 cache_hit=True,
+                cache_type=cache_type,
+                similarity=sim_score,
+                matched_prompt=matched_p,
                 estimated_cost=0.0,
                 actual_cost=0.0,
                 slo_attained=slo_met,
@@ -927,11 +956,12 @@ async def get_control_plane_ledger(limit: int = 50):
 async def get_control_plane_policies():
     """Returns the active routing policy, version history, and available policy configurations."""
     current_ver = policy_versions[-1]["version"] if policy_versions else 1
+    avail = sorted(set(list(model_policies.keys()) + list(registry.selector.policies.keys())))
     return {
         "active_policy": default_active_policy,
         "active_version": current_ver,
         "history": policy_versions,
-        "available_policies": sorted(model_policies.keys()),
+        "available_policies": avail,
     }
 
 
@@ -952,10 +982,11 @@ async def rollback_control_plane_policy(req: PolicyRollbackRequest):
     else:
         raise HTTPException(status_code=400, detail="Must provide either policy_name or version to rollback.")
 
-    if target_policy not in model_policies:
+    valid_policies = sorted(set(list(model_policies.keys()) + list(registry.selector.policies.keys())))
+    if target_policy not in valid_policies:
         raise HTTPException(
             status_code=400,
-            detail=f"Unknown policy '{target_policy}'. Available: {sorted(model_policies.keys())}",
+            detail=f"Unknown policy '{target_policy}'. Available: {valid_policies}",
         )
 
     new_version_num = len(policy_versions) + 1

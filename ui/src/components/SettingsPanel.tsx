@@ -232,6 +232,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <option value="strongest">Strongest (Max Quality)</option>
                   <option value="cheapest">Cheapest (Min Cost)</option>
                   <option value="static">Static (Task Matrix)</option>
+                  <option value="vllm_semantic_router">vLLM Semantic Router</option>
                 </select>
               </div>
 

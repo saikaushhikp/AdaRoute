@@ -8,7 +8,7 @@ gateway:
   host: "0.0.0.0"
   port: 7000
   title: "AdaRoute Unified LLM Gateway"
-  version: "3.0.0-gpu-gguf"
+  version: "3.0.0"
   default_policy: "adaptive"
   default_scheduler: "slo_aware"
   execution_mode: "real"
@@ -71,6 +71,19 @@ routing:
         quality: 0.65
         slo: 0.05
         failure: 0.05
+    vllm_semantic_router:
+      weights:
+        cost: 0.35
+        latency: 0.30
+        quality: 0.35
+        slo: 0.00
+        failure: 0.00
+
+semantic_router:
+  enabled: true
+  router_url: "http://localhost:50050"
+  timeout_seconds: 2.0
+  fallback_policy: "adaptive"
 
 models:
   # -------------------------------------------------------------

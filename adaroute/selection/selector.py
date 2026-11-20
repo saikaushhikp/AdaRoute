@@ -31,6 +31,7 @@ from .objectives import CandidateScoreRecord, ConfigurableObjectiveEngine
 from .pareto import ParetoFrontierEngine
 from .session import SessionState, SessionStore
 from .signals import SignalExtractor
+from .vllm_router import VLLMSemanticRouterClient, classify_semantic_intent
 
 
 @dataclass
@@ -92,6 +93,13 @@ class UnifiedModelSelector:
 
         # Pareto frontier engine
         self.pareto_engine = ParetoFrontierEngine(normalization=self.normalization_engine)
+
+        # vLLM Semantic Router Client
+        sr_cfg = self.config.get("semantic_router", {})
+        self.vllm_router_client = VLLMSemanticRouterClient(
+            router_url=sr_cfg.get("router_url"),
+            timeout=float(sr_cfg.get("timeout_seconds", 2.0)),
+        )
 
         # Policies map
         self.policies: dict[str, ConfigurableObjectiveEngine] = {}
@@ -156,6 +164,14 @@ class UnifiedModelSelector:
             objectives=[
                 {"name": "cost", "direction": "minimize", "weight": 0.50},
                 {"name": "quality_loss", "direction": "minimize", "weight": 0.50},
+            ],
+            normalization=self.normalization_engine,
+        )
+        self.policies["vllm_semantic_router"] = ConfigurableObjectiveEngine(
+            objectives=[
+                {"name": "quality_loss", "direction": "minimize", "weight": 0.35},
+                {"name": "cost", "direction": "minimize", "weight": 0.35},
+                {"name": "latency", "direction": "minimize", "weight": 0.30},
             ],
             normalization=self.normalization_engine,
         )
@@ -337,6 +353,97 @@ class UnifiedModelSelector:
                 if feat.candidate_id in dominated_map:
                     ranked_candidates.append((dominated_map[feat.candidate_id], score_rec))
 
+        # 6b. vLLM Semantic Router Policy Evaluation & Hard Admission Authority
+        router_metadata: dict[str, Any] = {}
+        if policy_name == "vllm_semantic_router":
+            router_messages = []
+            if getattr(request, "messages", None):
+                for m in request.messages:
+                    if isinstance(m, dict):
+                        router_messages.append({"role": m.get("role", "user"), "content": m.get("content", "")})
+                    else:
+                        router_messages.append(
+                            {"role": getattr(m, "role", "user"), "content": getattr(m, "content", "")}
+                        )
+            else:
+                router_messages = [{"role": "user", "content": prompt_text}]
+
+            router_res = self.vllm_router_client.preview_route(
+                messages=router_messages,
+                model="vllm-sr/auto",
+                session_id=eff_session_id,
+            )
+
+            router_metadata = {
+                "router_success": router_res.success,
+                "router_status": router_res.selection_status,
+                "router_selected_model": router_res.selected_model,
+                "router_confidence": router_res.confidence,
+                "router_reason": router_res.reason,
+                "router_algorithm": router_res.algorithm,
+                "router_latency_ms": round(router_res.latency_ms, 2),
+            }
+            if router_res.error:
+                router_metadata["router_error"] = router_res.error
+
+            matched_cand_dep = None
+            if router_res.success and router_res.selected_model:
+                s_clean = router_res.selected_model.lower().strip()
+                for c_dep, _ in eligible_candidates:
+                    caps = getattr(c_dep.model, "capability_profiles", {}) or getattr(c_dep.model, "capabilities", {})
+                    cap_list = list(caps.keys()) if isinstance(caps, dict) else list(caps)
+                    if (
+                        c_dep.deployment_id.lower() == s_clean
+                        or c_dep.model_id.lower() == s_clean
+                        or any(cap.lower() == s_clean for cap in cap_list)
+                        or s_clean in c_dep.deployment_id.lower()
+                        or s_clean in c_dep.model_id.lower()
+                    ):
+                        matched_cand_dep = c_dep
+                        break
+
+            if matched_cand_dep is not None:
+                ranked_candidates.sort(
+                    key=lambda pair: 0 if pair[0].deployment_id == matched_cand_dep.deployment_id else 1
+                )
+                router_metadata["admission_status"] = "admitted"
+                router_metadata["decision"] = (
+                    f"vLLM-SR chose '{router_res.selected_model}', mapped to deployment '{matched_cand_dep.deployment_id}'"
+                )
+            else:
+                _, fb_intent, fb_conf, fb_reason = classify_semantic_intent(prompt_text, request.prompt_tokens)
+                if fb_intent == "fast_qa":
+                    # Simple query: sort candidates prioritizing lowest cost & latency (efficiency)
+                    ranked_candidates.sort(
+                        key=lambda pair: (
+                            pair[1].raw_values.get("cost", 0.0),
+                            pair[1].raw_values.get("latency", 0.0),
+                            -pair[0].get_capability_quality(request.task_type),
+                        )
+                    )
+                elif fb_intent == "coding":
+                    # Coding query: prioritize models with coding capability
+                    ranked_candidates.sort(
+                        key=lambda pair: 0 if "coding" in getattr(pair[0].model, "capabilities", {}) else 1
+                    )
+                else:
+                    # Complex / reasoning query: prioritize highest quality
+                    ranked_candidates.sort(
+                        key=lambda pair: -pair[0].get_capability_quality(request.task_type)
+                    )
+
+                if router_res.selected_model:
+                    router_metadata["admission_status"] = "rejected_by_hard_constraints"
+                    router_metadata["decision"] = (
+                        f"vLLM-SR chose '{router_res.selected_model}' which violates AdaRoute hard constraints "
+                        f"(privacy/budget/quality/mode). Safely fell back to intent-aware ranking (intent: {fb_intent})."
+                    )
+                else:
+                    router_metadata["admission_status"] = "fallback_on_unavailability"
+                    router_metadata["decision"] = (
+                        f"vLLM-SR unavailable or timed out ({router_res.error}). Safely fell back to intent-aware ranking (intent: {fb_intent})."
+                    )
+
         # 7. Build Explanation Record
         explanation = ExplanationBuilder.build(
             policy_name=policy_name,
@@ -345,6 +452,7 @@ class UnifiedModelSelector:
             rejected=rejected_candidates,
             dominated_ids=dominated_ids,
             ranked=ranked_candidates,
+            router_metadata=router_metadata,
         )
 
         selected = ranked_candidates[0][0] if ranked_candidates else None

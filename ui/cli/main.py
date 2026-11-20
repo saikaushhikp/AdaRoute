@@ -8,7 +8,10 @@ privacy constraints, and caching.
 import sys
 from typing import Any
 
-from client import GatewayCLIClient
+try:
+    from client import GatewayCLIClient
+except ImportError:
+    from ui.cli.client import GatewayCLIClient
 from rich import box
 from rich.console import Console
 from rich.panel import Panel
@@ -104,7 +107,7 @@ class AdaRouteCLI:
         table.add_row("/set tokens", "<int>", "Set maximum output tokens")
         table.add_row(
             "/set policy",
-            "<adaptive|strongest|cheapest|static>",
+            "<adaptive|strongest|cheapest|static|vllm_semantic_router>",
             "Set Stage 1 model policy",
         )
         table.add_row(
@@ -165,8 +168,18 @@ class AdaRouteCLI:
         table.add_row("Attempts", str(meta.get("attempts", 1)))
 
         cache_hit = meta.get("cache_hit", False)
-        cache_badge = "[bold green]HIT[/bold green]" if cache_hit else "[dim]MISS[/dim]"
+        if cache_hit:
+            c_type = meta.get("cache_type", "exact")
+            if c_type == "semantic":
+                sim = meta.get("similarity", 0.0)
+                matched = meta.get("matched_prompt", "")
+                cache_badge = f"[bold green]HIT (semantic: {sim*100:.1f}% to '{matched}')[/bold green]"
+            else:
+                cache_badge = "[bold green]HIT (exact context match)[/bold green]"
+        else:
+            cache_badge = "[dim]MISS[/dim]"
         table.add_row("Cache Outcome", cache_badge)
+        table.add_row("Privacy Partition", f"user_private={self.config['user_private']} ({'Local isolated' if self.config['user_private'] else 'Public'})")
 
         table.add_row("Estimated Cost", f"${meta.get('estimated_cost', 0.0):.6f}")
         table.add_row("Actual Cost", f"${meta.get('actual_cost', 0.0):.6f}")
@@ -278,11 +291,13 @@ class AdaRouteCLI:
                 console.print("[red]Invalid integer for max tokens.[/red]")
 
         elif param == "policy":
-            if val in ("adaptive", "strongest", "cheapest", "static"):
+            if val in ("adaptive", "strongest", "cheapest", "static", "vllm_semantic_router"):
                 self.config["policy"] = val
                 console.print(f"[green]Policy set to '{val}'[/green]")
             else:
-                console.print("[red]Invalid policy. Choose: adaptive, strongest, cheapest, static[/red]")
+                console.print(
+                    "[red]Invalid policy. Choose: adaptive, strongest, cheapest, static, vllm_semantic_router[/red]"
+                )
 
         elif param == "scheduler":
             if val in ("slo_aware", "least_loaded", "round_robin"):
@@ -303,10 +318,10 @@ class AdaRouteCLI:
         elif param in ("private", "user_private"):
             if val in ("on", "true", "yes", "1"):
                 self.config["user_private"] = True
-                console.print("[yellow]User Private toggle ENABLED (local self-hosted models only)[/yellow]")
+                console.print("[yellow]User Private toggle ENABLED (local self-hosted models only; isolated private cache)[/yellow]")
             else:
                 self.config["user_private"] = False
-                console.print("[green]User Private toggle DISABLED (cloud models eligible)[/green]")
+                console.print("[green]User Private toggle DISABLED (cloud models eligible; public cache active)[/green]")
 
         elif param == "cache":
             if val in ("off", "false", "bypass"):
@@ -372,12 +387,12 @@ class AdaRouteCLI:
                             )
                     elif cmd in ("/private", "/user_private"):
                         self.config["user_private"] = not self.config["user_private"]
-                        state = (
-                            "[bold yellow]ENABLED (local only)[/bold yellow]"
-                            if self.config["user_private"]
-                            else "[bold green]DISABLED (cloud allowed)[/bold green]"
-                        )
-                        console.print(f"User Private mode is now {state}")
+                        if self.config["user_private"]:
+                            console.print("User Private mode is now [bold yellow]ENABLED (local only)[/bold yellow]")
+                            console.print("[dim]Note: Local-only execution strictly enforces an isolated private cache partition (public cloud entries excluded).[/dim]")
+                        else:
+                            console.print("User Private mode is now [bold green]DISABLED (cloud allowed)[/bold green]")
+                            console.print("[dim]Note: Cloud execution enabled; public cache partition active.[/dim]")
                     elif cmd in ("/diag", "/diagnostics"):
                         self.print_diagnostics()
                     elif cmd == "/health":
@@ -432,9 +447,15 @@ class AdaRouteCLI:
                     )
 
                     # Render mini-telemetry bar
-                    cache_status = (
-                        "[bold green]CACHE HIT[/bold green]" if meta.get("cache_hit") else "[dim]CACHE MISS[/dim]"
-                    )
+                    if meta.get("cache_hit"):
+                        c_type = meta.get("cache_type", "exact")
+                        if c_type == "semantic":
+                            sim_pct = (meta.get("similarity") or 0.0) * 100
+                            cache_status = f"[bold green]CACHE HIT (semantic: {sim_pct:.1f}%)[/bold green]"
+                        else:
+                            cache_status = "[bold green]CACHE HIT (exact)[/bold green]"
+                    else:
+                        cache_status = "[dim]CACHE MISS[/dim]"
                     slo_icon = "✅" if meta.get("slo_attained", True) else "⚠️"
                     console.print(
                         f"[dim]Model:[/dim] [cyan]{meta.get('selected_model')}[/cyan] "

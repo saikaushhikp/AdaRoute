@@ -178,3 +178,10 @@ class QualityFirstPolicy(AdaptiveModelPolicy):
 
     def __init__(self, registry: ModelRegistry):
         super().__init__(registry, policy_name="quality_first")
+
+
+class VLLMSemanticRouterPolicy(AdaptiveModelPolicy):
+    """vLLM Semantic Router selectable model policy preset."""
+
+    def __init__(self, registry: ModelRegistry):
+        super().__init__(registry, policy_name="vllm_semantic_router")

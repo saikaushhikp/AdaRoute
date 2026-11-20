@@ -46,6 +46,7 @@ class ExactCache:
         policy_version: str = "v4.0",
         redis_url: str | None = None,
         backend: str | BaseCacheBackend | None = None,
+        similarity_threshold: float | None = None,
     ):
         self.default_ttl_sec = default_ttl_sec
         self.policy_version = policy_version
@@ -63,7 +64,12 @@ class ExactCache:
                 redis_url=redis_url,
                 force_redis=(backend == "redis"),
             )
-        self.semantic_cache = SemanticCache(similarity_threshold=0.95, redis_url=redis_url)
+        sim_tau = (
+            similarity_threshold
+            if similarity_threshold is not None
+            else float(os.getenv("SEMANTIC_CACHE_THRESHOLD", "0.90"))
+        )
+        self.semantic_cache = SemanticCache(similarity_threshold=sim_tau, redis_url=redis_url)
 
     def _init_backend(
         self,
@@ -237,20 +243,28 @@ class ExactCache:
                     pass
             elif self._validate_provenance(entry, request):
                 self.hits += 1
-                return entry.response
+                res = dict(entry.response) if isinstance(entry.response, dict) else entry.response
+                if isinstance(res, dict):
+                    res.setdefault("cache_type", "exact")
+                return res
 
         # NOTE: Unsafe secondary query_key fallback index is DISABLED and REMOVED (W2-FB001).
         # Context poisoning is eliminated by keying losslessly on the full ordered context.
 
-        # Dynamic Semantic Caching: approximate vector similarity check (tau >= 0.95)
+        # Dynamic Semantic Caching: approximate vector similarity check
         # Bounded strictly to standalone user prompts; multi-turn messages / system prompts enforce exact match
         has_system_or_history = messages and (
             len(messages) > 1
             or any((m.role if hasattr(m, "role") else m.get("role", "")).lower() == "system" for m in messages)
         )
-        if prompt and self.semantic_cache and not has_system_or_history:
+        effective_prompt = prompt
+        if not effective_prompt and messages and len(messages) == 1:
+            m = messages[0]
+            effective_prompt = m.get("content") if isinstance(m, dict) else getattr(m, "content", "")
+
+        if effective_prompt and self.semantic_cache and not has_system_or_history:
             try:
-                sem_hit = self.semantic_cache.get(request, prompt)
+                sem_hit = self.semantic_cache.get(request, effective_prompt)
                 if sem_hit:
                     self.hits += 1
                     return sem_hit
@@ -330,11 +344,16 @@ class ExactCache:
             len(messages) > 1
             or any((m.role if hasattr(m, "role") else m.get("role", "")).lower() == "system" for m in messages)
         )
-        if prompt and self.semantic_cache and not has_system_or_history:
+        effective_prompt = prompt
+        if not effective_prompt and messages and len(messages) == 1:
+            m = messages[0]
+            effective_prompt = m.get("content") if isinstance(m, dict) else getattr(m, "content", "")
+
+        if effective_prompt and self.semantic_cache and not has_system_or_history:
             try:
                 self.semantic_cache.put(
                     request=request,
-                    prompt_text=prompt,
+                    prompt_text=effective_prompt,
                     response_content=(response or {}).get("content", ""),
                     model=origin_model,
                     replica_id=(response or {}).get("replica_id", "cache"),

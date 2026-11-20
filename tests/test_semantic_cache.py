@@ -244,3 +244,239 @@ def test_tc_m10_07_semantic_cache_simulation_isolation():
     )
     hit = cache.get(req_real, "hello world prompt")
     assert hit is None
+
+
+def test_tc_m10_08_semantic_cache_adversarial_negation_guard():
+    cache = SemanticCache(similarity_threshold=0.80)
+    cache.clear()
+
+    req = RequestContext(
+        task_type="general",
+        prompt_tokens=10,
+        privacy_level=PrivacyLevel.PUBLIC,
+        tenant_id="user",
+    )
+
+    cache.put(
+        request=req,
+        prompt_text="the production database is running normally",
+        response_content="DB status: ONLINE and HEALTHY.",
+        model="local-model",
+        replica_id="r1",
+        output_tokens=6,
+    )
+
+    # Adversarial near-miss with negation: must NOT hit!
+    neg_prompt = "the production database is not running normally"
+    hit = cache.get(req, neg_prompt)
+    assert hit is None, "Negation polarity mismatch must be rejected by semantic guards"
+
+
+def test_tc_m10_09_semantic_cache_adversarial_numeric_guard():
+    cache = SemanticCache(similarity_threshold=0.80)
+    cache.clear()
+
+    req = RequestContext(
+        task_type="general",
+        prompt_tokens=10,
+        privacy_level=PrivacyLevel.PUBLIC,
+        tenant_id="user",
+    )
+
+    cache.put(
+        request=req,
+        prompt_text="forward metrics traffic to port 8000",
+        response_content="Forwarding configured to port 8000.",
+        model="local-model",
+        replica_id="r1",
+        output_tokens=6,
+    )
+
+    # Adversarial near-miss with different number: must NOT hit!
+    diff_num_prompt = "forward metrics traffic to port 9000"
+    hit = cache.get(req, diff_num_prompt)
+    assert hit is None, "Numeric literal mismatch must be rejected by semantic guards"
+
+
+def test_tc_m10_10_semantic_cache_adversarial_format_and_lang_guard():
+    cache = SemanticCache(similarity_threshold=0.80)
+    cache.clear()
+
+    req = RequestContext(
+        task_type="general",
+        prompt_tokens=10,
+        privacy_level=PrivacyLevel.PUBLIC,
+        tenant_id="user",
+    )
+
+    cache.put(
+        request=req,
+        prompt_text="generate configuration schema as json",
+        response_content='{"schema": "v1"}',
+        model="local-model",
+        replica_id="r1",
+        output_tokens=6,
+    )
+
+    # Conflicting format entity: YAML vs JSON
+    hit_yaml = cache.get(req, "generate configuration schema as yaml")
+    assert hit_yaml is None, "Conflicting format constraint must be rejected"
+
+
+def test_tc_m10_11_semantic_cache_cross_user_isolation():
+    cache = SemanticCache(similarity_threshold=0.85)
+    cache.clear()
+
+    # Cached by user_1
+    req_u1 = RequestContext(
+        task_type="general",
+        prompt_tokens=10,
+        privacy_level=PrivacyLevel.PUBLIC,
+        tenant_id="tenant_X",
+        user_id="user_1",
+    )
+    cache.put(
+        request=req_u1,
+        prompt_text="display account balance and history",
+        response_content="Account balance is $4,500.00.",
+        model="local-model",
+        replica_id="r1",
+        output_tokens=7,
+    )
+
+    # Queried by user_2 in the same tenant -> must MISS
+    req_u2 = RequestContext(
+        task_type="general",
+        prompt_tokens=10,
+        privacy_level=PrivacyLevel.PUBLIC,
+        tenant_id="tenant_X",
+        user_id="user_2",
+    )
+    hit_u2 = cache.get(req_u2, "display account balance and history")
+    assert hit_u2 is None, "Cross-user cache hit strictly forbidden"
+
+
+def test_tc_m10_12_semantic_cache_max_tokens_bound():
+    cache = SemanticCache(similarity_threshold=0.85)
+    cache.clear()
+
+    req = RequestContext(
+        task_type="general",
+        prompt_tokens=10,
+        privacy_level=PrivacyLevel.PUBLIC,
+        tenant_id="user",
+        max_tokens=20,  # Request allows max 20 tokens
+    )
+
+    # Entry generated with 80 tokens
+    cache.put(
+        request=req,
+        prompt_text="explain distributed consensus algorithms",
+        response_content="Long text..." * 20,
+        model="local-model",
+        replica_id="r1",
+        output_tokens=80,
+    )
+
+    # Must MISS because cached output exceeds client max_tokens
+    hit = cache.get(req, "explain distributed consensus algorithms")
+    assert hit is None, "Cached response exceeding max_tokens must be rejected"
+
+
+def test_tc_m10_13_semantic_cache_redis_vector_search_live():
+    """Live verification against Redis Search (redis-stack-server:7.4.0-v8)."""
+    import os
+
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    cache = SemanticCache(similarity_threshold=0.85, redis_url=redis_url)
+
+    if not cache.has_search:
+        return  # Skip if environment lacks RediSearch
+
+    cache.clear()
+
+    req = RequestContext(
+        task_type="general",
+        prompt_tokens=10,
+        privacy_level=PrivacyLevel.PUBLIC,
+        tenant_id="redis_test_tenant",
+        user_id="redis_user",
+    )
+
+    cache.put(
+        request=req,
+        prompt_text="how do I initialize a git repository",
+        response_content="Run 'git init' in your directory.",
+        model="Qwen/Qwen2.5-0.5B-Instruct",
+        replica_id="vllm-r1",
+        output_tokens=8,
+        quality_score=0.85,
+    )
+
+    # Query with identical prompt
+    hit = cache.get(req, "how do I initialize a git repository")
+    assert hit is not None
+    assert hit["content"] == "Run 'git init' in your directory."
+    assert hit["similarity"] >= 0.85
+    assert hit["cache_type"] == "semantic"
+
+
+def test_tc_m10_14_fastembed_real_embedding_paraphrase():
+    """Verification using real CPU ONNX FastEmbedProvider (sentence-transformers/all-MiniLM-L6-v2)."""
+    from adaroute.cache.semantic import FastEmbedProvider
+
+    embedder = FastEmbedProvider(model_name="sentence-transformers/all-MiniLM-L6-v2", dimension=384)
+    cache = SemanticCache(similarity_threshold=0.85, embedder=embedder)
+    cache.clear()
+
+    req = RequestContext(
+        task_type="coding",
+        prompt_tokens=12,
+        privacy_level=PrivacyLevel.PUBLIC,
+        tenant_id="fastembed_tenant",
+    )
+
+    cache.put(
+        request=req,
+        prompt_text="how do I reverse a string in python",
+        response_content="Use slicing: text[::-1]",
+        model="Qwen/Qwen2.5-0.5B-Instruct",
+        replica_id="vllm-r1",
+        output_tokens=6,
+    )
+
+    # Genuine paraphrase query
+    paraphrase = "python code to reverse string"
+    hit = cache.get(req, paraphrase, threshold=0.80)
+    assert hit is not None
+    assert hit["content"] == "Use slicing: text[::-1]"
+    assert hit["similarity"] >= 0.80
+
+
+def test_tc_m10_15_semantic_cache_failure_and_outage_safety():
+    """Embedding or Redis failures must gracefully yield observable miss without raising exceptions."""
+
+    class BrokenEmbedder:
+        dimension = 384
+        name = "broken"
+
+        def encode(self, text: str):
+            raise RuntimeError("Embedder service unreachable")
+
+        def cosine_similarity(self, v1, v2):
+            return 0.0
+
+    cache = SemanticCache(embedder=BrokenEmbedder())
+    req = RequestContext(
+        task_type="general",
+        prompt_tokens=10,
+        privacy_level=PrivacyLevel.PUBLIC,
+        tenant_id="user",
+    )
+
+    # Get must not raise an unhandled exception
+    try:
+        hit = cache.get(req, "sample query")
+        assert hit is None
+    except Exception as e:
+        assert False, f"cache.get() raised unhandled exception on embedder outage: {e}"

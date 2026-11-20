@@ -5,30 +5,36 @@ python3 ui/cli/main.py
 │ Cap: general  Privacy: public  User Private: OFF  History: OFF (single-query)  Budget: $1.0000  Policy: adaptive  Type /help for commands                                                                 │
 ╰────────────────────────────────────────────────────────────────────────────────────── Press Ctrl+C or /exit to quit ──────────────────────────────────────────────────────────────────────────────────────╯
 
-user > /help
-                                                      Available CLI Commands                                                      
-                                                                                                                                  
-  Command          Arguments                                        Description                                                   
- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 
-  /help                                                             Show this help table                                          
-  /settings                                                         Display all current routing & request constraints             
-  /set cap         <general|coding|reasoning>                       Set target logical capability                                 
-  /set privacy     <public|internal_only|confidential|restricted>   Set privacy isolation level                                   
-  /set budget      <float>                                          Set max request budget in USD                                 
-  /set quality     <low|medium|high>                                Set minimum quality floor                                     
-  /set slo         <seconds>                                        Set target latency SLO                                        
-  /set tokens      <int>                                            Set maximum output tokens                                     
-  /set policy      <adaptive|strongest|cheapest|static>             Set Stage 1 model policy                                      
-  /set scheduler   <slo_aware|least_loaded|round_robin>             Set Stage 2 replica scheduler                                 
-  /history                                                          Toggle conversation history (default: OFF for caching tests)  
-  /set history     <on|off>                                         Enable/disable multi-turn context retention                   
-  /set cache       <on|off>                                         Toggle caching (off sets no_cache=True)                       
-  /set url         <url>                                            Change gateway base URL                                       
-  /diag                                                             Inspect detailed routing telemetry for the last response      
-  /health                                                           Check gateway cluster health & active replicas                
-  /clear                                                            Clear conversation history & reset screen                     
-  /exit                                                             Quit the workbench                                            
-                                                                                                                                  
+user > /private
+User Private mode is now ENABLED (local only)
+Note: Local-only execution strictly enforces an isolated private cache partition (public cloud entries excluded).
+
+user > what is 1+1?
+╭────────────────────────────────────────────────────────────────────────────────────────────── Gateway Error ──────────────────────────────────────────────────────────────────────────────────────────────╮
+│ HTTP 503 Error:                                                                                                                                                                                           │
+│ Inference execution failed after 3 attempts: vLLM endpoint http://vllm:7000/v1 returned HTTP 503: {"error": {"message": "vLLM engine for 'unsloth/Qwen3-0.6B-GGUF:Q4_K_M' (port 7001) unavailable:        │
+│ <urlopen error [Errno 111] Connection refused>. Engine status: crashed (exit code 1) (dtype: half)", "type": "backend_unavailable", "code": 503}}                                                         │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+user > /set cap reasoning
+Capability set to 'reasoning'
+
+user > why liquid nitrogen not a gas?
+╭────────────────────────────────────────────────────────────────────────────────────────────── Gateway Error ──────────────────────────────────────────────────────────────────────────────────────────────╮
+│ HTTP 503 Error:                                                                                                                                                                                           │
+│ Inference execution failed after 2 attempts: vLLM endpoint http://vllm:7000/v1 returned HTTP 503: {"error": {"message": "vLLM engine for 'unsloth/Qwen3-0.6B-GGUF:Q4_K_M' (port 7001) unavailable:        │
+│ <urlopen error [Errno 111] Connection refused>. Engine status: crashed (exit code 1) (dtype: half)", "type": "backend_unavailable", "code": 503}}                                                         │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+user > /set cap coding
+Capability set to 'coding'
+
+user > write shortest path alogithm in rust
+╭────────────────────────────────────────────────────────────────────────────────────────────── Gateway Error ──────────────────────────────────────────────────────────────────────────────────────────────╮
+│ HTTP 503 Error:                                                                                                                                                                                           │
+│ Inference execution failed after 1 attempts: vLLM endpoint http://vllm:7000/v1 returned HTTP 503: {"error": {"message": "vLLM engine for 'unsloth/Qwen3-0.6B-GGUF:Q4_K_M' (port 7001) unavailable:        │
+│ <urlopen error [Errno 111] Connection refused>. Engine status: crashed (exit code 1) (dtype: half)", "type": "backend_unavailable", "code": 503}}                                                         │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
 user > /exit
 Goodbye!
