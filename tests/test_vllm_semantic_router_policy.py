@@ -81,14 +81,14 @@ def mock_router_server():
 # -----------------------------------------------------------------------------
 
 
-def test_vllm_sr_policy_registered():
+def test_tc_m3_56_vllm_sr_policy_registered():
     """Policy must be registered in UnifiedModelSelector and model_policies."""
     selector = registry.selector
     assert "vllm_semantic_router" in selector.policies, "vllm_semantic_router must be in selector.policies"
     assert "vllm_semantic_router" in model_policies, "vllm_semantic_router must be in API model_policies"
 
 
-def test_vllm_sr_client_preview_success(mock_router_server):
+def test_tc_m3_57_vllm_sr_client_preview_success(mock_router_server):
     """VLLMSemanticRouterClient must parse router preview response correctly."""
     MockRouterHandler.model_to_return = "Qwen/Qwen2.5-0.5B-Instruct"
     MockRouterHandler.status_code = 200
@@ -104,7 +104,7 @@ def test_vllm_sr_client_preview_success(mock_router_server):
     assert res.reason == "High intent confidence for general query"
 
 
-def test_vllm_sr_client_timeout_and_error():
+def test_tc_m3_58_vllm_sr_client_timeout_and_error():
     """Client must handle unreachable endpoints gracefully without raising exceptions."""
     # Point to an unused local port
     client = VLLMSemanticRouterClient(router_url="http://127.0.0.1:59999", timeout=0.2)
@@ -116,7 +116,7 @@ def test_vllm_sr_client_timeout_and_error():
     assert "error" in res.error.lower() or "connection" in res.error.lower()
 
 
-def test_vllm_sr_policy_decision_admitted_by_hard_constraints():
+def test_tc_m3_59_vllm_sr_policy_decision_admitted_by_hard_constraints():
     """When router selects an eligible candidate, AdaRoute admits and prioritizes it."""
     selector = registry.selector
 
@@ -146,7 +146,7 @@ def test_vllm_sr_policy_decision_admitted_by_hard_constraints():
         assert decision.explanation.router_metadata.get("admission_status") == "admitted"
 
 
-def test_vllm_sr_policy_cloud_choice_rejected_on_private_request():
+def test_tc_m3_60_vllm_sr_policy_cloud_choice_rejected_on_private_request():
     """AdaRoute hard admission constraints must REJECT router's cloud choice on private requests."""
     selector = registry.selector
 
@@ -180,7 +180,7 @@ def test_vllm_sr_policy_cloud_choice_rejected_on_private_request():
         assert meta.get("admission_status") == "rejected_by_hard_constraints"
 
 
-def test_vllm_sr_policy_outage_fallback():
+def test_tc_m5_10_vllm_sr_policy_outage_fallback():
     """When router fails or times out, selector must fall back safely to Pareto multi-objective ranking."""
     selector = registry.selector
 
@@ -204,7 +204,7 @@ def test_vllm_sr_policy_outage_fallback():
         assert meta.get("admission_status") == "fallback_on_unavailability"
 
 
-def test_control_plane_discovers_vllm_semantic_router():
+def test_tc_m12_08_control_plane_discovers_vllm_semantic_router():
     """Control plane endpoint must expose vllm_semantic_router as an available policy."""
     client = TestClient(app)
     resp = client.get("/v1/control-plane/policies")
@@ -213,7 +213,7 @@ def test_control_plane_discovers_vllm_semantic_router():
     assert "vllm_semantic_router" in data["available_policies"]
 
 
-def test_control_plane_rollback_to_vllm_semantic_router():
+def test_tc_m12_09_control_plane_rollback_to_vllm_semantic_router():
     """Control plane rollback must allow dynamically switching active policy to vllm_semantic_router."""
     client = TestClient(app)
     resp = client.post(
@@ -229,7 +229,7 @@ def test_control_plane_rollback_to_vllm_semantic_router():
     client.post("/v1/control-plane/rollback", json={"policy_name": "adaptive", "author": "cleanup"})
 
 
-def test_cli_set_policy_validation():
+def test_tc_m1_29_cli_set_policy_validation():
     """CLI /set policy command must accept vllm_semantic_router and reject invalid policies."""
     try:
         from ui.cli.main import AdaRouteCLI
@@ -244,7 +244,7 @@ def test_cli_set_policy_validation():
     assert cli.config["policy"] == "vllm_semantic_router"  # Preserved
 
 
-def test_live_chat_completions_with_vllm_sr_policy():
+def test_tc_m1_30_live_chat_completions_with_vllm_sr_policy():
     """Live /v1/chat/completions endpoint accepts policy='vllm_semantic_router' and executes."""
     client = TestClient(app)
     payload = {
@@ -266,7 +266,7 @@ def test_live_chat_completions_with_vllm_sr_policy():
     assert "selected_replica" in meta
 
 
-def test_vllm_sr_simple_vs_complex_task_differentiation():
+def test_tc_m3_61_vllm_sr_simple_vs_complex_task_differentiation():
     """vllm_semantic_router policy MUST differentiate between simple and complex tasks.
 
     Simple arithmetic / greetings ('what is 1+1=?') must route to fast/efficient tier.
@@ -304,7 +304,7 @@ def test_vllm_sr_simple_vs_complex_task_differentiation():
     assert dec_simple.selected_candidate.model_id != dec_complex.selected_candidate.model_id
 
 
-def test_vllm_sr_semantic_cache_hit_and_telemetry():
+def test_tc_m10_16_vllm_sr_semantic_cache_hit_and_telemetry():
     """Near-paraphrase queries must hit semantic cache and populate cache_type and similarity in routing_metadata."""
     client = TestClient(app)
 

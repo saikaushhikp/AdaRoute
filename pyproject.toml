@@ -42,6 +42,8 @@ ignore = ["RUF012", "BLE001", "S110", "SIM102", "SIM103", "N999"]
 
 # Pytest configuration for warning handling
 [tool.pytest.ini_options]
+cache_dir = ".pytest_cache_user"
+asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
     # LiteLLM's TypedDict schemas use ReadOnly, which Pydantic cannot enforce on dicts.
     "ignore:.*TypedDict class '.*' is using the `ReadOnly` qualifier.*:UserWarning",

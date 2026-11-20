@@ -15,7 +15,7 @@ from scripts.vllm_multi_server import (
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
-def test_infer_tokenizer():
+def test_tc_m2_11_infer_tokenizer():
     """Verify tokenizer inference handles GGUF quantization tags and standard repos."""
     assert infer_tokenizer("unsloth/Qwen3-0.6B-GGUF:Q4_K_M") == "Qwen/Qwen3-0.6B"
     assert infer_tokenizer("unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M") == "Qwen/Qwen2.5-Coder-0.5B-Instruct"
@@ -25,7 +25,7 @@ def test_infer_tokenizer():
     assert infer_tokenizer("custom/model:Q8_0", configured_tokenizer="explicit/tok") == "explicit/tok"
 
 
-def test_infer_dtype():
+def test_tc_m2_12_infer_dtype():
     """Verify dtype inference respects Gemma bfloat16 requirements and explicit overrides."""
     # Gemma models must use bfloat16 due to numerical instability in half
     assert infer_dtype("unsloth/gemma-3-1b-it-GGUF:Q4_K_M", is_gguf=True) == "bfloat16"
@@ -43,14 +43,14 @@ def test_infer_dtype():
     assert infer_dtype("any/model", configured_dtype="bfloat16", is_gguf=True) == "bfloat16"
 
 
-def test_is_gguf_model():
+def test_tc_m2_13_is_gguf_model():
     """Verify detection of GGUF models vs full-precision models."""
     assert is_gguf_model("unsloth/Qwen3-0.6B-GGUF:Q4_K_M") is True
     assert is_gguf_model("Qwen/Qwen2.5-0.5B-Instruct") is False
     assert is_gguf_model("deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B") is False
 
 
-def test_load_models_from_config_gpu():
+def test_tc_m2_14_load_models_from_config_gpu():
     """Verify parsing of config.gpu.yaml discovers both local GGUF models."""
     config_path = REPO_ROOT / "config.gpu.yaml"
     models = load_local_models_from_catalog(config_path)
@@ -71,7 +71,7 @@ def test_load_models_from_config_gpu():
     assert models[1].dtype == "half"
 
 
-def test_load_models_from_config_cpu():
+def test_tc_m2_15_load_models_from_config_cpu():
     """Verify parsing of config.yaml discovers CPU/standard local models."""
     config_path = REPO_ROOT / "config.yaml"
     models = load_local_models_from_catalog(config_path)
@@ -86,7 +86,7 @@ def test_load_models_from_config_cpu():
     assert models[0].dtype == "bfloat16"
 
 
-def test_dynamic_routing_resolution():
+def test_tc_m3_55_dynamic_routing_resolution():
     """Verify request resolution matches by exact ID, aliases, and keywords."""
     config_path = REPO_ROOT / "config.gpu.yaml"
     models = load_local_models_from_catalog(config_path)
@@ -110,7 +110,7 @@ def test_dynamic_routing_resolution():
     assert resolve_target_model("unknown-model", models, lookup).port == 7001
 
 
-def test_openai_models_response_generation():
+def test_tc_m2_16_openai_models_response_generation():
     """Verify /v1/models response structure contains all local models."""
     config_path = REPO_ROOT / "config.gpu.yaml"
     models = load_local_models_from_catalog(config_path)

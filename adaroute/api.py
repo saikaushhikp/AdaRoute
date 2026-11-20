@@ -150,7 +150,9 @@ async def lifespan(app: FastAPI):
     # Start local vLLM Semantic Router daemon on port 50050 if configured and free
     import socket
     import threading
+
     import uvicorn
+
     from adaroute.services.vllm_router_service import router_app
 
     def is_port_in_use(port: int) -> bool:
