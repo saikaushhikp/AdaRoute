@@ -8,8 +8,8 @@ from adaroute.telemetry.tracer import StructuredTracer
 from adaroute.workloads.generator import WorkloadGenerator
 
 
-def test_tc_m7_03_sanitize_secrets_credentials_and_tokens():
-    """[TC_M7_03] Validate that provider credentials are reliably redacted."""
+def test_TC_M7_05_sanitize_secrets_credentials_and_tokens():
+    """[] Validate that provider credentials are reliably redacted."""
     # Bearer token
     text_bearer = "Authorization header: Bearer abc123def456_xyz-789.end"
     sanitized = sanitize_secrets(text_bearer)
@@ -49,8 +49,8 @@ def test_tc_m7_03_sanitize_secrets_credentials_and_tokens():
     assert sanitize_secrets("") == ""
 
 
-def test_tc_m7_04_durable_ledger_disk_persistence(tmp_path):
-    """[TC_M7_04] Validate that the ledger durably appends records to disk."""
+def test_TC_M7_06_durable_ledger_disk_persistence(tmp_path):
+    """[] Validate that the ledger durably appends records to disk."""
     ledger_file = tmp_path / "sub" / "dir" / "ledger.jsonl"
     ledger = DurableLedger(ledger_path=ledger_file)
 
@@ -85,8 +85,8 @@ def test_tc_m7_04_durable_ledger_disk_persistence(tmp_path):
     assert disk_entry.status == "success"
 
 
-def test_tc_m7_05_durable_ledger_failed_attempt_zero_unbilled_cost(tmp_path):
-    """[TC_M7_05] Failed attempts record unknown unbilled cost as zero."""
+def test_TC_M7_07_durable_ledger_failed_attempt_zero_unbilled_cost(tmp_path):
+    """[] Failed attempts record unknown unbilled cost as zero."""
     ledger_file = tmp_path / "ledger.jsonl"
     ledger = DurableLedger(ledger_path=ledger_file)
 
@@ -122,8 +122,8 @@ def test_tc_m7_05_durable_ledger_failed_attempt_zero_unbilled_cost(tmp_path):
     assert "[REDACTED_SECRET]" in failed_record.error
 
 
-def test_tc_m8_03_simulator_cloud_scheduling_and_delay_decomposition():
-    """[TC_M8_03] The simulator decomposes queue delay, TTFT, and TPOT."""
+def test_TC_M8_07_simulator_cloud_scheduling_and_delay_decomposition():
+    """[] The simulator decomposes queue delay, TTFT, and TPOT."""
     sim = EventDrivenSimulator(arrival_rate_rps=10.0, seed=42)
 
     # Generate small trace
@@ -154,8 +154,8 @@ def test_tc_m8_03_simulator_cloud_scheduling_and_delay_decomposition():
                 assert rec["queue_delay_ms"] == 0.0
 
 
-def test_tc_m8_04_simulator_deterministic_frozen_cohort_matched_replay():
-    """[TC_M8_04] The same offered trace is replayed across all policies."""
+def test_TC_M8_08_simulator_deterministic_frozen_cohort_matched_replay():
+    """[] The same offered trace is replayed across all policies."""
     gen = WorkloadGenerator(seed=101)
     frozen_trace = gen.generate_trace(count=15)
 
@@ -174,8 +174,8 @@ def test_tc_m8_04_simulator_deterministic_frozen_cohort_matched_replay():
 
 
 @pytest.mark.asyncio
-async def test_tc_m7_06_live_api_ledger_sanitization_integration():
-    """[TC_M7_06] The live API records sanitized attempts in the telemetry ledger."""
+async def test_TC_M7_08_live_api_ledger_sanitization_integration():
+    """[] The live API records sanitized attempts in the telemetry ledger."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         res = await client.post(

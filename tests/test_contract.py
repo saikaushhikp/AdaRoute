@@ -5,8 +5,8 @@ from adaroute.api import app
 
 
 @pytest.mark.asyncio
-async def test_tc_m1_01_logical_capability_alias_routing():
-    """[TC_M1_01] Milestone M1: Single unified endpoint accepts logical capability alias
+async def test_TC_M1_01_logical_capability_alias_routing():
+    """[] Milestone M1: Single unified endpoint accepts logical capability alias
 
     (e.g., model='coding', model='general') rather than provider-specific SDK calls.
     """
@@ -32,8 +32,8 @@ async def test_tc_m1_01_logical_capability_alias_routing():
 
 
 @pytest.mark.asyncio
-async def test_tc_m1_02_standard_chat_messages_contract():
-    """[TC_M1_02] Milestone M1: Standard messages list [role, content] is parsed and executed."""
+async def test_TC_M1_02_standard_chat_messages_contract():
+    """[] Milestone M1: Standard messages list [role, content] is parsed and executed."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(

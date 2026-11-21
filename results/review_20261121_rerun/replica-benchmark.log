@@ -1,0 +1,37 @@
+python3 results/replica_eval/run_matched_load_benchmark.py
+==============================================================================
+AdaRoute Matched-Load Multi-Replica Scheduling Benchmark
+Timestamp: 20261121T112744.199772Z
+Artifacts Directory: /home/rongali/AdaRoute/results/replica_eval/runs/20261121T112744.199772Z
+==============================================================================
+
+[Phase 1/4] Warming up inference engines...
+
+[Phase 2/4] Scenario A: Balanced Load (Uniform Offered Workload)
+
+  Running Scheduler: [round_robin] | Scenario: [balanced_load]...
+    p50: 565.5ms | p95: 644.2ms | Throughput: 1.22 req/s | Dispatches: r1=3, r2=3 | SLO Attainment: 100.0%
+
+  Running Scheduler: [least_loaded] | Scenario: [balanced_load]...
+    p50: 589.8ms | p95: 652.1ms | Throughput: 1.24 req/s | Dispatches: r1=6, r2=0 | SLO Attainment: 100.0%
+
+  Running Scheduler: [slo_aware] | Scenario: [balanced_load]...
+    p50: 579.1ms | p95: 652.2ms | Throughput: 1.24 req/s | Dispatches: r1=6, r2=0 | SLO Attainment: 100.0%
+
+[Phase 3/4] Scenario B: Asymmetric Load (Replica 1 Pressure Steering)
+
+  Running Scheduler: [round_robin] | Scenario: [asymmetric_contention]...
+    p50: 571.0ms | p95: 636.5ms | Throughput: 1.25 req/s | Dispatches: r1=3, r2=3 | SLO Attainment: 100.0%
+
+  Running Scheduler: [least_loaded] | Scenario: [asymmetric_contention]...
+    p50: 571.9ms | p95: 662.0ms | Throughput: 1.24 req/s | Dispatches: r1=4, r2=2 | SLO Attainment: 100.0%
+
+  Running Scheduler: [slo_aware] | Scenario: [asymmetric_contention]...
+    p50: 564.4ms | p95: 641.8ms | Throughput: 1.26 req/s | Dispatches: r1=0, r2=6 | SLO Attainment: 100.0%
+
+[Phase 4/4] Writing benchmark evaluation manifest and summary...
+
+==============================================================================
+Matched-Load Benchmark Complete!
+Results and summary written to: /home/rongali/AdaRoute/results/replica_eval/runs/20261121T112744.199772Z
+==============================================================================

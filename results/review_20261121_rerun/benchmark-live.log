@@ -1,0 +1,155 @@
+docker run --rm --add-host=host.docker.internal:host-gateway -e GATEWAY_URL=http://host.docker.internal:7000 -v "/home/rongali/AdaRoute:/app" -w /app adaroute python -m adaroute.experiments.load_test --scenario live_benchmark -n 25
+Starting Live Policy Benchmark Matrix against http://host.docker.internal:7000...
+--> Benchmarking Live Policy: 'adaptive' (5 requests, no_cache=True)...
+--> Benchmarking Live Policy: 'cheapest' (5 requests, no_cache=True)...
+--> Benchmarking Live Policy: 'latency_first' (5 requests, no_cache=True)...
+--> Benchmarking Live Policy: 'cost_first' (5 requests, no_cache=True)...
+--> Benchmarking Live Policy: 'strongest' (5 requests, no_cache=True)...
+{
+  "adaptive": {
+    "total_offered": 5,
+    "completed": 2,
+    "failed": 3,
+    "cache_hits": 0,
+    "cache_misses": 2,
+    "duration_sec": 1.49,
+    "effective_rps": 1.34,
+    "p50_latency_ms": 435.4,
+    "p90_latency_ms": 1367.77,
+    "p95_latency_ms": 1367.77,
+    "p99_latency_ms": 1367.77,
+    "mean_latency_ms": 901.59,
+    "min_latency_ms": 435.4,
+    "max_latency_ms": 1367.77,
+    "total_prompt_tokens": 41,
+    "total_output_tokens": 347,
+    "actual_incurred_cost": 0.001442,
+    "frontier_benchmark_cost": 0.00541,
+    "attributable_savings": 0.003968,
+    "savings_percentage": 73.35,
+    "model_distribution": {
+      "groq/qwen/qwen3.8-27b": 2
+    },
+    "capability_distribution": {
+      "coding": 2
+    },
+    "error_details": {
+      "HTTP 503: {\"detail\":\"Inference execution failed after 0 attempts: None\"}": 3
+    },
+    "scenario": "standard"
+  },
+  "cheapest": {
+    "total_offered": 5,
+    "completed": 0,
+    "failed": 5,
+    "cache_hits": 0,
+    "cache_misses": 0,
+    "duration_sec": 0.62,
+    "effective_rps": 0.0,
+    "p50_latency_ms": 0.0,
+    "p90_latency_ms": 0.0,
+    "p95_latency_ms": 0.0,
+    "p99_latency_ms": 0.0,
+    "mean_latency_ms": 0.0,
+    "min_latency_ms": 0.0,
+    "max_latency_ms": 0.0,
+    "total_prompt_tokens": 0,
+    "total_output_tokens": 0,
+    "actual_incurred_cost": 0,
+    "frontier_benchmark_cost": 0.0,
+    "attributable_savings": 0.0,
+    "savings_percentage": 0.0,
+    "model_distribution": {},
+    "capability_distribution": {},
+    "error_details": {
+      "HTTP 503: {\"detail\":\"Inference execution failed after 1 attempts: LiteLLM call t": 3,
+      "HTTP 503: {\"detail\":\"Inference execution failed after 0 attempts: None\"}": 2
+    },
+    "scenario": "standard"
+  },
+  "latency_first": {
+    "total_offered": 5,
+    "completed": 0,
+    "failed": 5,
+    "cache_hits": 0,
+    "cache_misses": 0,
+    "duration_sec": 0.23,
+    "effective_rps": 0.0,
+    "p50_latency_ms": 0.0,
+    "p90_latency_ms": 0.0,
+    "p95_latency_ms": 0.0,
+    "p99_latency_ms": 0.0,
+    "mean_latency_ms": 0.0,
+    "min_latency_ms": 0.0,
+    "max_latency_ms": 0.0,
+    "total_prompt_tokens": 0,
+    "total_output_tokens": 0,
+    "actual_incurred_cost": 0,
+    "frontier_benchmark_cost": 0.0,
+    "attributable_savings": 0.0,
+    "savings_percentage": 0.0,
+    "model_distribution": {},
+    "capability_distribution": {},
+    "error_details": {
+      "HTTP 503: {\"detail\":\"Inference execution failed after 0 attempts: None\"}": 5
+    },
+    "scenario": "standard"
+  },
+  "cost_first": {
+    "total_offered": 5,
+    "completed": 0,
+    "failed": 5,
+    "cache_hits": 0,
+    "cache_misses": 0,
+    "duration_sec": 0.37,
+    "effective_rps": 0.0,
+    "p50_latency_ms": 0.0,
+    "p90_latency_ms": 0.0,
+    "p95_latency_ms": 0.0,
+    "p99_latency_ms": 0.0,
+    "mean_latency_ms": 0.0,
+    "min_latency_ms": 0.0,
+    "max_latency_ms": 0.0,
+    "total_prompt_tokens": 0,
+    "total_output_tokens": 0,
+    "actual_incurred_cost": 0,
+    "frontier_benchmark_cost": 0.0,
+    "attributable_savings": 0.0,
+    "savings_percentage": 0.0,
+    "model_distribution": {},
+    "capability_distribution": {},
+    "error_details": {
+      "HTTP 503: {\"detail\":\"Inference execution failed after 0 attempts: None\"}": 5
+    },
+    "scenario": "standard"
+  },
+  "strongest": {
+    "total_offered": 5,
+    "completed": 0,
+    "failed": 5,
+    "cache_hits": 0,
+    "cache_misses": 0,
+    "duration_sec": 0.66,
+    "effective_rps": 0.0,
+    "p50_latency_ms": 0.0,
+    "p90_latency_ms": 0.0,
+    "p95_latency_ms": 0.0,
+    "p99_latency_ms": 0.0,
+    "mean_latency_ms": 0.0,
+    "min_latency_ms": 0.0,
+    "max_latency_ms": 0.0,
+    "total_prompt_tokens": 0,
+    "total_output_tokens": 0,
+    "actual_incurred_cost": 0,
+    "frontier_benchmark_cost": 0.0,
+    "attributable_savings": 0.0,
+    "savings_percentage": 0.0,
+    "model_distribution": {},
+    "capability_distribution": {},
+    "error_details": {
+      "HTTP 503: {\"detail\":\"Inference execution failed after 0 attempts: None\"}": 5
+    },
+    "scenario": "standard"
+  }
+}
+Live Policy Benchmark results saved to results/live_load_test_summary.json

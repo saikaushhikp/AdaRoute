@@ -118,6 +118,8 @@ class LocalBackend(BaseBackend):
 
                     p_tokens = prompt_eval_count if prompt_eval_count is not None else count_tokens(prompt_text)
                     out_tokens = eval_count if eval_count is not None else max(1, count_tokens(response_text))
+                    done_reason = data.get("done_reason")
+                    finish_reason = done_reason or "unknown"
 
                     return {
                         "content": response_text,
@@ -128,6 +130,8 @@ class LocalBackend(BaseBackend):
                         "model": target_model,
                         "provider": "local_ollama",
                         "source": "ollama_real",
+                        "is_simulated": False,
+                        "finish_reason": finish_reason,
                         "hardware": "cpu",
                         "model_digest": data.get("model_digest") or f"sha256:{hash(target_model)}",
                         "total_duration_ns": data.get("total_duration", 0),
@@ -160,6 +164,7 @@ class LocalBackend(BaseBackend):
             f"Successfully processed {request.task_type} request with privacy={request.privacy_level.value}."
         )
 
+        finish_reason = "length" if (request.max_tokens and out_tokens >= request.max_tokens) else "stop"
         return {
             "content": response_content,
             "prompt_tokens": p_tokens,
@@ -169,5 +174,7 @@ class LocalBackend(BaseBackend):
             "model": model_spec.model_id,
             "provider": model_spec.provider,
             "source": "simulated_local_cpu",
+            "is_simulated": True,
+            "finish_reason": finish_reason,
             "hardware": "simulated_cpu",
         }

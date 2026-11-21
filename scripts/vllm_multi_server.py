@@ -51,9 +51,12 @@ class LocalModelConfig:
     """Resolved runtime configuration for a local model engine."""
 
     model_id: str
+    replica_id: str = ""
+    engine_id: str = ""
     aliases: list[str] = field(default_factory=list)
     tokenizer: str = ""
     port: int = 7001
+    bind_host: str = "0.0.0.0"
     dtype: str = "half"
     max_model_len: int = 8192
     gpu_mem_util: float = 0.05
@@ -67,7 +70,11 @@ class LocalModelConfig:
 
 # Global server state
 _local_models: list[LocalModelConfig] = []
+_engines_by_replica_id: dict[str, LocalModelConfig] = {}
+_engines_by_port: dict[int, LocalModelConfig] = {}
+_engines_by_model: dict[str, list[LocalModelConfig]] = {}
 _model_lookup: dict[str, LocalModelConfig] = {}
+_model_rr_index: dict[str, int] = {}
 _default_model: LocalModelConfig | None = None
 _server_shutting_down = False
 
@@ -212,57 +219,106 @@ def load_local_models_from_catalog(config_path: Path) -> list[LocalModelConfig]:
             }
         )
 
-    num_models = len(local_entries)
-
-    # Dynamic GPU memory slicing:
-    # If VLLM_GPU_MEM_UTIL is set explicitly, use it as per-model cap.
-    # Otherwise divide safe total budget (default 0.50 for multi-model) across models.
-    env_mem = os.getenv("VLLM_GPU_MEM_UTIL")
-    if env_mem:
-        try:
-            per_model_mem = float(env_mem)
-        except ValueError:
-            per_model_mem = 0.20
-    else:
-        # Safe allocation per model to fit multiple models concurrently on GPU
-        # e.g. 2 models -> 0.25 each (total 50% VRAM)
-        per_model_mem = min(0.35, max(0.08, round(0.50 / max(num_models, 1), 2)))
-
-    resolved: list[LocalModelConfig] = []
-    for idx, entry in enumerate(local_entries):
+    # Collect engine targets across all local models and their configured replicas
+    targets: list[dict[str, Any]] = []
+    for entry in local_entries:
         mid = str(entry["model_id"]).strip()
         aliases = [str(a).strip() for a in entry.get("logical_aliases", []) if a]
         gguf = is_gguf_model(mid)
         tok = infer_tokenizer(mid, entry.get("tokenizer"))
 
-        # Context length capped for safe memory utilization in concurrent mode
         raw_ctx = int(entry.get("max_model_len") or entry.get("max_context") or entry.get("context_window") or 4096)
         safe_ctx = min(raw_ctx, int(os.getenv("VLLM_MAX_MODEL_LEN", "4096")))
-
-        # Dtype selection
         dtype = infer_dtype(mid, entry.get("dtype"), gguf)
-
-        # Per-model memory override or dynamic slice
         model_mem = entry.get("gpu_memory_utilization") or entry.get("gpu_mem_util")
-        if model_mem is not None:
-            try:
-                alloc_mem = float(model_mem)
-            except ValueError:
-                alloc_mem = per_model_mem
-        else:
-            alloc_mem = per_model_mem
 
-        port = BASE_INTERNAL_PORT + idx
+        replicas = entry.get("replicas", [])
+        if not replicas:
+            targets.append(
+                {
+                    "model_id": mid,
+                    "replica_id": f"{mid}-r1",
+                    "aliases": aliases,
+                    "tokenizer": tok,
+                    "dtype": dtype,
+                    "max_model_len": safe_ctx,
+                    "is_gguf": gguf,
+                    "mem_override": model_mem,
+                    "preferred_port": None,
+                }
+            )
+        else:
+            for r_idx, r in enumerate(replicas, 1):
+                r_id = str(r.get("replica_id") or f"{mid}-r{r_idx}").strip()
+                ep = str(r.get("endpoint", "")).strip()
+                pref_port = None
+                port_match = re.search(r":(\d+)", ep)
+                if port_match:
+                    p_val = int(port_match.group(1))
+                    if p_val != GATEWAY_PORT:
+                        pref_port = p_val
+                targets.append(
+                    {
+                        "model_id": mid,
+                        "replica_id": r_id,
+                        "aliases": aliases,
+                        "tokenizer": tok,
+                        "dtype": dtype,
+                        "max_model_len": safe_ctx,
+                        "is_gguf": gguf,
+                        "mem_override": model_mem,
+                        "preferred_port": pref_port,
+                    }
+                )
+
+    num_engines = len(targets)
+    env_mem = os.getenv("VLLM_GPU_MEM_UTIL")
+    if env_mem:
+        try:
+            default_per_engine_mem = float(env_mem)
+        except ValueError:
+            default_per_engine_mem = 0.12
+    else:
+        # Dynamic GPU memory slicing: safe allocation per engine to fit multiple engines concurrently on GPU
+        # e.g. 3 engines -> 0.13 each (total ~39% VRAM, leaving >14GB headroom on 24GB GPU)
+        default_per_engine_mem = min(0.35, max(0.06, round(0.40 / max(num_engines, 1), 2)))
+
+    used_ports: set[int] = {GATEWAY_PORT}
+    next_port = BASE_INTERNAL_PORT
+    resolved: list[LocalModelConfig] = []
+
+    for t in targets:
+        port = t["preferred_port"]
+        if port is None or port in used_ports:
+            while next_port in used_ports:
+                next_port += 1
+            port = next_port
+            next_port += 1
+        used_ports.add(port)
+
+        mem = t["mem_override"]
+        if mem is not None:
+            try:
+                alloc_mem = float(mem)
+            except ValueError:
+                alloc_mem = default_per_engine_mem
+        else:
+            alloc_mem = default_per_engine_mem
+
+        bind_host = os.getenv("VLLM_BIND_HOST", "0.0.0.0")
 
         cfg = LocalModelConfig(
-            model_id=mid,
-            aliases=aliases,
-            tokenizer=tok,
+            model_id=t["model_id"],
+            replica_id=t["replica_id"],
+            engine_id=f"engine-{t['replica_id']}",
+            aliases=t["aliases"],
+            tokenizer=t["tokenizer"],
             port=port,
-            dtype=dtype,
-            max_model_len=safe_ctx,
+            bind_host=bind_host,
+            dtype=t["dtype"],
+            max_model_len=t["max_model_len"],
             gpu_mem_util=alloc_mem,
-            is_gguf=gguf,
+            is_gguf=t["is_gguf"],
         )
         resolved.append(cfg)
 
@@ -270,57 +326,83 @@ def load_local_models_from_catalog(config_path: Path) -> list[LocalModelConfig]:
 
 
 def build_lookup_table(models: list[LocalModelConfig]) -> dict[str, LocalModelConfig]:
-    """Builds a case-insensitive lookup table matching model_id, aliases, and keywords."""
-    lookup: dict[str, LocalModelConfig] = {}
+    """Builds lookup structures matching replica_id, port, model_id, aliases, and keywords."""
+    _engines_by_replica_id.clear()
+    _engines_by_port.clear()
+    _engines_by_model.clear()
+
+    legacy_lookup: dict[str, LocalModelConfig] = {}
+
     for m in models:
-        # 1. Exact model_id
-        lookup[m.model_id.lower()] = m
-        # 2. Base model name without repo prefix (e.g., 'Qwen3-0.6B-GGUF:Q4_K_M')
+        _engines_by_replica_id[m.replica_id.lower()] = m
+        _engines_by_port[m.port] = m
+
+        keys: set[str] = set()
+        keys.add(m.model_id.lower())
         if "/" in m.model_id:
-            lookup[m.model_id.split("/")[-1].lower()] = m
-        # 3. Clean name without quantization (e.g., 'unsloth/qwen3-0.6b-gguf')
+            keys.add(m.model_id.split("/")[-1].lower())
         clean = m.model_id.split(":")[0].lower()
-        lookup[clean] = m
+        keys.add(clean)
         if "/" in clean:
-            lookup[clean.split("/")[-1]] = m
-        # 4. Aliases
+            keys.add(clean.split("/")[-1])
         for alias in m.aliases:
-            a_lower = alias.lower()
-            if a_lower not in lookup:
-                lookup[a_lower] = m
-    return lookup
+            keys.add(alias.lower())
+
+        for k in keys:
+            if k not in _engines_by_model:
+                _engines_by_model[k] = []
+            _engines_by_model[k].append(m)
+            if k not in legacy_lookup:
+                legacy_lookup[k] = m
+
+    return legacy_lookup
 
 
 def resolve_target_model(
-    requested_model: str | None,
+    requested_model: str | None = None,
     models: list[LocalModelConfig] | None = None,
     lookup: dict[str, LocalModelConfig] | None = None,
+    replica_id: str | None = None,
+    port: int | None = None,
 ) -> LocalModelConfig:
-    """Matches an incoming requested model string to the best local model config."""
+    """Matches an incoming request to target local engine by replica_id, port, or model with round-robin."""
     active_models = models if models is not None else _local_models
-    active_lookup = lookup if lookup is not None else _model_lookup
     default_m = _default_model or (active_models[0] if active_models else None)
 
-    if not requested_model:
-        if default_m is None:
-            raise RuntimeError("No local models configured to handle request.")
-        return default_m
+    # 1. Direct replica_id resolution
+    if replica_id:
+        r_clean = replica_id.strip().lower()
+        if r_clean in _engines_by_replica_id:
+            return _engines_by_replica_id[r_clean]
 
-    req_clean = requested_model.strip().lower()
+    # 2. Direct port resolution
+    if port and port in _engines_by_port:
+        return _engines_by_port[port]
 
-    # 1. Exact lookup
-    if req_clean in active_lookup:
-        return active_lookup[req_clean]
+    # 3. Model / alias resolution with round-robin across replicas of that model
+    if requested_model:
+        req_clean = requested_model.strip().lower()
 
-    # 2. Substring matching for model families (e.g. 'llama', 'qwen', 'deepseek', 'mistral')
-    for m in active_models:
-        m_lower = m.model_id.lower()
-        keywords = re.findall(r"[a-z0-9]+", m_lower)
-        for kw in keywords:
-            if len(kw) >= 4 and kw in req_clean:
-                return m
+        candidates = _engines_by_model.get(req_clean)
+        if not candidates:
+            # Substring keyword matching for model families (e.g. 'coder', 'qwen', 'deepseek')
+            for m in active_models:
+                m_lower = m.model_id.lower()
+                keywords = re.findall(r"[a-z0-9]+", m_lower)
+                for kw in keywords:
+                    if len(kw) >= 4 and kw in req_clean:
+                        candidates = _engines_by_model.get(m_lower)
+                        break
+                if candidates:
+                    break
 
-    # 3. Fallback to default
+        if candidates:
+            healthy = [c for c in candidates if getattr(c, "status", "") == "healthy"] or candidates
+            idx = _model_rr_index.get(req_clean, 0) % len(healthy)
+            chosen = healthy[idx]
+            _model_rr_index[req_clean] = idx + 1
+            return chosen
+
     if default_m is None:
         raise RuntimeError("No local models configured to handle request.")
     return default_m
@@ -368,13 +450,19 @@ def start_watchdog_thread() -> None:
         while not _server_shutting_down:
             for cfg in _local_models:
                 status = check_engine_health(cfg)
-                if "crashed" in status and cfg.restart_count < 3 and not _server_shutting_down:
+                if "crashed" in status and cfg.restart_count < 10 and not _server_shutting_down:
                     cfg.restart_count += 1
                     print(
-                        f"[vLLM Multi-Server] WARNING: Engine for '{cfg.model_id}' died ({status})! "
-                        f"Attempting auto-restart #{cfg.restart_count}/3...",
+                        f"[vLLM Multi-Server] WARNING: Engine for replica '{cfg.replica_id}' ({cfg.model_id}) died ({status})! "
+                        f"Attempting auto-restart #{cfg.restart_count}/10...",
                         flush=True,
                     )
+                    # Clean up any orphaned worker processes in its process group
+                    if cfg.process and cfg.process.pid:
+                        try:
+                            os.killpg(cfg.process.pid, signal.SIGKILL)
+                        except Exception:
+                            pass
                     try:
                         cfg.process = launch_engine(cfg)
                         cfg.status = "starting"
@@ -389,35 +477,40 @@ def start_watchdog_thread() -> None:
 def build_models_response(models: list[LocalModelConfig]) -> dict[str, Any]:
     """Generates an OpenAI-compatible /v1/models response for available local models."""
     data: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
     now = int(time.time())
     for m in models:
         # Exclude models whose processes have crashed and failed to restart
         if "crashed" in getattr(m, "status", ""):
             continue
-        data.append(
-            {
-                "id": m.model_id,
-                "object": "model",
-                "created": now,
-                "owned_by": "vllm",
-                "root": m.model_id,
-                "parent": None,
-                "permission": [],
-            }
-        )
-        # Expose primary aliases as models for standard SDKs
-        for alias in m.aliases:
+        if m.model_id not in seen_ids:
+            seen_ids.add(m.model_id)
             data.append(
                 {
-                    "id": alias,
+                    "id": m.model_id,
                     "object": "model",
                     "created": now,
-                    "owned_by": "vllm-alias",
+                    "owned_by": "vllm",
                     "root": m.model_id,
                     "parent": None,
                     "permission": [],
                 }
             )
+        # Expose primary aliases as models for standard SDKs
+        for alias in m.aliases:
+            if alias not in seen_ids:
+                seen_ids.add(alias)
+                data.append(
+                    {
+                        "id": alias,
+                        "object": "model",
+                        "created": now,
+                        "owned_by": "vllm-alias",
+                        "root": m.model_id,
+                        "parent": None,
+                        "permission": [],
+                    }
+                )
     return {"object": "list", "data": data}
 
 
@@ -432,30 +525,47 @@ class SystemAgnosticProxyHandler(BaseHTTPRequestHandler):
         if self.path.startswith("/health"):
             parsed_url = urllib.parse.urlparse(self.path)
             query_params = urllib.parse.parse_qs(parsed_url.query)
+            filter_replica = query_params.get("replica", query_params.get("replica_id", [None]))[0]
+            filter_port_str = query_params.get("port", [None])[0]
+            filter_port = int(filter_port_str) if filter_port_str and filter_port_str.isdigit() else None
             filter_model = query_params.get("model", [None])[0]
 
             health_status: dict[str, Any] = {}
+            backends_by_replica: dict[str, Any] = {}
             any_healthy = False
             all_healthy = True
 
             for m in _local_models:
                 status = check_engine_health(m)
-                health_status[m.model_id] = {
+                rep_info = {
+                    "replica_id": m.replica_id,
+                    "engine_id": m.engine_id,
+                    "model_id": m.model_id,
                     "status": status,
                     "port": m.port,
                     "dtype": m.dtype,
                     "restarts": m.restart_count,
+                    "pid": m.process.pid if m.process else None,
                 }
+                backends_by_replica[m.replica_id] = rep_info
+                if m.model_id not in health_status or status == "healthy":
+                    health_status[m.model_id] = rep_info
+
                 if status == "healthy":
                     any_healthy = True
                 else:
                     all_healthy = False
 
-            if filter_model:
-                target_m = resolve_target_model(filter_model)
+            if filter_replica or filter_port or filter_model:
+                target_m = resolve_target_model(
+                    requested_model=filter_model,
+                    replica_id=filter_replica,
+                    port=filter_port,
+                )
                 is_ok = target_m.status == "healthy"
                 code = 200 if is_ok else 503
                 payload = {
+                    "replica_id": target_m.replica_id,
                     "model": target_m.model_id,
                     "status": target_m.status,
                     "port": target_m.port,
@@ -465,6 +575,7 @@ class SystemAgnosticProxyHandler(BaseHTTPRequestHandler):
                 code = 200 if any_healthy else 503
                 payload = {
                     "status": "healthy" if all_healthy else ("degraded" if any_healthy else "starting"),
+                    "replicas": backends_by_replica,
                     "backends": health_status,
                 }
 
@@ -486,10 +597,47 @@ class SystemAgnosticProxyHandler(BaseHTTPRequestHandler):
         self._proxy_request(target, method="GET")
 
     def do_POST(self) -> None:
+        if self.path.startswith("/admin/terminate_replica"):
+            parsed_url = urllib.parse.urlparse(self.path)
+            query_params = urllib.parse.parse_qs(parsed_url.query)
+            filter_replica = query_params.get("replica", query_params.get("replica_id", [None]))[0]
+            filter_port_str = query_params.get("port", [None])[0]
+            filter_port = int(filter_port_str) if filter_port_str and filter_port_str.isdigit() else None
+
+            target = resolve_target_model(requested_model=None, replica_id=filter_replica, port=filter_port)
+            pid = target.process.pid if target and target.process else None
+            if pid:
+                try:
+                    os.killpg(pid, signal.SIGTERM)
+                except Exception:
+                    try:
+                        target.process.terminate()
+                    except Exception:
+                        pass
+                target.status = "crashed"
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(
+                json.dumps(
+                    {
+                        "status": "terminated",
+                        "replica_id": target.replica_id if target else None,
+                        "port": target.port if target else None,
+                        "pid": pid,
+                    }
+                ).encode("utf-8")
+            )
+            return
+
         content_len = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_len) if content_len > 0 else b""
 
-        # Extract requested model from JSON payload
+        # Extract requested model and replica from headers or JSON payload
+        req_replica = self.headers.get("X-AdaRoute-Replica") or self.headers.get("X-Replica-Id")
+        req_port_str = self.headers.get("X-Target-Port")
+        req_port = int(req_port_str) if req_port_str and req_port_str.isdigit() else None
+
         requested_model = None
         parsed_payload: dict[str, Any] | None = None
         if body:
@@ -497,17 +645,23 @@ class SystemAgnosticProxyHandler(BaseHTTPRequestHandler):
                 parsed_payload = json.loads(body.decode("utf-8"))
                 if isinstance(parsed_payload, dict):
                     requested_model = parsed_payload.get("model")
+                    if not req_replica and "replica_id" in parsed_payload:
+                        req_replica = str(parsed_payload.get("replica_id"))
             except Exception:
                 parsed_payload = None
 
-        target = resolve_target_model(requested_model)
+        target = resolve_target_model(
+            requested_model=requested_model,
+            replica_id=req_replica,
+            port=req_port,
+        )
 
         # Ensure target engine is monitored / attempt recovery if crashed
         target_status = check_engine_health(target)
         if "crashed" in target_status and target.restart_count < 3 and not _server_shutting_down:
             target.restart_count += 1
             print(
-                f"[vLLM Multi-Server] On-demand restart #{target.restart_count} for '{target.model_id}'...",
+                f"[vLLM Multi-Server] On-demand restart #{target.restart_count} for '{target.replica_id}' ({target.model_id})...",
                 flush=True,
             )
             try:
@@ -539,6 +693,9 @@ class SystemAgnosticProxyHandler(BaseHTTPRequestHandler):
                 for k, v in resp.headers.items():
                     if k.lower() not in ("transfer-encoding",):
                         self.send_header(k, v)
+                self.send_header("X-AdaRoute-Replica", target.replica_id)
+                self.send_header("X-AdaRoute-Port", str(target.port))
+                self.send_header("X-AdaRoute-Model", target.model_id)
                 self.end_headers()
                 # Streams both regular and chunked/SSE responses
                 shutil.copyfileobj(resp, self.wfile)
@@ -547,17 +704,23 @@ class SystemAgnosticProxyHandler(BaseHTTPRequestHandler):
             for k, v in e.headers.items():
                 if k.lower() not in ("transfer-encoding",):
                     self.send_header(k, v)
+            self.send_header("X-AdaRoute-Replica", target.replica_id)
+            self.send_header("X-AdaRoute-Port", str(target.port))
+            self.send_header("X-AdaRoute-Model", target.model_id)
             self.end_headers()
             self.wfile.write(e.read())
         except Exception as e:
             self.send_response(503)
             self.send_header("Content-Type", "application/json")
+            self.send_header("X-AdaRoute-Replica", target.replica_id)
+            self.send_header("X-AdaRoute-Port", str(target.port))
+            self.send_header("X-AdaRoute-Model", target.model_id)
             self.end_headers()
             target_status = getattr(target, "status", "unknown")
             err_resp = {
                 "error": {
                     "message": (
-                        f"vLLM engine for '{target.model_id}' (port {target.port}) unavailable: {e}. "
+                        f"vLLM engine for replica '{target.replica_id}' ({target.model_id}, port {target.port}) unavailable: {e}. "
                         f"Engine status: {target_status} (dtype: {target.dtype})"
                     ),
                     "type": "backend_unavailable",
@@ -581,7 +744,7 @@ def launch_engine(cfg: LocalModelConfig) -> subprocess.Popen:
         "--port",
         str(cfg.port),
         "--host",
-        "127.0.0.1",
+        cfg.bind_host,
         "--dtype",
         cfg.dtype,
         "--max-model-len",
@@ -602,11 +765,11 @@ def launch_engine(cfg: LocalModelConfig) -> subprocess.Popen:
         cmd.extend(["--tokenizer", cfg.tokenizer])
 
     print(
-        f"[vLLM Multi-Server] Launching engine for '{cfg.model_id}' on 127.0.0.1:{cfg.port} "
+        f"[vLLM Multi-Server] Launching engine for replica '{cfg.replica_id}' ({cfg.model_id}) on {cfg.bind_host}:{cfg.port} "
         f"(mem: {cfg.gpu_mem_util}, dtype: {cfg.dtype}, tokenizer: {cfg.tokenizer})...",
         flush=True,
     )
-    return subprocess.Popen(cmd)
+    return subprocess.Popen(cmd, start_new_session=True)
 
 
 def shutdown(signum: int = 0, frame: object = None) -> None:
@@ -646,11 +809,11 @@ def print_discovered_summary(models: list[LocalModelConfig], config_path: Path) 
     print("AdaRoute System-Agnostic vLLM Multi-Engine Router")
     print(f"Catalog Source: {config_path}")
     print(f"External Gateway Port: {GATEWAY_PORT}")
-    print(f"Local Models Configured: {len(models)}")
+    print(f"Local Engines Configured: {len(models)}")
     print("-" * 70)
     for idx, m in enumerate(models, 1):
-        print(f"[{idx}] {m.model_id}")
-        print(f"    - Internal Endpoint:  http://127.0.0.1:{m.port}")
+        print(f"[{idx}] Replica: {m.replica_id} ({m.model_id})")
+        print(f"    - Internal Endpoint:  http://{m.bind_host}:{m.port}")
         print(f"    - Base Tokenizer:     {m.tokenizer}")
         print(f"    - GPU Memory Util:    {m.gpu_mem_util} (dtype: {m.dtype})")
         print(f"    - Max Context:        {m.max_model_len}")
@@ -708,10 +871,21 @@ def main() -> None:
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
 
-    # 4. Launch vLLM engines for each model
-    for m in _local_models:
+    # 4. Launch vLLM engines for each model/replica with staged readiness to eliminate memory profiling races
+    for idx, m in enumerate(_local_models):
+        if idx > 0:
+            prev_m = _local_models[idx - 1]
+            print(
+                f"[vLLM Multi-Server] Staging startup: waiting for '{prev_m.replica_id}' to reach healthy status before launching '{m.replica_id}'...",
+                flush=True,
+            )
+            deadline = time.time() + 45.0
+            while time.time() < deadline:
+                if check_engine_health(prev_m) == "healthy":
+                    time.sleep(2.0)  # Settle buffer after KV cache allocation
+                    break
+                time.sleep(1.5)
         m.process = launch_engine(m)
-        time.sleep(1.0)  # Slight stagger to avoid GPU initialization race
 
     # 5. Start engine watchdog thread
     start_watchdog_thread()

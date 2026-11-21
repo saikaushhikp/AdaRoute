@@ -1,0 +1,237 @@
+{
+  "summary": {
+    "adaptive": {
+      "total_requests": 5,
+      "completed": 5,
+      "objective_accuracy": 0.8,
+      "avg_latency_ms": 2972.5,
+      "cost_type": "local_gpu_allocation"
+    },
+    "cheapest": {
+      "total_requests": 5,
+      "completed": 5,
+      "objective_accuracy": 0.8,
+      "avg_latency_ms": 2993.27,
+      "cost_type": "local_gpu_allocation"
+    },
+    "strongest": {
+      "total_requests": 5,
+      "completed": 5,
+      "objective_accuracy": 0.8,
+      "avg_latency_ms": 2899.39,
+      "cost_type": "local_gpu_allocation"
+    }
+  },
+  "cases": [
+    {
+      "case_id": "math_mult",
+      "prompt": "What is 17 * 23? Output only the final number with no extra text.",
+      "policies": {
+        "adaptive": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r2",
+          "provider": "vllm",
+          "latency_ms": 4410.88,
+          "finish_reason": "length",
+          "cost": 6e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "sample_output_preview": "<think> Okay, so I need to calculate 17 multiplied by 23. Let me think about how to do this. Hmm, I remember that multip"
+        },
+        "cheapest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 3414.46,
+          "finish_reason": "length",
+          "cost": 6e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "sample_output_preview": "<think> Okay, so I need to calculate 17 multiplied by 23. Let me think about how to do this. Hmm, I remember that multip"
+        },
+        "strongest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 3422.1,
+          "finish_reason": "length",
+          "cost": 6e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "sample_output_preview": "<think> Okay, so I need to calculate 17 multiplied by 23. Let me think about how to do this. Hmm, I remember that multip"
+        }
+      }
+    },
+    {
+      "case_id": "code_func",
+      "prompt": "Write a Python function named `is_even(n)` that returns True if n is even, and False otherwise.",
+      "policies": {
+        "adaptive": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r2",
+          "provider": "vllm",
+          "latency_ms": 3277.03,
+          "finish_reason": "stop",
+          "cost": 6e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "sample_output_preview": "<think> Okay, I need to write a Python function called is_even that returns True if n is even and False otherwise. Let m"
+        },
+        "cheapest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r2",
+          "provider": "vllm",
+          "latency_ms": 4405.88,
+          "finish_reason": "stop",
+          "cost": 6e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "sample_output_preview": "<think> Okay, I need to write a Python function called is_even that returns True if n is even and False otherwise. Let m"
+        },
+        "strongest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 3921.75,
+          "finish_reason": "stop",
+          "cost": 6e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "sample_output_preview": "<think> Okay, I need to write a Python function called is_even that returns True if n is even and False otherwise. Let m"
+        }
+      }
+    },
+    {
+      "case_id": "json_format",
+      "prompt": "Output a valid JSON array containing strings 'apple', 'banana', and 'cherry'. Output only the JSON array.",
+      "policies": {
+        "adaptive": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 3076.89,
+          "finish_reason": "stop",
+          "cost": 6e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "sample_output_preview": "<think> Okay, the user wants me to output a valid JSON array containing the strings 'apple', 'banana', and 'cherry'. And"
+        },
+        "cheapest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 3079.04,
+          "finish_reason": "stop",
+          "cost": 6e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "sample_output_preview": "<think> Okay, the user wants me to output a valid JSON array containing the strings 'apple', 'banana', and 'cherry'. And"
+        },
+        "strongest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r2",
+          "provider": "vllm",
+          "latency_ms": 3050.26,
+          "finish_reason": "stop",
+          "cost": 6e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "sample_output_preview": "<think> Okay, the user wants me to output a valid JSON array containing the strings 'apple', 'banana', and 'cherry'. And"
+        }
+      }
+    },
+    {
+      "case_id": "chem_symbol",
+      "prompt": "What is the chemical symbol for gold? Output only the two-letter symbol.",
+      "policies": {
+        "adaptive": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 1544.26,
+          "finish_reason": "stop",
+          "cost": 3e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "sample_output_preview": "<think> Okay, so the user is asking for the chemical symbol for gold. Let me think. I remember that gold is a metal, rig"
+        },
+        "cheapest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 1537.56,
+          "finish_reason": "stop",
+          "cost": 3e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "sample_output_preview": "<think> Okay, so the user is asking for the chemical symbol for gold. Let me think. I remember that gold is a metal, rig"
+        },
+        "strongest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 1550.71,
+          "finish_reason": "stop",
+          "cost": 3e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "sample_output_preview": "<think> Okay, so the user is asking for the chemical symbol for gold. Let me think. I remember that gold is a metal, rig"
+        }
+      }
+    },
+    {
+      "case_id": "logic_syllogism",
+      "prompt": "Premises: All Bloops are Razzies. All Razzies are Lizzies. Question: Are all Bloops definitely Lizzies? Answer with just Yes or No.",
+      "policies": {
+        "adaptive": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 2553.43,
+          "finish_reason": "stop",
+          "cost": 5e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": false,
+          "sample_output_preview": "<think> Okay, let's see. The premises are: All Bloops are Razzies, and All Razzies are Lizzies. The question is whether "
+        },
+        "cheapest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 2529.4,
+          "finish_reason": "stop",
+          "cost": 5e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": false,
+          "sample_output_preview": "<think> Okay, let's see. The premises are: All Bloops are Razzies, and All Razzies are Lizzies. The question is whether "
+        },
+        "strongest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 2552.14,
+          "finish_reason": "stop",
+          "cost": 5e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": false,
+          "sample_output_preview": "<think> Okay, let's see. The premises are: All Bloops are Razzies, and All Razzies are Lizzies. The question is whether "
+        }
+      }
+    }
+  ]
+}

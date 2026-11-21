@@ -1,0 +1,47 @@
+python -m adaroute.experiments.load_test --scenario stress -n 50 -c 12 -r 25.0 --no-cache
+Starting Live Load Test against http://localhost:7000 (scenario=stress, requests=50, concurrency=12, rps=25.0)...
+{
+  "total_offered": 50,
+  "completed": 33,
+  "failed": 17,
+  "cache_hits": 0,
+  "cache_misses": 33,
+  "duration_sec": 22.85,
+  "effective_rps": 1.44,
+  "p50_latency_ms": 3421.48,
+  "p90_latency_ms": 15069.79,
+  "p95_latency_ms": 15159.89,
+  "p99_latency_ms": 15188.69,
+  "mean_latency_ms": 5001.44,
+  "min_latency_ms": 428.75,
+  "max_latency_ms": 15188.69,
+  "total_prompt_tokens": 1901,
+  "total_output_tokens": 7933,
+  "actual_incurred_cost": 0.002604,
+  "frontier_benchmark_cost": 0.1285,
+  "attributable_savings": 0.125896,
+  "savings_percentage": 97.97,
+  "model_distribution": {
+    "groq/qwen/qwen3.8-27b": 2,
+    "unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M": 8,
+    "unsloth/Qwen3-0.6B-GGUF:Q4_K_M": 18,
+    "cohere/command-r-08-2024": 5
+  },
+  "capability_distribution": {
+    "coding": 5,
+    "qa": 4,
+    "reasoning": 12,
+    "general": 4,
+    "fast": 4,
+    "summarization": 4
+  },
+  "error_details": {
+    "HTTP 503: {\"detail\":\"Inference execution failed after 1 attempts: LiteLLM call t": 1,
+    "HTTP 503: {\"detail\":\"Inference execution failed after 0 attempts: None\"}": 13,
+    "HTTP 503: {\"detail\":\"Inference execution failed after 1 attempts: vLLM endpoint ": 1,
+    "HTTP 503: {\"detail\":\"Inference execution failed after 2 attempts: vLLM endpoint ": 1,
+    "HTTP 503: {\"detail\":\"Inference execution failed after 2 attempts: Failed to conn": 1
+  },
+  "scenario": "stress"
+}
+Results saved to results/live_load_test_summary.json

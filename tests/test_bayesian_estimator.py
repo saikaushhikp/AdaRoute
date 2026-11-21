@@ -20,7 +20,7 @@ from adaroute.workloads.bayesian_estimator import (
 )
 
 
-def test_tc_m11_01_domain_priors_differentiation():
+def test_TC_M3_32_domain_priors_differentiation():
     estimator = BayesianLinearEstimator()
     est_qa = estimator.estimate("qa", prompt_tokens=50)
     est_coding = estimator.estimate("coding", prompt_tokens=50, is_code=True)
@@ -33,7 +33,7 @@ def test_tc_m11_01_domain_priors_differentiation():
     assert est_qa.reservation_tokens >= est_qa.expected_tokens
 
 
-def test_tc_m11_02_online_bayesian_updating_and_variance_shrinkage():
+def test_TC_M3_33_online_bayesian_updating_and_variance_shrinkage():
     regressor = DomainBayesianRegressor(
         domain_name="general",
         prior_mean=[100.0, 5.0, 0.0, 0.0],
@@ -66,7 +66,7 @@ def test_tc_m11_02_online_bayesian_updating_and_variance_shrinkage():
     assert pred_updated.sample_count == 15
 
 
-def test_tc_m11_03_95_percent_upper_credible_bound_reservation():
+def test_TC_M3_34_95_percent_upper_credible_bound_reservation():
     estimator = BayesianLinearEstimator()
     est = estimator.estimate("general", prompt_tokens=100)
 
@@ -77,7 +77,7 @@ def test_tc_m11_03_95_percent_upper_credible_bound_reservation():
     assert diff >= int(1.645 * est.predictive_std) - 1
 
 
-def test_tc_m11_04_explicit_max_tokens_clamping():
+def test_TC_M3_35_explicit_max_tokens_clamping():
     estimator = BayesianLinearEstimator()
     # If client requests max_tokens = 40, expected and reservation must clamp to 40
     est = estimator.estimate("coding", prompt_tokens=50, is_code=True, max_tokens=40)
@@ -85,7 +85,7 @@ def test_tc_m11_04_explicit_max_tokens_clamping():
     assert est.reservation_tokens == 40
 
 
-def test_tc_m11_05_persistence_and_reload():
+def test_TC_M3_36_persistence_and_reload():
     with tempfile.TemporaryDirectory() as tmpdir:
         save_file = Path(tmpdir) / "bayesian_weights.json"
         est1 = BayesianLinearEstimator(persistence_path=save_file)

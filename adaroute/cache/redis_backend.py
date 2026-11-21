@@ -46,6 +46,7 @@ class CacheEntry:
         is_simulated: bool = False,
         source: str = "",
         created_at: float | None = None,
+        finish_reason: str = "stop",
     ):
         self.key = key
         self.response = response
@@ -62,6 +63,7 @@ class CacheEntry:
         self.is_simulated = is_simulated or ("simulated" in str(source).lower())
         self.source = source or ("simulated" if self.is_simulated else "real")
         self.created_at = created_at if created_at is not None else time.time()
+        self.finish_reason = finish_reason
 
     def is_expired(self) -> bool:
         return (time.time() - self.created_at) > self.ttl_seconds
@@ -80,6 +82,7 @@ class CacheEntry:
             "is_simulated": self.is_simulated,
             "source": self.source,
             "created_at": self.created_at,
+            "finish_reason": self.finish_reason,
         }
 
     @classmethod
@@ -95,8 +98,9 @@ class CacheEntry:
             content_version=data.get("content_version", "v1"),
             ttl_seconds=data.get("ttl_seconds", 300.0),
             is_simulated=data.get("is_simulated", False),
-            source=data.get("source", ""),
+            source=data.get("source", "unknown"),
             created_at=data.get("created_at"),
+            finish_reason=data.get("finish_reason", "unknown"),
         )
 
 

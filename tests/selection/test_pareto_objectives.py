@@ -48,7 +48,7 @@ def make_features(
     )
 
 
-def test_tc_m3_34_pareto_dominance_pruning():
+def test_TC_M3_17_pareto_dominance_pruning():
     """Candidate A dominates Candidate B iff A is <= B on all metrics and < on at least one."""
     pareto = ParetoFrontierEngine(
         objectives=[
@@ -73,7 +73,7 @@ def test_tc_m3_34_pareto_dominance_pruning():
     assert dominated_ids == ["c3-dominated"]
 
 
-def test_tc_m3_35_candidate_set_stability():
+def test_TC_M3_18_candidate_set_stability():
     """Adding a dominated candidate does not alter the relative order of existing frontier candidates."""
     obj_engine = ConfigurableObjectiveEngine(
         objectives=[
@@ -98,7 +98,7 @@ def test_tc_m3_35_candidate_set_stability():
     assert pair_order == trio_order
 
 
-def test_tc_m3_36_custom_declarative_objective():
+def test_TC_M3_19_custom_declarative_objective():
     """A completely new objective dimension operates without any Python code changes."""
     custom_engine = ConfigurableObjectiveEngine(
         objectives=[
@@ -136,7 +136,7 @@ def test_tc_m3_36_custom_declarative_objective():
     assert ranked[0][0].candidate_id == "c1-idle"
 
 
-def test_tc_m3_37_single_candidate_normalization_safety():
+def test_TC_M3_20_single_candidate_normalization_safety():
     """Single candidate set evaluates smoothly without division-by-zero."""
     engine = ConfigurableObjectiveEngine()
     c = make_features("single", cost=0.001, quality=0.80, latency=100.0)

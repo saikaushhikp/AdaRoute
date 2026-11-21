@@ -1,0 +1,27 @@
+{
+  "evaluation_name": "honest_small_scale_comparison",
+  "run_id": "55077be5",
+  "timestamp_utc": "20261121T112814.754567Z",
+  "git_branch": "psk/gpu-vllm",
+  "git_commit": "3b081c7ff8cb3c6fb2d95561ae82657081883db1",
+  "git_dirty": true,
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "python_version": "3.13.14",
+  "environment": "live_services",
+  "gateway_url": "http://localhost:7000",
+  "hardware_gpu": "NVIDIA RTX PRO 4000 Blackwell SFF Edition, 24467 MiB",
+  "redis_version": "7.4.7",
+  "evaluation_parameters": {
+    "temperature": 0.0,
+    "max_tokens": 300,
+    "seed": 42,
+    "user_private": true,
+    "execution_mode": "real"
+  },
+  "caveats": [
+    "Local replica IDs ('vllm-gpu-gguf-qwen3-r1', 'vllm-gpu-gguf-qwen3-r2') connect to a single containerized vLLM instance; they test scheduler routing logic and queue accounting, not independent multi-GPU node balancing.",
+    "Local model costs are internal GPU/CPU allocations based on catalog token rates ($0.0/1k), not invoiced cloud provider bills.",
+    "Qwen3-0.6B generates an internal <think>...</think> reasoning passage before producing its answer; answer checkers evaluate the final answer text strictly after </think>.",
+    "Sample size is intentionally small and focused (5 frozen selection cases, 10 labeled cache cases) to demonstrate correctness and provenance invariants rather than inferring broad statistical distributions."
+  ]
+}

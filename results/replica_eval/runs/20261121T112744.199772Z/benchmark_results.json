@@ -1,0 +1,647 @@
+{
+  "manifest": {
+    "run_id": "benchmark_20261121T112744.199772Z",
+    "timestamp": "20261121T112744.199772Z",
+    "execution_mode": "real",
+    "model_id": "unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M",
+    "schedulers_evaluated": [
+      "round_robin",
+      "least_loaded",
+      "slo_aware"
+    ],
+    "gpu_initial": {
+      "gpu_name": "NVIDIA RTX PRO 4000 Blackwell SFF Edition",
+      "total_mib": 24467.0,
+      "free_mib": 15907.0,
+      "used_mib": 8082.0,
+      "driver_version": "595.91.07"
+    },
+    "gpu_final": {
+      "gpu_name": "NVIDIA RTX PRO 4000 Blackwell SFF Edition",
+      "total_mib": 24467.0,
+      "free_mib": 15907.0,
+      "used_mib": 8082.0,
+      "driver_version": "595.91.07"
+    },
+    "r1_port": 7002,
+    "r2_port": 7003,
+    "r1_metrics_initial": {
+      "generation_tokens_total": 0.0,
+      "num_requests_running": 0.0,
+      "num_requests_waiting": 0.0,
+      "kv_cache_usage_perc": 0.0
+    },
+    "r1_metrics_final": {
+      "generation_tokens_total": 707.0,
+      "num_requests_running": 0.0,
+      "num_requests_waiting": 0.0,
+      "kv_cache_usage_perc": 0.0
+    },
+    "r2_metrics_initial": {
+      "generation_tokens_total": 2343.0,
+      "num_requests_running": 0.0,
+      "num_requests_waiting": 0.0,
+      "kv_cache_usage_perc": 0.0
+    },
+    "r2_metrics_final": {
+      "generation_tokens_total": 2854.0,
+      "num_requests_running": 0.0,
+      "num_requests_waiting": 0.0,
+      "kv_cache_usage_perc": 0.0
+    }
+  },
+  "scenarios": {
+    "balanced_load": {
+      "round_robin": {
+        "stats": {
+          "scheduler": "round_robin",
+          "scenario": "balanced_load",
+          "total_requests": 6,
+          "successful_requests": 6,
+          "p50_latency_ms": 565.49,
+          "p95_latency_ms": 644.22,
+          "p99_latency_ms": 644.22,
+          "mean_latency_ms": 516.54,
+          "throughput_req_per_sec": 1.22,
+          "slo_attainment_rate": 1.0,
+          "replica_distribution": {
+            "vllm-gpu-gguf-qwen2.5-r1": 3,
+            "vllm-gpu-gguf-qwen2.5-r2": 3
+          }
+        },
+        "records": [
+          {
+            "prompt_id": "p1_fib",
+            "task": "coding",
+            "scheduler": "round_robin",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+            "latency_ms": 565.49,
+            "slo_ms": 1200.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a Python function that computes Fibonacci numbers up to a given number `n`:\n\n```python\ndef fibonacci(n):\n    # Initialize the first two Fibonacci numbers\n    fib_sequence = [0",
+            "prompt_tokens": 11,
+            "completion_tokens": 40
+          },
+          {
+            "prompt_id": "p2_qa",
+            "task": "qa",
+            "scheduler": "round_robin",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 400.96,
+            "slo_ms": 800.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "The capital of France is Paris, and its primary river is the Seine River.",
+            "prompt_tokens": 12,
+            "completion_tokens": 18
+          },
+          {
+            "prompt_id": "p3_prime",
+            "task": "coding",
+            "scheduler": "round_robin",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+            "latency_ms": 575.0,
+            "slo_ms": 1200.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a Python function to check if a number is prime:\n\n```python\ndef is_prime(n):\n    # Check if n is less than 2\n    if n < 2:\n       ",
+            "prompt_tokens": 14,
+            "completion_tokens": 40
+          },
+          {
+            "prompt_id": "p4_summary",
+            "task": "summarization",
+            "scheduler": "round_robin",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 456.89,
+            "slo_ms": 1000.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "A distributed lock is a mechanism that ensures that only one process can access a shared resource at a time, even if multiple processes are trying to do so",
+            "prompt_tokens": 17,
+            "completion_tokens": 30
+          },
+          {
+            "prompt_id": "p5_stack",
+            "task": "coding",
+            "scheduler": "round_robin",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+            "latency_ms": 644.22,
+            "slo_ms": 1400.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a simple implementation of a stack data structure in Python:\n\n```python\nclass Stack:\n    def __init__(self):\n        # Initialize an empty list to store the stack elements\n        self.items = []\n\n    def",
+            "prompt_tokens": 10,
+            "completion_tokens": 45
+          },
+          {
+            "prompt_id": "p6_concept",
+            "task": "general",
+            "scheduler": "round_robin",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 456.71,
+            "slo_ms": 1000.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Concurrency refers to the ability of multiple processes or threads to perform tasks simultaneously, while parallelism refers to the ability of multiple processes or threads to perform tasks",
+            "prompt_tokens": 12,
+            "completion_tokens": 30
+          }
+        ]
+      },
+      "least_loaded": {
+        "stats": {
+          "scheduler": "least_loaded",
+          "scenario": "balanced_load",
+          "total_requests": 6,
+          "successful_requests": 6,
+          "p50_latency_ms": 589.76,
+          "p95_latency_ms": 652.14,
+          "p99_latency_ms": 652.14,
+          "mean_latency_ms": 507.94,
+          "throughput_req_per_sec": 1.24,
+          "slo_attainment_rate": 1.0,
+          "replica_distribution": {
+            "vllm-gpu-gguf-qwen2.5-r1": 6,
+            "vllm-gpu-gguf-qwen2.5-r2": 0
+          }
+        },
+        "records": [
+          {
+            "prompt_id": "p1_fib",
+            "task": "coding",
+            "scheduler": "least_loaded",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 589.76,
+            "slo_ms": 1200.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a Python function that computes Fibonacci numbers up to a given number `n`:\n\n```python\ndef fibonacci(n):\n    # Initialize the first two Fibonacci numbers\n    fib_sequence = [0",
+            "prompt_tokens": 11,
+            "completion_tokens": 40
+          },
+          {
+            "prompt_id": "p2_qa",
+            "task": "qa",
+            "scheduler": "least_loaded",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 307.33,
+            "slo_ms": 800.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "The capital of France is Paris, and its primary river is the Seine River.",
+            "prompt_tokens": 12,
+            "completion_tokens": 18
+          },
+          {
+            "prompt_id": "p3_prime",
+            "task": "coding",
+            "scheduler": "least_loaded",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 590.42,
+            "slo_ms": 1200.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a Python function to check if a number is prime:\n\n```python\ndef is_prime(n):\n    # Check if n is less than 2\n    if n < 2:\n       ",
+            "prompt_tokens": 14,
+            "completion_tokens": 40
+          },
+          {
+            "prompt_id": "p4_summary",
+            "task": "summarization",
+            "scheduler": "least_loaded",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 454.02,
+            "slo_ms": 1000.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "A distributed lock is a mechanism that ensures that only one process can access a shared resource at a time, even if multiple processes are trying to do so",
+            "prompt_tokens": 17,
+            "completion_tokens": 30
+          },
+          {
+            "prompt_id": "p5_stack",
+            "task": "coding",
+            "scheduler": "least_loaded",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 652.14,
+            "slo_ms": 1400.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a simple implementation of a stack data structure in Python:\n\n```python\nclass Stack:\n    def __init__(self):\n        # Initialize an empty list to store the stack elements\n        self.items = []\n\n    def",
+            "prompt_tokens": 10,
+            "completion_tokens": 45
+          },
+          {
+            "prompt_id": "p6_concept",
+            "task": "general",
+            "scheduler": "least_loaded",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 453.96,
+            "slo_ms": 1000.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Concurrency refers to the ability of multiple processes or threads to perform tasks simultaneously, while parallelism refers to the ability of multiple processes or threads to perform tasks",
+            "prompt_tokens": 12,
+            "completion_tokens": 30
+          }
+        ]
+      },
+      "slo_aware": {
+        "stats": {
+          "scheduler": "slo_aware",
+          "scenario": "balanced_load",
+          "total_requests": 6,
+          "successful_requests": 6,
+          "p50_latency_ms": 579.12,
+          "p95_latency_ms": 652.25,
+          "p99_latency_ms": 652.25,
+          "mean_latency_ms": 504.34,
+          "throughput_req_per_sec": 1.24,
+          "slo_attainment_rate": 1.0,
+          "replica_distribution": {
+            "vllm-gpu-gguf-qwen2.5-r1": 6,
+            "vllm-gpu-gguf-qwen2.5-r2": 0
+          }
+        },
+        "records": [
+          {
+            "prompt_id": "p1_fib",
+            "task": "coding",
+            "scheduler": "slo_aware",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 592.86,
+            "slo_ms": 1200.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a Python function that computes Fibonacci numbers up to a given number `n`:\n\n```python\ndef fibonacci(n):\n    # Initialize the first two Fibonacci numbers\n    fib_sequence = [0",
+            "prompt_tokens": 11,
+            "completion_tokens": 40
+          },
+          {
+            "prompt_id": "p2_qa",
+            "task": "qa",
+            "scheduler": "slo_aware",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 300.24,
+            "slo_ms": 800.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "The capital of France is Paris, and its primary river is the Seine River.",
+            "prompt_tokens": 12,
+            "completion_tokens": 18
+          },
+          {
+            "prompt_id": "p3_prime",
+            "task": "coding",
+            "scheduler": "slo_aware",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 579.12,
+            "slo_ms": 1200.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a Python function to check if a number is prime:\n\n```python\ndef is_prime(n):\n    # Check if n is less than 2\n    if n < 2:\n       ",
+            "prompt_tokens": 14,
+            "completion_tokens": 40
+          },
+          {
+            "prompt_id": "p4_summary",
+            "task": "summarization",
+            "scheduler": "slo_aware",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 448.21,
+            "slo_ms": 1000.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "A distributed lock is a mechanism that ensures that only one process can access a shared resource at a time, even if multiple processes are trying to do so",
+            "prompt_tokens": 17,
+            "completion_tokens": 30
+          },
+          {
+            "prompt_id": "p5_stack",
+            "task": "coding",
+            "scheduler": "slo_aware",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 652.25,
+            "slo_ms": 1400.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a simple implementation of a stack data structure in Python:\n\n```python\nclass Stack:\n    def __init__(self):\n        # Initialize an empty list to store the stack elements\n        self.items = []\n\n    def",
+            "prompt_tokens": 10,
+            "completion_tokens": 45
+          },
+          {
+            "prompt_id": "p6_concept",
+            "task": "general",
+            "scheduler": "slo_aware",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 453.37,
+            "slo_ms": 1000.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Concurrency refers to the ability of multiple processes or threads to perform tasks simultaneously, while parallelism refers to the ability of multiple processes or threads to perform tasks",
+            "prompt_tokens": 12,
+            "completion_tokens": 30
+          }
+        ]
+      }
+    },
+    "asymmetric_contention": {
+      "round_robin": {
+        "stats": {
+          "scheduler": "round_robin",
+          "scenario": "asymmetric_contention",
+          "total_requests": 6,
+          "successful_requests": 6,
+          "p50_latency_ms": 571.05,
+          "p95_latency_ms": 636.48,
+          "p99_latency_ms": 636.48,
+          "mean_latency_ms": 498.42,
+          "throughput_req_per_sec": 1.25,
+          "slo_attainment_rate": 1.0,
+          "replica_distribution": {
+            "vllm-gpu-gguf-qwen2.5-r1": 3,
+            "vllm-gpu-gguf-qwen2.5-r2": 3
+          }
+        },
+        "records": [
+          {
+            "prompt_id": "p1_fib",
+            "task": "coding",
+            "scheduler": "round_robin",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+            "latency_ms": 575.86,
+            "slo_ms": 1200.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a Python function that computes Fibonacci numbers up to a given number `n`:\n\n```python\ndef fibonacci(n):\n    # Initialize the first two Fibonacci numbers\n    fib_sequence = [0",
+            "prompt_tokens": 11,
+            "completion_tokens": 40
+          },
+          {
+            "prompt_id": "p2_qa",
+            "task": "qa",
+            "scheduler": "round_robin",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 304.02,
+            "slo_ms": 800.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "The capital of France is Paris, and its primary river is the Seine River.",
+            "prompt_tokens": 12,
+            "completion_tokens": 18
+          },
+          {
+            "prompt_id": "p3_prime",
+            "task": "coding",
+            "scheduler": "round_robin",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+            "latency_ms": 571.05,
+            "slo_ms": 1200.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a Python function to check if a number is prime:\n\n```python\ndef is_prime(n):\n    # Check if n is less than 2\n    if n < 2:\n       ",
+            "prompt_tokens": 14,
+            "completion_tokens": 40
+          },
+          {
+            "prompt_id": "p4_summary",
+            "task": "summarization",
+            "scheduler": "round_robin",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 450.27,
+            "slo_ms": 1000.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "A distributed lock is a mechanism that ensures that only one process can access a shared resource at a time, even if multiple processes are trying to do so",
+            "prompt_tokens": 17,
+            "completion_tokens": 30
+          },
+          {
+            "prompt_id": "p5_stack",
+            "task": "coding",
+            "scheduler": "round_robin",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+            "latency_ms": 636.48,
+            "slo_ms": 1400.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a simple implementation of a stack data structure in Python:\n\n```python\nclass Stack:\n    def __init__(self):\n        # Initialize an empty list to store the stack elements\n        self.items = []\n\n    def",
+            "prompt_tokens": 10,
+            "completion_tokens": 45
+          },
+          {
+            "prompt_id": "p6_concept",
+            "task": "general",
+            "scheduler": "round_robin",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 452.83,
+            "slo_ms": 1000.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Concurrency refers to the ability of multiple processes or threads to perform tasks simultaneously, while parallelism refers to the ability of multiple processes or threads to perform tasks",
+            "prompt_tokens": 12,
+            "completion_tokens": 30
+          }
+        ]
+      },
+      "least_loaded": {
+        "stats": {
+          "scheduler": "least_loaded",
+          "scenario": "asymmetric_contention",
+          "total_requests": 6,
+          "successful_requests": 6,
+          "p50_latency_ms": 571.86,
+          "p95_latency_ms": 662.04,
+          "p99_latency_ms": 662.04,
+          "mean_latency_ms": 505.37,
+          "throughput_req_per_sec": 1.24,
+          "slo_attainment_rate": 1.0,
+          "replica_distribution": {
+            "vllm-gpu-gguf-qwen2.5-r1": 4,
+            "vllm-gpu-gguf-qwen2.5-r2": 2
+          }
+        },
+        "records": [
+          {
+            "prompt_id": "p1_fib",
+            "task": "coding",
+            "scheduler": "least_loaded",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+            "latency_ms": 571.86,
+            "slo_ms": 1200.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a Python function that computes Fibonacci numbers up to a given number `n`:\n\n```python\ndef fibonacci(n):\n    # Initialize the first two Fibonacci numbers\n    fib_sequence = [0",
+            "prompt_tokens": 11,
+            "completion_tokens": 40
+          },
+          {
+            "prompt_id": "p2_qa",
+            "task": "qa",
+            "scheduler": "least_loaded",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+            "latency_ms": 308.03,
+            "slo_ms": 800.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "The capital of France is Paris, and its primary river is the Seine River.",
+            "prompt_tokens": 12,
+            "completion_tokens": 18
+          },
+          {
+            "prompt_id": "p3_prime",
+            "task": "coding",
+            "scheduler": "least_loaded",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 591.56,
+            "slo_ms": 1200.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a Python function to check if a number is prime:\n\n```python\ndef is_prime(n):\n    # Check if n is less than 2\n    if n < 2:\n       ",
+            "prompt_tokens": 14,
+            "completion_tokens": 40
+          },
+          {
+            "prompt_id": "p4_summary",
+            "task": "summarization",
+            "scheduler": "least_loaded",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 445.79,
+            "slo_ms": 1000.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "A distributed lock is a mechanism that ensures that only one process can access a shared resource at a time, even if multiple processes are trying to do so",
+            "prompt_tokens": 17,
+            "completion_tokens": 30
+          },
+          {
+            "prompt_id": "p5_stack",
+            "task": "coding",
+            "scheduler": "least_loaded",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 662.04,
+            "slo_ms": 1400.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a simple implementation of a stack data structure in Python:\n\n```python\nclass Stack:\n    def __init__(self):\n        # Initialize an empty list to store the stack elements\n        self.items = []\n\n    def",
+            "prompt_tokens": 10,
+            "completion_tokens": 45
+          },
+          {
+            "prompt_id": "p6_concept",
+            "task": "general",
+            "scheduler": "least_loaded",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+            "latency_ms": 452.92,
+            "slo_ms": 1000.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Concurrency refers to the ability of multiple processes or threads to perform tasks simultaneously, while parallelism refers to the ability of multiple processes or threads to perform tasks",
+            "prompt_tokens": 12,
+            "completion_tokens": 30
+          }
+        ]
+      },
+      "slo_aware": {
+        "stats": {
+          "scheduler": "slo_aware",
+          "scenario": "asymmetric_contention",
+          "total_requests": 6,
+          "successful_requests": 6,
+          "p50_latency_ms": 564.42,
+          "p95_latency_ms": 641.83,
+          "p99_latency_ms": 641.83,
+          "mean_latency_ms": 491.37,
+          "throughput_req_per_sec": 1.26,
+          "slo_attainment_rate": 1.0,
+          "replica_distribution": {
+            "vllm-gpu-gguf-qwen2.5-r1": 0,
+            "vllm-gpu-gguf-qwen2.5-r2": 6
+          }
+        },
+        "records": [
+          {
+            "prompt_id": "p1_fib",
+            "task": "coding",
+            "scheduler": "slo_aware",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+            "latency_ms": 564.42,
+            "slo_ms": 1200.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a Python function that computes Fibonacci numbers up to a given number `n`:\n\n```python\ndef fibonacci(n):\n    # Initialize the first two Fibonacci numbers\n    fib_sequence = [0",
+            "prompt_tokens": 11,
+            "completion_tokens": 40
+          },
+          {
+            "prompt_id": "p2_qa",
+            "task": "qa",
+            "scheduler": "slo_aware",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+            "latency_ms": 297.65,
+            "slo_ms": 800.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "The capital of France is Paris, and its primary river is the Seine River.",
+            "prompt_tokens": 12,
+            "completion_tokens": 18
+          },
+          {
+            "prompt_id": "p3_prime",
+            "task": "coding",
+            "scheduler": "slo_aware",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+            "latency_ms": 569.08,
+            "slo_ms": 1200.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a Python function to check if a number is prime:\n\n```python\ndef is_prime(n):\n    # Check if n is less than 2\n    if n < 2:\n       ",
+            "prompt_tokens": 14,
+            "completion_tokens": 40
+          },
+          {
+            "prompt_id": "p4_summary",
+            "task": "summarization",
+            "scheduler": "slo_aware",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+            "latency_ms": 438.44,
+            "slo_ms": 1000.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "A distributed lock is a mechanism that ensures that only one process can access a shared resource at a time, even if multiple processes are trying to do so",
+            "prompt_tokens": 17,
+            "completion_tokens": 30
+          },
+          {
+            "prompt_id": "p5_stack",
+            "task": "coding",
+            "scheduler": "slo_aware",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+            "latency_ms": 641.83,
+            "slo_ms": 1400.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Here's a simple implementation of a stack data structure in Python:\n\n```python\nclass Stack:\n    def __init__(self):\n        # Initialize an empty list to store the stack elements\n        self.items = []\n\n    def",
+            "prompt_tokens": 10,
+            "completion_tokens": 45
+          },
+          {
+            "prompt_id": "p6_concept",
+            "task": "general",
+            "scheduler": "slo_aware",
+            "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+            "latency_ms": 436.81,
+            "slo_ms": 1000.0,
+            "slo_attained": true,
+            "error": null,
+            "content": "Concurrency refers to the ability of multiple processes or threads to perform tasks simultaneously, while parallelism refers to the ability of multiple processes or threads to perform tasks",
+            "prompt_tokens": 12,
+            "completion_tokens": 30
+          }
+        ]
+      }
+    }
+  }
+}

@@ -13,8 +13,8 @@ def eligibility_checker():
 
 
 @pytest.mark.asyncio
-async def test_tc_m3_04_privacy_adversarial_forbidden_choice():
-    """[TC_M3_04] Adversarial Privacy Test: External backend is cheaper and less loaded,
+async def test_TC_M3_50_privacy_adversarial_forbidden_choice():
+    """[] Adversarial Privacy Test: External backend is cheaper and less loaded,
 
     but request is internal_only. External MUST NEVER be called or selected.
     """
@@ -42,8 +42,8 @@ async def test_tc_m3_04_privacy_adversarial_forbidden_choice():
 
 
 @pytest.mark.asyncio
-async def test_tc_m3_05_unknown_privacy_fails_closed():
-    """[TC_M3_05] Fail-Closed Validation: Unknown privacy labels must be rejected
+async def test_TC_M3_51_unknown_privacy_fails_closed():
+    """[] Fail-Closed Validation: Unknown privacy labels must be rejected
 
     with HTTP 400, rather than silently falling back to public.
     """
@@ -62,8 +62,8 @@ async def test_tc_m3_05_unknown_privacy_fails_closed():
         assert response.status_code in (400, 422)
 
 
-def test_tc_m3_06_unavailable_local_fails_closed_no_leak():
-    """[TC_M3_06] Fallback Isolation: When local privacy-compliant backends are offline,
+def test_TC_M3_52_unavailable_local_fails_closed_no_leak():
+    """[] Fallback Isolation: When local privacy-compliant backends are offline,
 
     system must reject rather than leak internal request to external provider.
     """
@@ -98,8 +98,8 @@ def test_tc_m3_06_unavailable_local_fails_closed_no_leak():
     assert chosen is None
 
 
-def test_tc_m3_07_confidential_and_restricted_enforcement(eligibility_checker):
-    """[TC_M3_07] Confidential & Restricted labels must be strictly filtered from external models."""
+def test_TC_M3_53_confidential_and_restricted_enforcement(eligibility_checker):
+    """[] Confidential & Restricted labels must be strictly filtered from external models."""
     ext_spec = registry.get_model("gpt-4o-external")
     assert ext_spec is not None
 

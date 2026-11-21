@@ -63,7 +63,8 @@ class MockBackend(BaseBackend):
 
         latency_ms = (time.perf_counter() - start_time) * 1000.0
         p_tokens = count_tokens(prompt_text)
-        out_tokens = request.estimated_output_tokens or 60
+        out_tokens = min(request.max_tokens or 60, request.estimated_output_tokens or 60)
+        finish_reason = "length" if (request.max_tokens and out_tokens >= request.max_tokens) else "stop"
 
         response_content = (
             f"[{self.provider_name} Model {model_spec.model_id} via {replica_id}]: "
@@ -78,4 +79,6 @@ class MockBackend(BaseBackend):
             "replica_id": replica_id,
             "provider": self.provider_name,
             "source": "mock_external",
+            "is_simulated": True,
+            "finish_reason": finish_reason,
         }

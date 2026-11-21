@@ -10,7 +10,7 @@ from adaroute.experiments.load_test import LiveLoadTestRunner, LoadTestMetrics
 
 
 @pytest.mark.asyncio
-async def test_tc_m9_01_live_load_test_metrics_calculation():
+async def test_TC_M8_09_live_load_test_metrics_calculation():
     """Validates empirical metrics computation (p50, p90, p95, p99, RPS, savings)."""
     runner = LiveLoadTestRunner(gateway_url="http://localhost:7000")
 
@@ -79,7 +79,7 @@ async def test_tc_m9_01_live_load_test_metrics_calculation():
 
 
 @pytest.mark.asyncio
-async def test_tc_m9_02_live_load_test_runner_mock_execution(tmp_path):
+async def test_TC_M8_10_live_load_test_runner_mock_execution(tmp_path):
     """Executes full multi-client load test loop with mocked httpx client."""
     runner = LiveLoadTestRunner(
         gateway_url="http://test-gw:7000",
@@ -116,7 +116,7 @@ async def test_tc_m9_02_live_load_test_runner_mock_execution(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_tc_m9_03_live_load_test_network_error_handling():
+async def test_TC_M8_11_live_load_test_network_error_handling():
     """Verifies that network exceptions are safely converted to failures without aborting the run."""
     runner = LiveLoadTestRunner(
         gateway_url="http://unreachable-gw:7000",
@@ -134,7 +134,7 @@ async def test_tc_m9_03_live_load_test_network_error_handling():
     assert metrics.actual_incurred_cost == 0.0
 
 
-def test_tc_m9_04_diverse_prompt_catalog_and_scenarios():
+def test_TC_M8_12_diverse_prompt_catalog_and_scenarios():
     """Validates diverse prompt catalog and scenario request generation."""
     runner = LiveLoadTestRunner(gateway_url="http://localhost:7000", arrival_rate_rps=20.0, seed=42)
 
@@ -173,7 +173,7 @@ def test_tc_m9_04_diverse_prompt_catalog_and_scenarios():
 
 
 @pytest.mark.asyncio
-async def test_tc_m9_05_live_policy_benchmark_mock():
+async def test_TC_M8_13_live_policy_benchmark_mock():
     """Validates live policy benchmark matrix evaluation across multiple policies."""
     runner = LiveLoadTestRunner(gateway_url="http://test-gw:7000", arrival_rate_rps=50.0, concurrency=2)
 

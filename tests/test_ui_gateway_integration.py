@@ -2,6 +2,7 @@
 Validates HTTP boundary between UI container and AdaRoute Gateway.
 """
 
+import asyncio
 import os
 
 import httpx
@@ -11,8 +12,8 @@ UI_BASE_URL = os.getenv("UI_BASE_URL", "http://localhost:7070")
 
 
 @pytest.mark.asyncio
-async def test_tc_m1_06_ui_static_asset_serving():
-    """[TC_M1_06] Verify the UI container serves index.html and assets."""
+async def test_TC_M1_03_ui_static_asset_serving():
+    """[] Verify the UI container serves index.html and assets."""
     async with httpx.AsyncClient() as client:
         try:
             res = await client.get(f"{UI_BASE_URL}/", timeout=5.0)
@@ -24,8 +25,8 @@ async def test_tc_m1_06_ui_static_asset_serving():
 
 
 @pytest.mark.asyncio
-async def test_tc_m1_07_ui_health_reverse_proxy():
-    """[TC_M1_07] Verify the UI container reverse-proxies /health to the gateway."""
+async def test_TC_M1_04_ui_health_reverse_proxy():
+    """[] Verify the UI container reverse-proxies /health to the gateway."""
     async with httpx.AsyncClient() as client:
         try:
             res = await client.get(f"{UI_BASE_URL}/health", timeout=5.0)
@@ -39,8 +40,8 @@ async def test_tc_m1_07_ui_health_reverse_proxy():
 
 
 @pytest.mark.asyncio
-async def test_tc_m1_08_ui_chat_completion_reverse_proxy_and_cache():
-    """[TC_M1_08] Verify the UI proxy returns metadata and respects caching."""
+async def test_TC_M1_05_ui_chat_completion_reverse_proxy_and_cache():
+    """[] Verify the UI proxy returns metadata and respects caching."""
     payload = {
         "model": "general",
         "messages": [{"role": "user", "content": "E2E Reverse Proxy Verification Test"}],
@@ -51,12 +52,19 @@ async def test_tc_m1_08_ui_chat_completion_reverse_proxy_and_cache():
 
     async with httpx.AsyncClient() as client:
         try:
-            # 1. First execution (miss)
-            res1 = await client.post(
-                f"{UI_BASE_URL}/v1/chat/completions",
-                json=payload,
-                timeout=60.0,
-            )
+            # 1. First execution (miss) with retry on transient upstream 503
+            res1 = None
+            for attempt_i in range(3):
+                res1 = await client.post(
+                    f"{UI_BASE_URL}/v1/chat/completions",
+                    json=payload,
+                    timeout=60.0,
+                )
+                if res1.status_code == 200:
+                    break
+                await asyncio.sleep(1.0)
+
+            assert res1 is not None
             assert res1.status_code == 200
             data1 = res1.json()
             assert "routing_metadata" in data1

@@ -37,8 +37,11 @@ class AttemptRecord(BaseModel):
     cost_state: str = "allocated_estimate"  # "invoiced_real", "allocated_estimate", "unknown_unbilled"
     status: str = "success"  # "success", "failed", "timeout", "rate_limited"
     error: str | None = None
-    execution_mode: str = "simulated"
+    execution_mode: str = "hybrid"
+    observed_origin: str = "unknown"
     is_simulated: bool = False
+    source: str = "unknown"
+    finish_reason: str | None = None
     selected_deployment: str | None = None
     explanation: dict[str, Any] | None = None
 
@@ -67,8 +70,11 @@ class RequestEvent(BaseModel):
     final_status: str = "success"  # "success", "rejected", "failed", "validation_error"
     error_detail: str | None = None
     timestamp: float = Field(default_factory=time.time)
-    execution_mode: str = "simulated"
+    execution_mode: str = "hybrid"
+    observed_origin: str = "unknown"
     is_simulated: bool = False
+    source: str = "unknown"
+    finish_reason: str | None = None
     selected_deployment: str | None = None
     explanation: dict[str, Any] | None = None
 
@@ -92,7 +98,7 @@ class StructuredTracer:
         latency_slo: float | None = 2.0,
         prompt_tokens: int = 0,
         estimated_output_tokens: int = 50,
-        execution_mode: str = "simulated",
+        execution_mode: str = "hybrid",
         is_simulated: bool = False,
     ) -> RequestEvent:
         event = RequestEvent(
@@ -151,8 +157,11 @@ class StructuredTracer:
         cost_state: str = "allocated_estimate",
         status: str = "success",
         error: str | None = None,
-        execution_mode: str = "simulated",
+        execution_mode: str = "hybrid",
+        observed_origin: str = "unknown",
         is_simulated: bool = False,
+        source: str = "unknown",
+        finish_reason: str | None = None,
     ) -> None:
         sanitized_error = sanitize_secrets(error) if error else None
 
@@ -174,7 +183,10 @@ class StructuredTracer:
             status=status,
             error=sanitized_error,
             execution_mode=execution_mode,
+            observed_origin=observed_origin,
             is_simulated=is_simulated,
+            source=source,
+            finish_reason=finish_reason,
         )
 
         event = self._traces.get(request_id)
@@ -196,7 +208,10 @@ class StructuredTracer:
             status=status,
             error=sanitized_error,
             execution_mode=execution_mode,
+            observed_origin=observed_origin,
             is_simulated=is_simulated,
+            source=source,
+            finish_reason=finish_reason,
         )
 
     def finish_trace(
@@ -212,8 +227,11 @@ class StructuredTracer:
         final_status: str = "success",
         error_detail: str | None = None,
         cost_state: str | None = None,
-        execution_mode: str = "simulated",
+        execution_mode: str = "hybrid",
+        observed_origin: str = "unknown",
         is_simulated: bool = False,
+        source: str = "unknown",
+        finish_reason: str | None = None,
         provider: str | None = None,
         selected_deployment: str | None = None,
         explanation: dict[str, Any] | None = None,
@@ -231,7 +249,10 @@ class StructuredTracer:
             event.final_status = final_status
             event.error_detail = sanitized_error
             event.execution_mode = execution_mode
+            event.observed_origin = observed_origin
             event.is_simulated = is_simulated
+            event.source = source
+            event.finish_reason = finish_reason
             if selected_deployment:
                 event.selected_deployment = selected_deployment
             if explanation:
@@ -283,7 +304,10 @@ class StructuredTracer:
                 cost_state=event.cost_state,
                 status=ledger_status,
                 execution_mode=execution_mode,
+                observed_origin=observed_origin,
                 is_simulated=is_simulated,
+                source=source,
+                finish_reason=finish_reason,
                 error=sanitized_error,
                 timestamp=event.timestamp,
             )

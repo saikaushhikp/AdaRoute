@@ -1,41 +1,683 @@
 (base) rongali@IITH-xeon-1:~/AdaRoute$ just cli
 python3 ui/cli/main.py
-╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Workbench ────────────────────────────────────────────────────────────────────────────────────────────╮
-│  AdaRoute Gateway (http://localhost:7000)                                                                         ● Online                                                                                │
-│ Cap: general  Privacy: public  User Private: OFF  History: OFF (single-query)  Budget: $1.0000  Policy: adaptive  Type /help for commands                                                                 │
-╰────────────────────────────────────────────────────────────────────────────────────── Press Ctrl+C or /exit to quit ──────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────────────────────── AdaRoute Workbench ─────────────────────────────────────────────────────────────────────────╮
+│  AdaRoute Gateway (http://localhost:7000)                                                                         ● Online                                          │
+│ Cap: general  Privacy: public  User Private: OFF  History: OFF (single-query)  Budget: $1.0000  Policy: adaptive  Type /help for commands                           │
+╰─────────────────────────────────────────────────────────────────── Press Ctrl+C or /exit to quit ───────────────────────────────────────────────────────────────────╯
 
 user > /private
 User Private mode is now ENABLED (local only)
 Note: Local-only execution strictly enforces an isolated private cache partition (public cloud entries excluded).
 
-user > what is 1+1?
-╭────────────────────────────────────────────────────────────────────────────────────────────── Gateway Error ──────────────────────────────────────────────────────────────────────────────────────────────╮
-│ HTTP 503 Error:                                                                                                                                                                                           │
-│ Inference execution failed after 3 attempts: vLLM endpoint http://vllm:7000/v1 returned HTTP 503: {"error": {"message": "vLLM engine for 'unsloth/Qwen3-0.6B-GGUF:Q4_K_M' (port 7001) unavailable:        │
-│ <urlopen error [Errno 111] Connection refused>. Engine status: crashed (exit code 1) (dtype: half)", "type": "backend_unavailable", "code": 503}}                                                         │
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+user > what is 1+11?
+╭──────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                             │
+│ Okay, the user is asking, "what is 1+11?" Let me break this down. So, they want the sum of 1 and 11. Hmm, adding those together. Let me think. 1 plus 11... adding  │
+│ the tens place first. 1 is in the ones place, so adding 1 to that would be 1. Then adding the 11, which is 10 plus 1. So 10 plus 1 is 11. Then adding the ones      │
+│ place, which is 1, so 11 plus 1 is 12. Wait, so the answer is 12? Let me check that again. 1 + 11 equals 12. Yes, that seems right. There's no trick here. It's     │
+│ straightforward addition. So the answer should be 12. I don't see any hidden steps or complexities here. Just basic arithmetic.                                     │
+│ </think>                                                                                                                                                            │
+│                                                                                                                                                                     │
+│ 1 + 11 = 12                                                                                                                                                         │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen3-r1 Latency: 3001.8ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for details)
 
-user > /set cap reasoning
-Capability set to 'reasoning'
+user > what is 2-1?
+╭──────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                             │
+│ Okay, the user is asking, "what is 2-1?" I need to figure out what they're really asking. Let's break it down. The expression 2-1 is a simple arithmetic operation, │
+│ right? It's like subtracting 1 from 2. So mathematically, 2 minus 1 is 1. But maybe the user is trying to get a different meaning here. They might be looking for a │
+│ more abstract interpretation or a different kind of problem. Let me think.                                                                                          │
+│                                                                                                                                                                     │
+│ First, I should check if there's any context or background that could explain this differently. For example, could they be referring to something in a non-standard │
+│ mathematical system or a different type of problem? Or maybe they're combining two operations in a way that's not straightforward? For instance, sometimes in       │
+│ puzzles or riddles, combining numbers with operations like subtraction can lead to interesting results.                                                             │
+│                                                                                                                                                                     │
+│ I should also consider if there's a possibility that they're testing my knowledge or trying to understand the structure of the problem. Since 2-1 is a direct       │
+│ subtraction, the answer is 1. But maybe they want to confirm that. Alternatively, they might be confused and need clarification. I should present the answer        │
+│ clearly and maybe explain why, to ensure they                                                                                                                       │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen3-r2 Latency: 3001.8ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for details)
 
-user > why liquid nitrogen not a gas?
-╭────────────────────────────────────────────────────────────────────────────────────────────── Gateway Error ──────────────────────────────────────────────────────────────────────────────────────────────╮
-│ HTTP 503 Error:                                                                                                                                                                                           │
-│ Inference execution failed after 2 attempts: vLLM endpoint http://vllm:7000/v1 returned HTTP 503: {"error": {"message": "vLLM engine for 'unsloth/Qwen3-0.6B-GGUF:Q4_K_M' (port 7001) unavailable:        │
-│ <urlopen error [Errno 111] Connection refused>. Engine status: crashed (exit code 1) (dtype: half)", "type": "backend_unavailable", "code": 503}}                                                         │
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+user > what is 1+11?
+╭──────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                             │
+│ Okay, the user is asking, "what is 1+11?" Let me break this down. So, they want the sum of 1 and 11. Hmm, adding those together. Let me think. 1 plus 11... adding  │
+│ the tens place first. 1 is in the ones place, so adding 1 to that would be 1. Then adding the 11, which is 10 plus 1. So 10 plus 1 is 11. Then adding the ones      │
+│ place, which is 1, so 11 plus 1 is 12. Wait, so the answer is 12? Let me check that again. 1 + 11 equals 12. Yes, that seems right. There's no trick here. It's     │
+│ straightforward addition. So the answer should be 12. I don't see any hidden steps or complexities here. Just basic arithmetic.                                     │
+│ </think>                                                                                                                                                            │
+│                                                                                                                                                                     │
+│ 1 + 11 = 12                                                                                                                                                         │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen3-r1 Latency: 6.5ms Cost: $0.000000 CACHE HIT (semantic: 100.0%) SLO: ✅  (type /diag for details)
 
 user > /set cap coding
 Capability set to 'coding'
 
 user > write shortest path alogithm in rust
-╭────────────────────────────────────────────────────────────────────────────────────────────── Gateway Error ──────────────────────────────────────────────────────────────────────────────────────────────╮
-│ HTTP 503 Error:                                                                                                                                                                                           │
-│ Inference execution failed after 1 attempts: vLLM endpoint http://vllm:7000/v1 returned HTTP 503: {"error": {"message": "vLLM engine for 'unsloth/Qwen3-0.6B-GGUF:Q4_K_M' (port 7001) unavailable:        │
-│ <urlopen error [Errno 111] Connection refused>. Engine status: crashed (exit code 1) (dtype: half)", "type": "backend_unavailable", "code": 503}}                                                         │
+╭──────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                             │
+│ Okay, I need to write a shortest path algorithm in Rust. Let me think about how to approach this. The user probably wants a solution that can find the shortest     │
+│ path between two points in a graph, possibly with edges and weights.                                                                                                │
+│                                                                                                                                                                     │
+│ First, I should consider the data structure. A graph can be represented using an adjacency list. Each node (vertex) has a list of adjacent nodes and the            │
+│ corresponding edge weights. Since the problem is about finding the shortest path, Dijkstra's algorithm comes to mind. But maybe the user wants a basic              │
+│ implementation.                                                                                                                                                     │
+│                                                                                                                                                                     │
+│ Wait, the question says "shortest path algorithm". So maybe they just want a general approach, not necessarily the best algorithm. But since they asked for a       │
+│ shortest path, Dijkstra's is definitely a good one.                                                                                                                 │
+│                                                                                                                                                                     │
+│ Let me outline the steps:                                                                                                                                           │
+│                                                                                                                                                                     │
+│ 1. Read the graph: adjacency list, possibly with a start and end point.                                                                                             │
+│ 2. Implement Dijkstra's algorithm.                                                                                                                                  │
+│ 3. Return the shortest path from the start to the end.                                                                                                              │
+│                                                                                                                                                                     │
+│ But how to handle the input? The user probably needs to input the graph. Let me think about how to structure the code.                                              │
+│                                                                                                                                                                     │
+│ In Rust, the data structure for the graph can be a map (hash map) of nodes to their adjacent nodes. Each entry has a list of                                        │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen2.5 Latency: 4460.1ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for 
+details)
+
+user > /diag
+                              Last Routing Telemetry                               
+╭──────────────────────────┬──────────────────────────────────────────────────────╮
+│ Metric / Field           │ Value                                                │
+├──────────────────────────┼──────────────────────────────────────────────────────┤
+│ Request ID               │ 9eca2fa0-c08c-49ad-9934-84ae2c0d3db3                 │
+│ Requested Capability     │ coding                                               │
+│ Selected Concrete Model  │ unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M │
+│ Selected Serving Replica │ vllm-gpu-gguf-qwen2.5                                │
+│ Execution Provider       │ vllm                                                 │
+│ Policy Applied           │ adaptive                                             │
+│ Latency (ms)             │ 4460.07 ms                                           │
+│ Attempts                 │ 1                                                    │
+│ Cache Outcome            │ MISS                                                 │
+│ Privacy Partition        │ user_private=True (Local isolated)                   │
+│ Estimated Cost           │ $0.000000                                            │
+│ Actual Cost              │ $0.000005                                            │
+│ SLO Attainment           │ Breached                                             │
+╰──────────────────────────┴──────────────────────────────────────────────────────╯
+                                                           Execution Attempt History & Failover Trail                                                            
+╭───┬──────────────────────────────────────────────────────┬──────────────────────────────┬─────────┬───────────┬────────────────────────────────┬──────────────╮
+│ # │ Model                                                │ Replica (Provider)           │ Status  │   Latency │            Cost (Billed State) │ Error Detail │
+├───┼──────────────────────────────────────────────────────┼──────────────────────────────┼─────────┼───────────┼────────────────────────────────┼──────────────┤
+│ 1 │ unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M │ vllm-gpu-gguf-qwen2.5 (vllm) │ SUCCESS │ 4451.3 ms │ $0.000005 (allocated_estimate) │ -            │
+╰───┴──────────────────────────────────────────────────────┴──────────────────────────────┴─────────┴───────────┴────────────────────────────────┴──────────────╯
+
+user > what is BFS algorithm capable of doing?
+╭──────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                             │
+│ Okay, the user is asking what the BFS algorithm is capable of doing. Let me start by recalling what I know about BFS. BFS, or Breadth-First Search, is a popular    │
+│ algorithm used in graph traversals. It's similar to DFS but explores all neighbors before proceeding to the next level.                                             │
+│                                                                                                                                                                     │
+│ First, I should mention that BFS is used to find the shortest path in an unweighted graph. That makes sense because it processes each level of nodes before moving  │
+│ on. But wait, the user might be thinking about applications beyond just shortest paths. Maybe they are working on a specific problem where BFS isn't the optimal    │
+│ solution, but I need to confirm.                                                                                                                                    │
+│                                                                                                                                                                     │
+│ I should also consider if BFS is used in other contexts. For example, in a BFS-based search algorithm, like in Dijkstra's algorithm or Prim's, but that's more      │
+│ about finding shortest paths. So maybe the user is looking for BFS's primary application.                                                                           │
+│                                                                                                                                                                     │
+│ Another point: BFS ensures that once a node is visited, it doesn't need to be revisited, which prevents cycles and redundant processing. This is important for      │
+│ efficiency. But again, the main application is shortest path.                                                                                                       │
+│                                                                                                                                                                     │
+│ Wait, maybe the user is confused between BFS and Dijkstra's algorithm. Let me make sure I'm not mixing up                                                           │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen2.5 Latency: 4536.8ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for 
+details)
+
+user > /private
+User Private mode is now DISABLED (cloud allowed)
+Note: Cloud execution enabled; public cache partition active.
+
+user > what is djkstras algorithm capable of doing?
+╭──────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────╮
+│ Dijkstra's algorithm is a fundamental algorithm in computer science and graph theory. It is primarily capable of finding the **shortest path from a single source   │
+│ node to all other nodes** (or a specific target node) in a weighted graph.                                                                                          │
+│                                                                                                                                                                     │
+│ ### Key Capabilities & Properties:                                                                                                                                  │
+│                                                                                                                                                                     │
+│ 1. **Single-Source Shortest Paths**:                                                                                                                                │
+│    - It solves the single-source shortest path problem: given a source node `S`, it computes the shortest path from `S` to every other node in the graph.           │
+│                                                                                                                                                                     │
+│ 2. **Works on Weighted Graphs**:                                                                                                                                    │
+│    - The edges in the graph have weights (costs, distances, times, etc.).                                                                                           │
+│    - The algorithm guarantees the shortest path in terms of the **sum of edge weights**.                                                                            │
+│                                                                                                                                                                     │
+│ 3. **Non-Negative Weights Only**:                                                                                                                                   │
+│    - **Critical Constraint**: Dijkstra’s algorithm **only works correctly when all edge weights are non-negative** (i.e., ≥ 0).                                     │
+│    - If the graph contains negative edge weights, Dijkstra’s algorithm may produce incorrect results. In such cases, algorithms like **Bellman-Ford** are used      │
+│ instead.                                                                                                                                                            │
+│                                                                                                                                                                     │
+│ 4. **Greedy Approach**:                                                                                                                                             │
+│    - It operates using a greedy strategy: at each step, it selects the                                                                                              │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: groq/qwen/qwen3.8-27b Replica: cloud-direct Latency: 991.7ms Cost: $0.001042 CACHE MISS SLO: ✅  (type /diag for details)
+
+user > /private
+User Private mode is now ENABLED (local only)
+Note: Local-only execution strictly enforces an isolated private cache partition (public cloud entries excluded).
+
+user > /clear
+╭──────────────────────────────────────────────────────────────────────── AdaRoute Workbench ─────────────────────────────────────────────────────────────────────────╮
+│  AdaRoute Gateway (http://localhost:7000)                                                                                    ● Online                               │
+│ Cap: coding  Privacy: public  User Private: ON (local only)  History: OFF (single-query)  Budget: $1.0000  Policy: adaptive  Type /help for commands                │
+╰─────────────────────────────────────────────────────────────────── Press Ctrl+C or /exit to quit ───────────────────────────────────────────────────────────────────╯
+
+user > /exit
+Goodbye!
+(base) rongali@IITH-xeon-1:~/AdaRoute$ just cli
+python3 ui/cli/main.py
+╭──────────────────────────────────────────────────────────────────────── AdaRoute Workbench ─────────────────────────────────────────────────────────────────────────╮
+│  AdaRoute Gateway (http://localhost:7000)                                                                         ● Online                                          │
+│ Cap: general  Privacy: public  User Private: OFF  History: OFF (single-query)  Budget: $1.0000  Policy: adaptive  Type /help for commands                           │
+╰─────────────────────────────────────────────────────────────────── Press Ctrl+C or /exit to quit ───────────────────────────────────────────────────────────────────╯
+
+user > /history
+Conversation history mode is now ENABLED (multi-turn context)
+Note: Each prompt appends previous conversation history to context. To test exact prompt cache hits, keep History OFF (single-query mode) or type /clear to reset 
+history.
+
+user > /private
+User Private mode is now ENABLED (local only)
+Note: Local-only execution strictly enforces an isolated private cache partition (public cloud entries excluded).
+
+user > what is docker container all about?
+╭──────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                             │
+│ Okay, the user is asking about what Docker containers are all about. Let me start by breaking down the basics. Docker containers are like virtual machines in a     │
+│ way, but they're more efficient and use less disk space. They run the same code as the host, so they don't need to run extra processes.                             │
+│                                                                                                                                                                     │
+│ First, I should explain the difference between Docker images and containers. Docker images are the blueprints, and containers are the actual instances. Then, the   │
+│ host machine is the base, and containers are created from that. Maybe mention that each container can have its own network and environment.                         │
+│                                                                                                                                                                     │
+│ I should also clarify that Docker containers are not the same as running applications. They're for building and running applications. They can have different       │
+│ configurations, like CPU or memory limits. The user might be confused if they think containers are just instances of the host.                                      │
+│                                                                                                                                                                     │
+│ It's important to explain that Docker containers are used for developing and deploying applications. They can be used for different services, like web apps,        │
+│ databases, etc. Also, mention that Docker allows for isolation, which is why they're called "virtual machines" but more efficient.                                  │
+│                                                                                                                                                                     │
+│ Wait, maybe the user is a beginner and needs a clear definition. I should make sure to mention that Docker containers are lightweight and can                       │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen3-r2 Latency: 4522.6ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > can you repeat what you explained in clear english?
+╭──────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                             │
+│ Okay, the user wants me to repeat my explanation in clear English. Let me check the previous response to make sure I didn't include any markdown or technical       │
+│ jargon.                                                                                                                                                             │
+│                                                                                                                                                                     │
+│ I should start by defining Docker containers as virtual machines but more efficient. Mention that they run the same code as the host, so they don't require extra   │
+│ processes. Also, explain that each container can have its own network and environment. It's important to clarify that they aren't the same as running applications. │
+│ Maybe add that containers are used for developing and deploying applications. Finally, mention that they can be used for different services and that Docker allows  │
+│ for isolation.                                                                                                                                                      │
+│                                                                                                                                                                     │
+│ Wait, did I cover all the key points? Let me make sure the explanation is straightforward and the user understands the difference between Docker images and         │
+│ containers, and why they're efficient. Yes, that should be it.                                                                                                      │
+│ </think>                                                                                                                                                            │
+│                                                                                                                                                                     │
+│ Certainly! Here's a clear explanation:                                                                                                                              │
+│                                                                                                                                                                     │
+│ Docker containers are like lightweight virtual machines, but they are more efficient than traditional virtual machines. They run the same code as the host machine, │
+│ so they don't require extra processes or disk space. Each container can have its own network and environment settings, allowing for independent execution of        │
+│ applications. Containers are used to develop and deploy applications, providing isolation between different services or                                             │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen3-r2 Latency: 4506.3ms Cost: $0.000008 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > /exit
+Goodbye!
+(base) rongali@IITH-xeon-1:~/AdaRoute$ just cli
+python3 ui/cli/main.py
+╭───────────────────────────────────────────────────────────────────────────────── AdaRoute Workbench ─────────────────────────────────────────────────────────────────────────────────╮
+│  AdaRoute Gateway (http://localhost:7000)                                                                         ● Online                                                           │
+│ Cap: general  Privacy: public  User Private: OFF  History: OFF (single-query)  Budget: $1.0000  Policy: adaptive  Type /help for commands                                            │
+╰─────────────────────────────────────────────────────────────────────────── Press Ctrl+C or /exit to quit ────────────────────────────────────────────────────────────────────────────╯
+
+user > hello
+╭───────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────────────╮
+│ Hello! How can I assist you today?                                                                                                                                                   │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: cohere/command-r-08-2024 Replica: cloud-direct Latency: 1842.9ms Cost: $0.000036 CACHE MISS SLO: ✅  (type /diag for details)
+
+user > explain me quantum physics basics
+╭───────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────────────╮
+│ Quantum physics (or quantum mechanics) is the branch of physics that deals with the behavior of matter and energy at the smallest scales, such as atoms and subatomic particles. It  │
+│ is fundamentally different from the "classical" physics we experience in our daily lives.                                                                                            │
+│                                                                                                                                                                                      │
+│ Here are the core concepts explained simply:                                                                                                                                         │
+│                                                                                                                                                                                      │
+│ ### 1. The Quantum World is Not Predictable (Probabilistic)                                                                                                                          │
+│ In classical physics, if you know the position and speed of a billiard ball, you can predict exactly where it will be in the future.                                                 │
+│ In quantum physics, you **cannot** know both the exact position and exact speed (momentum) of a particle at the same time. This is called the **Heisenberg Uncertainty Principle**.  │
+│ - Instead of definite values, quantum physics deals in **probabilities**.                                                                                                            │
+│ - We can say there’s a 90% chance an electron is here, or a 10% chance it’s there, but not which one it *is* until we measure it.                                                    │
+│                                                                                                                                                                                      │
+│ ### 2. Wave-Particle Duality                                                                                                                                                         │
+│ Particles like electrons and photons (light particles) behave like **both** particles and waves.                                                                                     │
+│ - Like a particle: They come in discrete chunks (you can have one photon, but not                                                                                                    │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: groq/qwen/qwen3.8-27b Replica: cloud-direct Latency: 715.4ms Cost: $0.001038 CACHE MISS SLO: ✅  (type /diag for details)
+
+user > what is 1+1?
+╭───────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────────────╮
+│ The answer to 1 + 1 is 2.                                                                                                                                                            │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: cohere/command-r-08-2024 Replica: cloud-direct Latency: 3056.5ms Cost: $0.000039 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > /set quality low
+Quality floor set to 'low'
+
+user > what is 1+2?
+╭───────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────────────╮
+│ 1 + 2 = **3**                                                                                                                                                                        │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: groq/qwen/qwen3.8-27b Replica: cloud-direct Latency: 204.9ms Cost: $0.000051 CACHE MISS SLO: ✅  (type /diag for details)
+
+user > /private
+User Private mode is now ENABLED (local only)
+Note: Local-only execution strictly enforces an isolated private cache partition (public cloud entries excluded).
+
+user > what is 2+1?
+╭───────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                              │
+│ Okay, the user is asking "what is 2+1?" Let me think. They probably want to know the sum of 2 and 1. But wait, is there any catch here? Maybe they're testing me? Let me check       │
+│ again. 2 plus 1 is definitely 3. So the answer is 3. But maybe they want to know why? Like, why does 2+1 equal 3? Oh right, because when you add numbers, you just add their values. │
+│ So 2 and 1 together make 3. I should make sure there's no trick here. No, it's straightforward addition. So the answer should be 3.                                                  │
+│ </think>                                                                                                                                                                             │
+│                                                                                                                                                                                      │
+│ The sum of 2 and 1 is **3**.                                                                                                                                                         │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen3-r1 Latency: 2761.7ms Cost: $0.000003 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > what is 1+2?
+╭───────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                              │
+│ Okay, the user is asking "what is 2+1?" Let me think. They probably want to know the sum of 2 and 1. But wait, is there any catch here? Maybe they're testing me? Let me check       │
+│ again. 2 plus 1 is definitely 3. So the answer is 3. But maybe they want to know why? Like, why does 2+1 equal 3? Oh right, because when you add numbers, you just add their values. │
+│ So 2 and 1 together make 3. I should make sure there's no trick here. No, it's straightforward addition. So the answer should be 3.                                                  │
+│ </think>                                                                                                                                                                             │
+│                                                                                                                                                                                      │
+│ The sum of 2 and 1 is **3**.                                                                                                                                                         │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen3-r1 Latency: 6.2ms Cost: $0.000000 CACHE HIT (semantic: 95.1%) SLO: ✅  (type /diag for details)
+
+user > how is loquid nitrogent not solid?
+╭───────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                              │
+│ Okay, so the question is about why liquid nitrogen isn't a solid. Let me think. I remember that all matter has a certain state depending on temperature. At room temperature, it's a │
+│ liquid. But why does it stay liquid instead of solid? I think there's something related to the kinetic theory of gases. Let me recall. In the kinetic theory, particles in a gas     │
+│ move rapidly, and their collisions are energetic. As they move, they gain enough kinetic energy to overcome the intermolecular forces that hold the molecules together. The          │
+│ intermolecular forces are like bonds between the molecules. If the kinetic energy is enough to overcome these bonds, the molecules will move apart and become a liquid. If the       │
+│ kinetic energy is insufficient, the molecules stay close together and form a solid. So when liquid nitrogen is at room temperature, the particles have enough kinetic energy to      │
+│ break the intermolecular forces, causing them to move apart and stay in liquid form. Therefore, liquid nitrogen doesn't solidify because the particles have enough energy to break   │
+│ the bonds and move into a liquid. I should also mention that as temperature decreases, the particles become even closer together, which makes them solidify. But since the question  │
+│ is about why it's not solid, the main point here                                                                                                                                     │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen3-r1 Latency: 4489.2ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > /set cap coding
+Capability set to 'coding'
+
+user > why is dijkstras algorithm fails?
+╭───────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                              │
+│ Okay, so the user is asking why Dijkstra's algorithm fails. Hmm, I need to recall what I know about this algorithm. Dijkstra's algorithm is designed to find the shortest path in a  │
+│ graph, right? It's a classic algorithm used in various fields like computer science and operations research. But why would it fail? Let me think.                                    │
+│                                                                                                                                                                                      │
+│ First, I remember that Dijkstra's algorithm works by maintaining a priority queue of nodes to explore, prioritizing the node with the current shortest distance. But wait, the       │
+│ problem arises when there's a node with a shorter distance but a higher weight. Let me think. Oh, right! If there's a node that's already been processed with a shorter distance,    │
+│ the algorithm might not process it again. That's the core issue. So if the algorithm keeps processing the same node multiple times, it might not find the optimal path.              │
+│                                                                                                                                                                                      │
+│ Wait, but how does the algorithm ensure that a node is processed only once? Oh, right! The priority queue is maintained with the current shortest distance. So once a node is popped │
+│ from the priority queue, it's marked as processed, and any subsequent entries for that node are ignored. So if there's a node that's already been processed with a shorter distance, │
+│ the algorithm doesn                                                                                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen2.5 Latency: 4521.0ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > /private
+User Private mode is now DISABLED (cloud allowed)
+Note: Cloud execution enabled; public cache partition active.
+
+user > why is dijkstras algorithm fails?
+╭───────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ─────────────────────────────────────────────────────────────────────────────────╮
+│ Dijkstra's algorithm fails when the graph contains **edges with negative weights**.                                                                                                  │
+│                                                                                                                                                                                      │
+│ ### Why It Fails                                                                                                                                                                     │
+│                                                                                                                                                                                      │
+│ Dijkstra's algorithm is a **greedy algorithm**. It works by maintaining the invariant that once a node is marked as "visited" (or its shortest path distance is finalized), that     │
+│ distance is guaranteed to be the global minimum. It relies on the assumption that adding any edge to a path will only **increase** (or keep the same) the total path weight.         │
+│                                                                                                                                                                                      │
+│ If there is a negative edge, this assumption is broken:                                                                                                                              │
+│ 1. The algorithm might finalize the shortest path to a node `B` as `dist(B) = 10`.                                                                                                   │
+│ 2. Later, it might discover a path to `B` via another node `C` that includes a negative edge, resulting in `dist(C) + (-5) = 8`, which is shorter than `10`.                         │
+│ 3. However, since `B` was already marked as "visited," Dijkstra's algorithm **will not update** `dist(B)` to `8`. It assumes `10` is the final answer, which is incorrect.           │
+│                                                                                                                                                                                      │
+│ ### Key Requirements for Dijkstra's Algorithm to Work Correctly                                                                                                                      │
+│ 1. **No negative edge weights**: All edge weights                                                                                                                                    │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: groq/qwen/qwen3.8-27b Replica: cloud-direct Latency: 762.8ms Cost: $0.001040 CACHE MISS SLO: ✅  (type /diag for details)
+
+user > /exit
+Goodbye!
+(base) rongali@IITH-xeon-1:~/AdaRoute$ just cli
+python3 ui/cli/main.py
+╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Workbench ────────────────────────────────────────────────────────────────────────────────────────────╮
+│  AdaRoute Gateway (http://localhost:7000)                                                                         ● Online                                                                                │
+│ Cap: general  Privacy: public  User Private: OFF  History: OFF (single-query)  Budget: $1.0000  Policy: adaptive  Type /help for commands                                                                 │
+╰────────────────────────────────────────────────────────────────────────────────────── Press Ctrl+C or /exit to quit ──────────────────────────────────────────────────────────────────────────────────────╯
+
+user > /private what is 1+1?
+User Private mode is now ENABLED (local only)
+Note: Local-only execution strictly enforces an isolated private cache partition (public cloud entries excluded).
+
+user > what is 1+1?
+╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                                                   │
+│ Okay, the user is asking, "what is 1+1?" I need to figure out the answer. Let me think. Well, in math, when you add 1 and 1, you get 2. That seems straightforward. But maybe they're thinking about      │
+│ something else? Like, could there be a trick or a different interpretation? Hmm. No, 1+1 is definitely 2 in standard arithmetic. I should make sure to explain that clearly. Also, maybe mention that     │
+│ it's a simple addition problem. Let me check if there's any other possible context. Like, maybe in a different language or a different mathematical system? No, in standard math, it's 2. Alright, I      │
+│ think I've got the answer. Just need to present it in a simple way.                                                                                                                                       │
+│ </think>                                                                                                                                                                                                  │
+│                                                                                                                                                                                                           │
+│ 1 + 1 equals 2.                                                                                                                                                                                           │
 ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen3-r1 Latency: 59673.8ms Cost: $0.000004 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > what is 1+2?
+╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                                                   │
+│ Okay, the user is asking what is 1 plus 2. Let me think about how to approach this.                                                                                                                       │
+│                                                                                                                                                                                                           │
+│ First, I need to confirm that they're asking for the sum of 1 and 2. That's straightforward. In mathematics, addition is the operation that combines two numbers. So 1 + 2 would be 3.                    │
+│                                                                                                                                                                                                           │
+│ I should make sure that the answer is simple and clear. Maybe I can explain why it's 3 to reinforce the concept. Also, since the question is direct, I don't need to add any extra information. Just a    │
+│ simple response.                                                                                                                                                                                          │
+│                                                                                                                                                                                                           │
+│ Wait, is there any possibility that they might be testing my knowledge or trying to do something else? No, the question seems straightforward. It's a basic arithmetic problem. So I can confidently      │
+│ state the answer as 3 without any confusion.                                                                                                                                                              │
+│ </think>                                                                                                                                                                                                  │
+│                                                                                                                                                                                                           │
+│ 1 + 2 = 3.                                                                                                                                                                                                │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen3-r2 Latency: 3226.2ms Cost: $0.000004 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > what is 1+11?
+╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                                                   │
+│ Okay, the user is asking, "what is 1+11?" Let me break this down. So, they want to add 1 and 11 together. Let me think. Adding numbers is straightforward. 1 plus 11 would be 12. But wait, maybe they    │
+│ want to check if there's any trick here? Sometimes in math problems, there might be a hidden detail. Let me see... 1 plus 11 is definitely 12. There's no decimal or anything here. So, the answer should │
+│ be 12. I don't see any other possible interpretations here. Yep, that's it.                                                                                                                               │
+│ </think>                                                                                                                                                                                                  │
+│                                                                                                                                                                                                           │
+│ 1 + 11 = 12.                                                                                                                                                                                              │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen3-r2 Latency: 2560.8ms Cost: $0.000003 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > /set cap coding
+Capability set to 'coding'
+
+user > write fibonacci sequence code in rust
+╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                                                   │
+│ Okay, I need to write a Fibonacci sequence code in Rust. Let's start by understanding what the user is asking for. They want a program that generates the Fibonacci sequence.                             │
+│                                                                                                                                                                                                           │
+│ First, I should think about how to generate the sequence. The Fibonacci sequence starts with 0 and 1, then each subsequent number is the sum of the two preceding ones. So for example, the sequence goes │
+│ 0, 1, 1, 2, 3, 5, etc.                                                                                                                                                                                    │
+│                                                                                                                                                                                                           │
+│ Now, considering the programming language, Rust is a statically typed, safe language. So I need to make sure the code is clean and efficient. Since generating a large Fibonacci sequence can be          │
+│ computationally intensive, I should avoid using a loop for very large numbers unless the problem has constraints.                                                                                         │
+│                                                                                                                                                                                                           │
+│ Let me outline the steps. The user probably wants a simple loop that builds the sequence until a certain number of terms is generated. Or maybe they just want a basic version. Let's see: the code       │
+│ should take a number of terms and generate them. Alternatively, maybe they just want the first few terms. I'll need to decide on the parameters.                                                          │
+│                                                                                                                                                                                                           │
+│ Let me think about possible approaches. One straightforward way is to use a loop that keeps adding the last two numbers. Another approach is to use                                                       │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen2.5 Latency: 4437.6ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > fibonacci code in rust write it
+╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                                                   │
+│ Okay, I need to write a Fibonacci sequence in Rust. Let me start by recalling how the Fibonacci sequence works. The sequence starts with 0 and 1, and each subsequent number is the sum of the two        │
+│ preceding ones. So, for example, the sequence would be 0, 1, 1, 2, 3, 5, etc.                                                                                                                             │
+│                                                                                                                                                                                                           │
+│ First, I should figure out how to handle the base cases. If the input is 0 or 1, the output should be 0 or 1, respectively. Then, if the input is more than 1, I need to compute each subsequent number   │
+│ iteratively.                                                                                                                                                                                              │
+│                                                                                                                                                                                                           │
+│ In Rust, I can have a loop that continues until a certain condition is met. Maybe loop until the number is greater than the maximum number we want to compute. Let me think about the steps:              │
+│                                                                                                                                                                                                           │
+│ 1. Take the input number as a parameter.                                                                                                                                                                  │
+│ 2. Check if it's 0 or 1. If so, return 0 or 1.                                                                                                                                                            │
+│ 3. If the input is greater than 1, initialize two variables, a and b, which will hold the previous two numbers.                                                                                           │
+│ 4. Start the loop with a and b set to 0 and 1, respectively.                                                                                                                                              │
+│ 5. In each iteration                                                                                                                                                                                      │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen2.5 Latency: 3218.6ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > wrote fibbonacci code sequence in rust
+╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                                                   │
+│ Okay, the user wants a Fibonacci sequence in Rust. Let me start by recalling how the Fibonacci sequence works. Each number is the sum of the two preceding ones. So, if we have a starting pair, say 0    │
+│ and 1, the sequence is 0, 1, 1, 2, 3, 5, etc.                                                                                                                                                             │
+│                                                                                                                                                                                                           │
+│ First, I need to think about the data structures. Rust can use a vector to store the sequence. Maybe start with a vector of size 2, containing 0 and 1. Then, iterate from the third element onward,      │
+│ adding the previous two elements.                                                                                                                                                                         │
+│                                                                                                                                                                                                           │
+│ Wait, but what if the sequence needs to be generated until a certain number of terms? The user didn't specify, so perhaps the default is to generate as long as possible. Let me check the problem        │
+│ statement again. It just says "wrote fibbonacci code sequence in rust". So maybe a simple version is okay.                                                                                                │
+│                                                                                                                                                                                                           │
+│ Let me outline the steps. Initialize the vector with 0 and 1. Then, loop from the third element until the end. At each step, calculate the next value as the sum of the previous two. Then, add it to the │
+│ vector. Repeat until the vector's size exceeds a certain limit. Wait                                                                                                                                      │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen2.5 Latency: 3986.9ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > wrote fibbonacci code sequence in rust
+╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                                                   │
+│ Okay, the user wants a Fibonacci sequence in Rust. Let me start by recalling how the Fibonacci sequence works. Each number is the sum of the two preceding ones. So, if we have a starting pair, say 0    │
+│ and 1, the sequence is 0, 1, 1, 2, 3, 5, etc.                                                                                                                                                             │
+│                                                                                                                                                                                                           │
+│ First, I need to think about the data structures. Rust can use a vector to store the sequence. Maybe start with a vector of size 2, containing 0 and 1. Then, iterate from the third element onward,      │
+│ adding the previous two elements.                                                                                                                                                                         │
+│                                                                                                                                                                                                           │
+│ Wait, but what if the sequence needs to be generated until a certain number of terms? The user didn't specify, so perhaps the default is to generate as long as possible. Let me check the problem        │
+│ statement again. It just says "wrote fibbonacci code sequence in rust". So maybe a simple version is okay.                                                                                                │
+│                                                                                                                                                                                                           │
+│ Let me outline the steps. Initialize the vector with 0 and 1. Then, loop from the third element until the end. At each step, calculate the next value as the sum of the previous two. Then, add it to the │
+│ vector. Repeat until the vector's size exceeds a certain limit. Wait                                                                                                                                      │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen2.5 Latency: 1.5ms Cost: $0.000000 CACHE HIT (exact) SLO: ✅  (type /diag for details)
+
+user > what is 1 + ?
+╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                                                   │
+│ Okay, so I need to figure out what 1 plus something equals. Let me think. The question is asking for the value of "1 plus ?". But wait, the user hasn't provided the question yet. They just said "what   │
+│ is 1 + ?". Hmm, maybe they want me to explain the general concept or perhaps there's a missing part here. Let me check again.                                                                             │
+│                                                                                                                                                                                                           │
+│ Wait, maybe there's a typo or a missing context. If the question is part of a larger problem or equation, but the user only mentioned "what is 1 + ?", I can't proceed further. Maybe they want to know   │
+│ how to calculate it in general? For example, if the question is part of a math problem, like solving for an unknown variable. But without more information, I can't determine the value. Let me make sure │
+│ I'm not missing something. Maybe the question is in a different language, and there's a translation issue? Or perhaps it's part of a larger problem where the question is being asked in another context? │
+│                                                                                                                                                                                                           │
+│ Alternatively, maybe the user is confused and wants to know the answer, but they haven't specified. Since the user hasn't provided the question, maybe they intended to ask a question that's missing     │
+│ here. Let                                                                                                                                                                                                 │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen2.5 Latency: 2998.7ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > what is 1+1 ?
+╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                                                   │
+│ Okay, so I need to figure out what 1 plus 1 is. Let me think. Well, at first glance, adding 1 and 1... I know that when you add two numbers together, you just combine them. So, if I have one 1 and      │
+│ another 1, adding them should give me two. But wait, maybe I should break it down. Let me visualize this. Imagine you have one object, like a red apple, and then another object, another apple. So,      │
+│ combining both, I have two apples total. So, 1 + 1 equals 2. That seems straightforward. But wait, is there any trick here? Sometimes problems like this might have hidden meanings, but in the context   │
+│ of basic math, 1 plus 1 is just 2. I don't think there's any other way to interpret it. Maybe if there's some context like in a different number system or something else, but in regular arithmetic,     │
+│ it's 2. Yeah, I'm pretty confident the answer is 2.                                                                                                                                                       │
+│ </think>                                                                                                                                                                                                  │
+│                                                                                                                                                                                                           │
+│ 1 + 1 equals 2.                                                                                                                                                                                           │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen2.5 Latency: 2708.7ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > /diag
+                              Last Routing Telemetry                               
+╭──────────────────────────┬──────────────────────────────────────────────────────╮
+│ Metric / Field           │ Value                                                │
+├──────────────────────────┼──────────────────────────────────────────────────────┤
+│ Request ID               │ 94a3efb3-a347-4d1e-9ab7-e055746a7bf2                 │
+│ Requested Capability     │ coding                                               │
+│ Selected Concrete Model  │ unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M │
+│ Selected Serving Replica │ vllm-gpu-gguf-qwen2.5                                │
+│ Execution Provider       │ vllm                                                 │
+│ Policy Applied           │ adaptive                                             │
+│ Latency (ms)             │ 2708.66 ms                                           │
+│ Attempts                 │ 1                                                    │
+│ Cache Outcome            │ MISS                                                 │
+│ Privacy Partition        │ user_private=True (Local isolated)                   │
+│ Estimated Cost           │ $0.000000                                            │
+│ Actual Cost              │ $0.000005                                            │
+│ SLO Attainment           │ Breached                                             │
+╰──────────────────────────┴──────────────────────────────────────────────────────╯
+                                                           Execution Attempt History & Failover Trail                                                            
+╭───┬──────────────────────────────────────────────────────┬──────────────────────────────┬─────────┬───────────┬────────────────────────────────┬──────────────╮
+│ # │ Model                                                │ Replica (Provider)           │ Status  │   Latency │            Cost (Billed State) │ Error Detail │
+├───┼──────────────────────────────────────────────────────┼──────────────────────────────┼─────────┼───────────┼────────────────────────────────┼──────────────┤
+│ 1 │ unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M │ vllm-gpu-gguf-qwen2.5 (vllm) │ SUCCESS │ 2701.0 ms │ $0.000005 (allocated_estimate) │ -            │
+╰───┴──────────────────────────────────────────────────────┴──────────────────────────────┴─────────┴───────────┴────────────────────────────────┴──────────────╯
+
+user > /private
+User Private mode is now DISABLED (cloud allowed)
+Note: Cloud execution enabled; public cache partition active.
+
+user > why is liquid nitrogen not solid?
+╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ To understand why liquid nitrogen is not solid, we must look at the relationship between **temperature** and the **phase transition points** of nitrogen.                                                 │
+│                                                                                                                                                                                                           │
+│ Here is the step-by-step logical deduction:                                                                                                                                                               │
+│                                                                                                                                                                                                           │
+│ ### 1. The Critical Threshold: Freezing Point                                                                                                                                                             │
+│ Every substance has a specific temperature at which it transitions from a liquid to a solid (the freezing point).                                                                                         │
+│ *   **The Freezing Point of Nitrogen:** Nitrogen freezes at approximately **$-210^\circ\text{C}$** ($-346^\circ\text{F}$), which is **$63\text{ Kelvin}$ ($63\text{ K}$)**.                               │
+│                                                                                                                                                                                                           │
+│ ### 2. The Temperature of "Liquid Nitrogen"                                                                                                                                                               │
+│ When we talk about "liquid nitrogen" in a laboratory or industrial setting, we are referring to nitrogen that is in its liquid phase.                                                                     │
+│ *   **Boiling Point:** At standard atmospheric pressure, nitrogen boils at **$-196^\circ\text{C}$** ($-321^\circ\text{F}$), which is **$77\text{ Kelvin}$ ($77\text{ K}$)**.                              │
+│ *   **Current State:** For nitrogen to remain a liquid, its                                                                                                                                               │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: groq/qwen/qwen3.8-27b Replica: cloud-direct Latency: 951.6ms Cost: $0.001039 CACHE MISS SLO: ✅  (type /diag for details)
+
+user > /diag
+                      Last Routing Telemetry                       
+╭──────────────────────────┬──────────────────────────────────────╮
+│ Metric / Field           │ Value                                │
+├──────────────────────────┼──────────────────────────────────────┤
+│ Request ID               │ 54db675f-a982-4a17-8dd4-bf89bd3ce4a3 │
+│ Requested Capability     │ coding                               │
+│ Selected Concrete Model  │ groq/qwen/qwen3.8-27b                │
+│ Selected Serving Replica │ cloud-direct                         │
+│ Execution Provider       │ groq                                 │
+│ Policy Applied           │ adaptive                             │
+│ Latency (ms)             │ 951.65 ms                            │
+│ Attempts                 │ 1                                    │
+│ Cache Outcome            │ MISS                                 │
+│ Privacy Partition        │ user_private=False (Public)          │
+│ Estimated Cost           │ $0.000320                            │
+│ Actual Cost              │ $0.001039                            │
+│ SLO Attainment           │ Attained                             │
+╰──────────────────────────┴──────────────────────────────────────╯
+                                    Execution Attempt History & Failover Trail                                     
+╭───┬───────────────────────┬─────────────────────┬─────────┬──────────┬───────────────────────────┬──────────────╮
+│ # │ Model                 │ Replica (Provider)  │ Status  │  Latency │       Cost (Billed State) │ Error Detail │
+├───┼───────────────────────┼─────────────────────┼─────────┼──────────┼───────────────────────────┼──────────────┤
+│ 1 │ groq/qwen/qwen3.8-27b │ cloud-direct (groq) │ SUCCESS │ 943.3 ms │ $0.001039 (invoiced_real) │ -            │
+╰───┴───────────────────────┴─────────────────────┴─────────┴──────────┴───────────────────────────┴──────────────╯
+
+user > /set policy vllm_semantic_router
+Policy set to 'vllm_semantic_router'
+
+user > why is liquid a liquid?
+╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                                                   │
+│ Okay, the user is asking why liquid is a liquid. Hmm, I need to address this. Let me think. The question might be a bit confusing. When I think about physics, liquids are substances that can flow and   │
+│ have a volume that's not fixed. But why do they still have the same name? I remember that the term "liquid" comes from the Greek word "magma," which means magma. But maybe the confusion arises because  │
+│ people think that a liquid is a state of matter, but in reality, it's a specific type of liquid. Wait, the user is probably asking why liquid is classified as a liquid, not why it's a liquid. Maybe     │
+│ they meant why it's a liquid in terms of its properties. Let me clarify. Liquids are substances that can flow and have a fixed volume, so they are called liquids. The confusion might come from mixing   │
+│ the terms. I should explain that liquids are classified as such because they exhibit certain physical properties. Also, perhaps the user is thinking of a different concept, like why a liquid is a       │
+│ liquid in a different context. I need to make sure I address both the definition and the reason behind the classification. Let me structure the answer to explain why liquids are liquids and clarify the │
+│ terminology.                                                                                                                                                                                              │
+│                                                                                                                                                                                                           │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen2.5 Latency: 3884.0ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > what is 1+1?
+╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                                                   │
+│ Okay, the user is asking, "What is 1+1?" I need to figure out how to respond. Let me start by breaking down the question. The user is likely just asking for the sum of two 1s, which is 2. But maybe     │
+│ they want a more detailed answer or a different interpretation.                                                                                                                                           │
+│                                                                                                                                                                                                           │
+│ First, I should confirm that they're asking for the mathematical sum. Since both 1 and 1 are numbers, adding them together gives 2. That's straightforward. But maybe they're thinking of something else, │
+│ like in a different context? Like in a puzzle or a math problem. Let me check if there's any hidden trick here.                                                                                           │
+│                                                                                                                                                                                                           │
+│ No, the question seems simple. 1 plus 1 is 2. I should make sure to explain this clearly. Maybe they want to know why, or if there's a different way to interpret the question. But since it's a direct   │
+│ question, the answer is clear. I should present the answer in a simple way, maybe with an example like 1+1=2 to reinforce the concept.                                                                    │
+│ </think>                                                                                                                                                                                                  │
+│                                                                                                                                                                                                           │
+│ 1 + 1 equals **2**.                                                                                                                                                                                       │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen2.5 Latency: 3932.2ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > /set cap general
+Capability set to 'general'
+
+user > what is 1+2?
+╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                                                   │
+│ Okay, the user is asking, "What is 1 + 2?" Hmm, I need to figure out the answer here. Let's break it down. The question is straightforward: adding 1 and 2. So, mathematically, 1 plus 2 equals 3. But    │
+│ wait, maybe they're not just asking for the numerical answer. Could there be any trick here? I don't think so. It's a simple addition problem. The user might be testing if they know the basic           │
+│ arithmetic. I should just confirm the answer clearly. Let me make sure there's no confusion with other operations or if there's any context I'm missing. No, this is a simple addition. So the answer     │
+│ should be 3.                                                                                                                                                                                              │
+│ </think>                                                                                                                                                                                                  │
+│                                                                                                                                                                                                           │
+│ 1 + 2 equals 3.                                                                                                                                                                                           │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen3-r2 Latency: 1977.7ms Cost: $0.000003 CACHE MISS SLO: ✅  (type /diag for details)
+
+user > write BFS algorithm in rust
+╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                                                   │
+│ Okay, I need to write a BFS algorithm in Rust. Let me start by recalling how BFS works. BFS is a traversal algorithm that explores all nodes level by level, starting from a single node. So, the steps   │
+│ are: initialize the queue with the starting node, mark it as visited, and then iterate through the nodes in the queue, adding adjacent nodes to the queue if they haven't been visited. Repeat until the  │
+│ queue is empty.                                                                                                                                                                                           │
+│                                                                                                                                                                                                           │
+│ Now, in Rust, I need to implement this. Let me think about the data structures. I'll need a queue. The most common way in Rust is to use a vector. Each entry in the queue can be a tuple of the node's   │
+│ value and its index. The queue starts with the starting node, and each step processes the current node, adds its neighbors.                                                                               │
+│                                                                                                                                                                                                           │
+│ Wait, but how do I represent the graph? Since the problem doesn't specify the graph structure, maybe I can assume a simple adjacency list. Each node has a list of its neighbors. So, when a node is      │
+│ processed, I check its neighbors and add them to the queue if they haven't been visited yet.                                                                                                              │
+│                                                                                                                                                                                                           │
+│ So, the steps in code would be:                                                                                                                                                                           │
+│                                                                                                                                                                                                           │
+│ 1. Define the starting node (maybe a constant).                                                                                                                                                           │
+│ 2. Create a queue initialized                                                                                                                                                                             │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen2.5 Latency: 3008.9ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for details)
+
+user > what is the numbers of US state election as of July 2024?
+╭─────────────────────────────────────────────────────────────────────────────────────────── AdaRoute Assistant ────────────────────────────────────────────────────────────────────────────────────────────╮
+│ <think>                                                                                                                                                                                                   │
+│ Okay, the user is asking about the number of US states in the election as of July 2024. Let me think. I need to check the current number of states. From what I remember, the US has 50 states. I've      │
+│ heard that in the election year, each state has one representative. So the total number of states would be the number of states minus one, but maybe the user is asking for the total number of states,   │
+│ not the total number of representatives.                                                                                                                                                                  │
+│                                                                                                                                                                                                           │
+│ Wait, the question says "numbers of US state election as of July 2024." So maybe they mean the total number of states, not the total number of representatives. For example, if there are 50 states, each │
+│ has one representative, but maybe the user is confused and thinks that the number of states is 50. Alternatively, maybe they are referring to the total number of states as of July 2024, which would be  │
+│ 50.                                                                                                                                                                                                       │
+│                                                                                                                                                                                                           │
+│ I should confirm the current number of states. I think as of 2024, there are 50 states. The other states would be California, New York, etc., and each has one representative. So the answer is 50. But   │
+│ to                                                                                                                                                                                                        │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M Replica: vllm-gpu-gguf-qwen3-r2 Latency: 3044.5ms Cost: $0.000005 CACHE MISS SLO: ⚠️  (type /diag for details)
 
 user > /exit
 Goodbye!
 (base) rongali@IITH-xeon-1:~/AdaRoute$ 
+

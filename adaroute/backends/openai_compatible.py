@@ -86,11 +86,15 @@ class OpenAICompatibleBackend(BaseBackend):
                         f"OpenAI-compatible endpoint {eff_endpoint} returned HTTP {res.status_code}: {res.text}"
                     )
                 data = res.json()
-                content = data["choices"][0]["message"]["content"]
+                choice = data["choices"][0]
+                content = choice["message"]["content"]
+                raw_finish = choice.get("finish_reason")
                 usage = data.get("usage", {})
                 prompt_tok = usage.get("prompt_tokens", p_tokens)
                 completion_tok = usage.get("completion_tokens", count_tokens(content))
                 lat_ms = (time.perf_counter() - start_time) * 1000.0
+
+                finish_reason = raw_finish or "unknown"
 
                 in_p = getattr(candidate, "input_price_per_1k", 0.0) or getattr(model_spec, "input_price_per_1k", 0.0)
                 out_p = getattr(candidate, "output_price_per_1k", 0.0) or getattr(
@@ -110,6 +114,9 @@ class OpenAICompatibleBackend(BaseBackend):
                     actual_cost=cost,
                     cost_state="allocated_estimate",
                     raw_response=data,
+                    finish_reason=finish_reason,
+                    source="openai_compatible_real",
+                    is_simulated=False,
                 )
         except Exception as e:
             if isinstance(e, OpenAICompatibleUnavailableError):

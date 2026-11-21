@@ -6,8 +6,8 @@ from adaroute.resilience.circuit import CircuitBreaker, CircuitState
 
 
 @pytest.mark.asyncio
-async def test_tc_m5_01_bounded_retry_on_replica_failure():
-    """[TC_M5_01] Milestone M5: When primary replica experiences transient failure,
+async def test_TC_M5_06_bounded_retry_on_replica_failure():
+    """[] Milestone M5: When primary replica experiences transient failure,
 
     gateway retries boundedly on an alternate replica and records attempt count.
     """
@@ -25,8 +25,8 @@ async def test_tc_m5_01_bounded_retry_on_replica_failure():
         assert response_data["routing_metadata"]["attempts"] >= 1
 
 
-def test_tc_m5_02_circuit_breaker_state_transitions():
-    """[TC_M5_02] Milestone M5: Circuit breaker trips to OPEN after 3 failures and blocks traffic."""
+def test_TC_M5_07_circuit_breaker_state_transitions():
+    """[] Milestone M5: Circuit breaker trips to OPEN after 3 failures and blocks traffic."""
     cb = CircuitBreaker(failure_threshold=3, recovery_timeout_sec=0.2)
     resource = "test-replica-1"
 

@@ -1,0 +1,39 @@
+{
+  "total_offered": 30,
+  "completed": 30,
+  "failed": 0,
+  "cache_hits": 30,
+  "cache_misses": 0,
+  "duration_sec": 2.28,
+  "effective_rps": 13.14,
+  "p50_latency_ms": 2.19,
+  "p90_latency_ms": 8.35,
+  "p95_latency_ms": 10.91,
+  "p99_latency_ms": 30.09,
+  "mean_latency_ms": 5.27,
+  "min_latency_ms": 1.75,
+  "max_latency_ms": 30.09,
+  "total_prompt_tokens": 1404,
+  "total_output_tokens": 6562,
+  "actual_incurred_cost": 0.0,
+  "frontier_benchmark_cost": 0.10545,
+  "attributable_savings": 0.10545,
+  "savings_percentage": 100.0,
+  "model_distribution": {
+    "groq/qwen/qwen3.8-27b": 4,
+    "unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M": 12,
+    "cohere/command-r-08-2024": 5,
+    "unsloth/Qwen3-0.6B-GGUF:Q4_K_M": 9
+  },
+  "capability_distribution": {
+    "coding": 10,
+    "reasoning": 8,
+    "qa": 5,
+    "summarization": 2,
+    "general": 2,
+    "fast": 2,
+    "complex": 1
+  },
+  "error_details": {},
+  "scenario": "standard"
+}

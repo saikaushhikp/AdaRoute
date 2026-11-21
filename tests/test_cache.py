@@ -12,8 +12,8 @@ def clear_cache():
 
 
 @pytest.mark.asyncio
-async def test_tc_m4_01_repeat_request_cache_hit():
-    """[TC_M4_01] Milestone M4: Repeated identical request hits cache and returns cached response."""
+async def test_TC_M4_01_repeat_request_cache_hit():
+    """[] Milestone M4: Repeated identical request hits cache and returns cached response."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         payload = {
@@ -36,8 +36,8 @@ async def test_tc_m4_01_repeat_request_cache_hit():
 
 
 @pytest.mark.asyncio
-async def test_tc_m4_02_cross_tenant_cache_isolation():
-    """[TC_M4_02] Milestone M4: Tenant isolation invariant. Tenant B must NEVER hit Tenant A's cache."""
+async def test_TC_M4_02_cross_tenant_cache_isolation():
+    """[] Milestone M4: Tenant isolation invariant. Tenant B must NEVER hit Tenant A's cache."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         prompt = "Confidential business summary query"
@@ -60,8 +60,8 @@ async def test_tc_m4_02_cross_tenant_cache_isolation():
 
 
 @pytest.mark.asyncio
-async def test_tc_m4_03_no_cache_bypass():
-    """[TC_M4_03] Milestone M4: Requests with no_cache=True must bypass cache lookup and write."""
+async def test_TC_M4_03_no_cache_bypass():
+    """[] Milestone M4: Requests with no_cache=True must bypass cache lookup and write."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         payload = {"model": "general", "prompt": "Bypass test", "no_cache": True}
@@ -73,8 +73,8 @@ async def test_tc_m4_03_no_cache_bypass():
 
 
 @pytest.mark.asyncio
-async def test_tc_m4_04_canonical_normalization_cache_hit():
-    """[TC_M4_04] Robust Caching: Single user message and prompt with whitespace variations produce identical cache hit."""
+async def test_TC_M4_04_canonical_normalization_cache_hit():
+    """[] Robust Caching: Single user message and prompt with whitespace variations produce identical cache hit."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         # 1. First call uses standalone prompt text with trailing whitespace
@@ -98,8 +98,8 @@ async def test_tc_m4_04_canonical_normalization_cache_hit():
 
 
 @pytest.mark.asyncio
-async def test_tc_m4_05_lossless_full_context_cache_and_poisoning_prevention():
-    """[TC_M4_05] P0 Assessment (W2-FB001): Full ordered context keying prevents context poisoning.
+async def test_TC_M4_05_lossless_full_context_cache_and_poisoning_prevention():
+    """[] P0 Assessment (W2-FB001): Full ordered context keying prevents context poisoning.
 
     Changing system facts (e.g. balance 100 vs 900) or changing max_tokens (64 vs 1)
     causes a cache MISS, while identical full-context calls produce a cache HIT.
@@ -167,8 +167,8 @@ async def test_tc_m4_05_lossless_full_context_cache_and_poisoning_prevention():
 
 
 @pytest.mark.asyncio
-async def test_tc_m4_06_gemini_model_registered_and_spec_verified():
-    """[TC_M4_06] Gemini Model: gemini/gemini-flash-latest is registered with accurate specs."""
+async def test_TC_M4_06_gemini_model_registered_and_spec_verified():
+    """[] Gemini Model: gemini/gemini-flash-latest is registered with accurate specs."""
     from adaroute.policy.registry import default_registry
 
     gemini_spec = default_registry.get_model("gemini/gemini-flash-latest")
@@ -183,8 +183,8 @@ async def test_tc_m4_06_gemini_model_registered_and_spec_verified():
 
 
 @pytest.mark.asyncio
-async def test_tc_m4_07_user_private_cache_partition_and_isolation():
-    """[TC_M4_07] user_private cache isolation: A prompt cached under public/cloud mode MUST NOT hit when user_private=True."""
+async def test_TC_M4_07_user_private_cache_partition_and_isolation():
+    """[] user_private cache isolation: A prompt cached under public/cloud mode MUST NOT hit when user_private=True."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         prompt = "Write an asynchronous script for latency benchmarking."
@@ -262,8 +262,8 @@ async def test_tc_m4_07_user_private_cache_partition_and_isolation():
 
 
 @pytest.mark.asyncio
-async def test_tc_m4_08_code_indentation_preservation_in_cache():
-    """[TC_M4_08] Code indentation preservation: Leading spaces/tabs and spaces within multiline code are preserved."""
+async def test_TC_M4_08_code_indentation_preservation_in_cache():
+    """[] Code indentation preservation: Leading spaces/tabs and spaces within multiline code are preserved."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         # Multiline Python code with 4-space indentation and internal spacing
@@ -295,8 +295,8 @@ async def test_tc_m4_08_code_indentation_preservation_in_cache():
 
 
 @pytest.mark.asyncio
-async def test_tc_m4_09_simulation_provenance_isolation():
-    """[TC_M4_09] Real vs Simulated Isolation: Simulated cache entry CANNOT satisfy execution_mode='real'."""
+async def test_TC_M4_09_simulation_provenance_isolation():
+    """[] Real vs Simulated Isolation: Simulated cache entry CANNOT satisfy execution_mode='real'."""
     from adaroute.cache.exact import ExactCache
     from adaroute.schemas import PrivacyLevel, RequestContext
 
@@ -342,8 +342,8 @@ async def test_tc_m4_09_simulation_provenance_isolation():
 
 
 @pytest.mark.asyncio
-async def test_tc_m4_10_cache_invalidation_methods():
-    """[TC_M4_10] Cache Invalidation: invalidate(key), invalidate_prefix(prefix), clear()."""
+async def test_TC_M4_10_cache_invalidation_methods():
+    """[] Cache Invalidation: invalidate(key), invalidate_prefix(prefix), clear()."""
     from adaroute.cache.exact import ExactCache
     from adaroute.schemas import PrivacyLevel, RequestContext
 
@@ -423,8 +423,8 @@ async def test_tc_m4_10_cache_invalidation_methods():
 
 
 @pytest.mark.asyncio
-async def test_tc_m4_11_redis_backend_and_transparent_fallback():
-    """[TC_M4_11] Shared Redis Backend: TTL, JSON serialization, and automatic transparent fallback."""
+async def test_TC_M4_11_redis_backend_and_transparent_fallback():
+    """[] Shared Redis Backend: TTL, JSON serialization, and automatic transparent fallback."""
     from unittest.mock import MagicMock
 
     from adaroute.cache.exact import ExactCache
@@ -489,8 +489,8 @@ async def test_tc_m4_11_redis_backend_and_transparent_fallback():
 
 
 @pytest.mark.asyncio
-async def test_tc_m4_14_prose_punctuation_and_case_normalization():
-    """[TC_M4_14] Natural language query normalization: trailing punctuation (?, !, .) and casing match."""
+async def test_TC_M4_12_prose_punctuation_and_case_normalization():
+    """[] Natural language query normalization: trailing punctuation (?, !, .) and casing match."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         # Prompt 1: "can you read my prompt?" (with question mark)
@@ -519,8 +519,8 @@ async def test_tc_m4_14_prose_punctuation_and_case_normalization():
 
 
 @pytest.mark.asyncio
-async def test_tc_m4_15_external_failover_when_primary_rate_limited(monkeypatch):
-    """[TC_M4_15] External Failover: When primary model encounters 429 RateLimitError,
+async def test_TC_M4_13_external_failover_when_primary_rate_limited(monkeypatch):
+    """[] External Failover: When primary model encounters 429 RateLimitError,
 
     router fails over to alternate candidate rather than returning a fake simulated response.
     """
@@ -575,7 +575,7 @@ async def test_tc_m4_15_external_failover_when_primary_rate_limited(monkeypatch)
         assert meta["selected_model"] != meta["attempt_history"][0]["model_id"]
 
 
-def test_tc_m4_16_exact_cache_quality_floor():
+def test_TC_M4_14_exact_cache_quality_floor():
     """ExactCache: Medium quality floor is 0.30; entries >= 0.30 satisfy medium request, entries < 0.30 do not."""
 
     from adaroute.cache.exact import CacheEntry, ExactCache

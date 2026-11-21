@@ -1,0 +1,12 @@
+cd ui && npm run test
+npm notice run adaroute-ui@1.0.0 test
+npm notice run vitest run
+
+ RUN  v5.0.3 /home/rongali/AdaRoute/ui
+
+
+ Test Files  4 passed (4)
+      Tests  18 passed (18)
+   Start at  16:56:40
+   Duration  985ms (environment 59%, tests 14%, transform 10%, setup 8%, import 8%, worker 1%)
+

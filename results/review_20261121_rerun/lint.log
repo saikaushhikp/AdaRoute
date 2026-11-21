@@ -1,0 +1,2 @@
+docker run --rm -v "/home/rongali/AdaRoute:/app" -w /app adaroute ruff check .
+All checks passed!

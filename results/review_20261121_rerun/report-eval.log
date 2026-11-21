@@ -1,0 +1,40 @@
+python3 results/report_evidence/run_honest_eval.py
+=== AdaRoute Small-Scale Evaluation Starting (Run ID: 55077be5) ===
+Target Gateway: http://localhost:7000
+Output Directory: /home/rongali/AdaRoute/results/report_evidence/runs/20261121T112814.754567Z
+[OK] Gateway is reachable and healthy: healthy
+
+--- Part 1: Model Selection Evaluation (no_cache=True) ---
+  [ADAPTIVE] math_mult -> Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M | Latency: 4147.9ms | Correct: False | Finish: length | Extraction failed: Truncated inside <think> reasoning passage without completion
+  [CHEAPEST] math_mult -> Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M | Latency: 106.4ms | Correct: False | Finish: stop | Expected 391, got '451'
+  [STRONGEST] math_mult -> Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M | Latency: 3293.0ms | Correct: False | Finish: length | Extraction failed: Truncated inside <think> reasoning passage without completion
+  [ADAPTIVE] code_func -> Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M | Latency: 3136.8ms | Correct: True | Finish: stop | AST contains valid function `is_even(n)` with return statement
+  [CHEAPEST] code_func -> Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M | Latency: 3763.3ms | Correct: True | Finish: stop | AST contains valid function `is_even(n)` with return statement
+  [STRONGEST] code_func -> Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M | Latency: 3175.9ms | Correct: True | Finish: stop | AST contains valid function `is_even(n)` with return statement
+  [ADAPTIVE] json_format -> Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M | Latency: 2987.8ms | Correct: True | Finish: stop | Valid JSON array matching ['apple', 'banana', 'cherry']
+  [CHEAPEST] json_format -> Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M | Latency: 255.1ms | Correct: True | Finish: stop | Valid JSON array matching ['apple', 'banana', 'cherry']
+  [STRONGEST] json_format -> Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M | Latency: 3017.4ms | Correct: True | Finish: stop | Valid JSON array matching ['apple', 'banana', 'cherry']
+  [ADAPTIVE] chem_symbol -> Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M | Latency: 1495.2ms | Correct: True | Finish: stop | Found exact chemical symbol Au
+  [CHEAPEST] chem_symbol -> Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M | Latency: 75.2ms | Correct: True | Finish: stop | Found exact chemical symbol Au
+  [STRONGEST] chem_symbol -> Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M | Latency: 1486.5ms | Correct: True | Finish: stop | Found exact chemical symbol Au
+  [ADAPTIVE] logic_syllogism -> Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M | Latency: 2479.3ms | Correct: True | Finish: stop | Found exact Yes answer
+  [CHEAPEST] logic_syllogism -> Model: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M | Latency: 85.6ms | Correct: False | Finish: stop | Expected Yes, got 'No'
+  [STRONGEST] logic_syllogism -> Model: unsloth/Qwen3-0.6B-GGUF:Q4_K_M | Latency: 2486.0ms | Correct: True | Finish: stop | Found exact Yes answer
+
+--- Part 2: Cache Reuse & False-Hit Guard Evaluation (Namespace: 55077be5) ---
+  [PASS] chem_symbol_cold (cold_seed) -> Expected: miss | Actual: miss | Latency: 1582.70ms | Sim: None
+  [PASS] chem_symbol_exact (exact_repeat) -> Expected: exact | Actual: exact | Latency: 2.10ms | Sim: None
+  [PASS] chem_symbol_semantic_paraphrase (semantic_paraphrase) -> Expected: semantic | Actual: semantic | Latency: 4.73ms | Sim: 0.9326
+  [PASS] chem_symbol_adversarial_entity (adversarial_entity) -> Expected: miss | Actual: miss | Latency: 1707.17ms | Sim: None
+  [PASS] chem_symbol_adversarial_negation (adversarial_negation) -> Expected: miss | Actual: miss | Latency: 3376.43ms | Sim: None
+  [PASS] chem_symbol_cross_tenant_isolation (cross_tenant) -> Expected: miss | Actual: miss | Latency: 1584.56ms | Sim: None
+  [PASS] truncated_length_cold (cold_seed_truncated) -> Expected: miss | Actual: miss | Latency: 239.31ms | Sim: None
+  [PASS] truncated_length_exact_repeat (exact_repeat_truncated) -> Expected: exact | Actual: exact | Latency: 2.55ms | Sim: None
+  [PASS] truncated_length_semantic_paraphrase (semantic_paraphrase_rejected_due_to_truncation) -> Expected: miss | Actual: miss | Latency: 3377.95ms | Sim: None
+  [PASS] adversarial_conflicting_directive (adversarial_directive) -> Expected: miss | Actual: miss | Latency: 2124.32ms | Sim: None
+
+[DONE] Saved evaluation artifacts to /home/rongali/AdaRoute/results/report_evidence/runs/20261121T112814.754567Z:
+  - manifest.json
+  - selection_evaluation.json
+  - cache_evaluation.json
+  - honest_eval_summary.md

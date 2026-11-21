@@ -100,10 +100,13 @@ class LiteLLMBackend(BaseBackend):
             latency_ms = (time.perf_counter() - start_time) * 1000.0
             choice = resp.choices[0]
             content = choice.message.content or ""
+            raw_finish = getattr(choice, "finish_reason", None)
 
             usage = getattr(resp, "usage", None)
             p_tokens = getattr(usage, "prompt_tokens", None) or count_tokens(prompt_text)
             out_tokens = getattr(usage, "completion_tokens", None) or count_tokens(content)
+
+            finish_reason = raw_finish or "unknown"
 
             # Compute actual cost via litellm or model spec pricing
             actual_cost = 0.0
@@ -123,6 +126,8 @@ class LiteLLMBackend(BaseBackend):
                 "model": target_model,
                 "provider": model_spec.provider,
                 "source": "litellm_external_real",
+                "is_simulated": False,
+                "finish_reason": finish_reason,
                 "actual_cost": actual_cost,
                 "response_id": getattr(resp, "id", None),
             }
@@ -165,6 +170,7 @@ class LiteLLMBackend(BaseBackend):
             out_tokens / 1000.0
         ) * model_spec.output_price_per_1k
 
+        finish_reason = "length" if out_tokens >= (request.max_tokens or 60) else "stop"
         return {
             "content": response_content,
             "prompt_tokens": p_tokens,
@@ -174,6 +180,8 @@ class LiteLLMBackend(BaseBackend):
             "model": model_spec.model_id,
             "provider": model_spec.provider,
             "source": source_label,
+            "is_simulated": True,
+            "finish_reason": finish_reason,
             "actual_cost": cost,
             "fallback_reason": fallback_reason,
         }

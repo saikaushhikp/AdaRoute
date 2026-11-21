@@ -1,15 +1,15 @@
 """Week-3 Verification Test Suite using milestone-based test IDs.
 
 Rigorous automated validation verifying all P0, P1, and P2 feedback requirements:
-- TC_M1_09: Single-user context and no authentication wall
-- TC_M3_15: User-private routing and bounded worst-case spend
-- TC_M4_12: Provenance-aware cache isolation and quality floor
-- TC_M1_10: Strict schema validation
-- TC_M2_04: Strict real local mode and native token provenance
-- TC_M5_03: Circuit breaker checks all alternates during retry
-- TC_M7_07: Multi-attempt billing ledger accounting
-- TC_M8_05: Asynchronous event-driven benchmark with queue metrics
-- TC_M8_06: Attributable savings versus a reference model
+- : Single-user context and no authentication wall
+- : User-private routing and bounded worst-case spend
+- : Provenance-aware cache isolation and quality floor
+- : Strict schema validation
+- : Strict real local mode and native token provenance
+- : Circuit breaker checks all alternates during retry
+- : Multi-attempt billing ledger accounting
+- : Asynchronous event-driven benchmark with queue metrics
+- : Attributable savings versus a reference model
 """
 
 import pytest
@@ -28,8 +28,8 @@ from adaroute.schemas import RequestContext
 
 
 @pytest.mark.asyncio
-async def test_tc_m1_09_single_user_context_no_auth_wall():
-    """[TC_M1_09] Requests succeed without auth headers and default to one user."""
+async def test_TC_M1_09_single_user_context_no_auth_wall():
+    """[] Requests succeed without auth headers and default to one user."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
@@ -47,8 +47,8 @@ async def test_tc_m1_09_single_user_context_no_auth_wall():
 
 
 @pytest.mark.asyncio
-async def test_tc_m3_15_user_private_toggle_enforcement():
-    """[TC_M3_15] When user-private mode is on, cloud models are excluded."""
+async def test_TC_M3_73_user_private_toggle_enforcement():
+    """[] When user-private mode is on, cloud models are excluded."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         # 1. user_private=True: forces local self-hosted model even if policy is 'strongest' and privacy is public
@@ -92,8 +92,8 @@ async def test_tc_m3_15_user_private_toggle_enforcement():
 
 
 @pytest.mark.asyncio
-async def test_tc_m4_12_cache_provenance_privacy_leak_prevention():
-    """[TC_M4_12] A public cache entry cannot serve an internal-only request."""
+async def test_TC_M4_47_cache_provenance_privacy_leak_prevention():
+    """[] A public cache entry cannot serve an internal-only request."""
     cache.clear()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -133,8 +133,8 @@ async def test_tc_m4_12_cache_provenance_privacy_leak_prevention():
 
 
 @pytest.mark.asyncio
-async def test_tc_m4_13_cache_provenance_quality_floor_enforcement():
-    """[TC_M4_13] A low-quality cached response cannot satisfy a high-quality request."""
+async def test_TC_M4_48_cache_provenance_quality_floor_enforcement():
+    """[] A low-quality cached response cannot satisfy a high-quality request."""
     cache.clear()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -173,8 +173,8 @@ async def test_tc_m4_13_cache_provenance_quality_floor_enforcement():
 
 
 @pytest.mark.asyncio
-async def test_tc_m1_10_strict_contract_validation():
-    """[TC_M1_10] Extra fields and streaming requests are rejected with HTTP 400."""
+async def test_TC_M1_10_strict_contract_validation():
+    """[] Extra fields and streaming requests are rejected with HTTP 400."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         # Stream=true is not supported in current gateway release
@@ -202,8 +202,8 @@ async def test_tc_m1_10_strict_contract_validation():
 
 
 @pytest.mark.asyncio
-async def test_tc_m3_16_bounded_worst_case_spend_clamping():
-    """[TC_M3_16] Worst-case token spending stays within the request budget.
+async def test_TC_M3_74_bounded_worst_case_spend_clamping():
+    """[] Worst-case token spending stays within the request budget.
 
     Verifies that when C_est <= B < C_max, the model is strictly rejected
     by the eligibility checker, and the HTTP route returns 503 if no models qualify.
@@ -257,8 +257,8 @@ async def test_tc_m3_16_bounded_worst_case_spend_clamping():
 
 
 @pytest.mark.asyncio
-async def test_tc_m2_04_real_local_mode_fails_closed_when_offline():
-    """[TC_M2_04] Real execution fails closed without silent simulation."""
+async def test_TC_M2_16_real_local_mode_fails_closed_when_offline():
+    """[] Real execution fails closed without silent simulation."""
     # Point to an unreachable host to simulate local engine failure in 'real' mode
     offline_backend = LocalBackend(
         ollama_host="http://localhost:99999",
@@ -278,8 +278,8 @@ async def test_tc_m2_04_real_local_mode_fails_closed_when_offline():
 
 
 @pytest.mark.asyncio
-async def test_tc_m2_05_real_local_model_native_tokens_and_hardware_tags():
-    """[TC_M2_05] Real local Ollama reports native tokens and model provenance."""
+async def test_TC_M2_17_real_local_model_native_tokens_and_hardware_tags():
+    """[] Real local Ollama reports native tokens and model provenance."""
     local_backend = LocalBackend(execution_mode="hybrid")
     req = RequestContext(prompt_tokens=10, estimated_output_tokens=10)
     local_models = [m for m in registry.get_all_models() if not m.is_external and not m.is_cloud]
@@ -296,8 +296,8 @@ async def test_tc_m2_05_real_local_model_native_tokens_and_hardware_tags():
     assert resp["hardware"] in ("cpu", "simulated_cpu", "cuda", "rocm", "metal")
 
 
-def test_tc_m5_03_circuit_breaker_check_on_all_alternates():
-    """[TC_M5_03] The circuit breaker blocks unhealthy alternate replicas."""
+def test_TC_M5_10_circuit_breaker_check_on_all_alternates():
+    """[] The circuit breaker blocks unhealthy alternate replicas."""
     cb = circuit_breaker
     cb.clear()
 
@@ -315,8 +315,8 @@ def test_tc_m5_03_circuit_breaker_check_on_all_alternates():
 
 
 @pytest.mark.asyncio
-async def test_tc_m7_07_multi_attempt_ledger_accounting():
-    """[TC_M7_07] The attempt ledger records the cost of each attempt."""
+async def test_TC_M7_14_multi_attempt_ledger_accounting():
+    """[] The attempt ledger records the cost of each attempt."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         res = await client.post(
@@ -348,8 +348,8 @@ async def test_tc_m7_07_multi_attempt_ledger_accounting():
 # ==============================================================================
 
 
-def test_tc_m8_05_async_event_benchmark_poisson_arrival():
-    """[TC_M8_05] The event-driven benchmark measures TTFT, TPOT, and p95 queueing."""
+def test_TC_M8_15_async_event_benchmark_poisson_arrival():
+    """[] The event-driven benchmark measures TTFT, TPOT, and p95 queueing."""
     simulator = EventDrivenSimulator(arrival_rate_rps=10.0, seed=42)
     res = simulator.run_benchmark("adaptive", "slo_aware", num_requests=25)
 
@@ -365,8 +365,8 @@ def test_tc_m8_05_async_event_benchmark_poisson_arrival():
     assert "effective_throughput_rps" in res
 
 
-def test_tc_m8_06_attributable_savings_accounting_vs_frontier():
-    """[TC_M8_06] Calculate attributable savings versus a reference model."""
+def test_TC_M8_16_attributable_savings_accounting_vs_frontier():
+    """[] Calculate attributable savings versus a reference model."""
     ext_models = [m for m in registry.get_all_models() if m.is_external or m.is_cloud]
     frontier_model = registry.get_model("gpt-4o-external") or (ext_models[0] if ext_models else None)
     local_models = [m for m in registry.get_all_models() if not m.is_external and not m.is_cloud]

@@ -80,6 +80,7 @@ class RequestContext(BaseModel):
     user_private: bool = False
     execution_mode: str = "hybrid"
     policy_name: str = "adaptive"
+    policy_version: str = "v4.0"
     session_id: str | None = None
     session_budget: float | None = None
 
@@ -129,6 +130,10 @@ class ReplicaState(BaseModel):
     workload_tokens: int = 0  # Dynamic W_q = sum(prompt_tokens + estimated_output)
     recent_latency_ms: float = 50.0
     memory_pressure: float = 0.1
+    vllm_running: int = 0
+    vllm_waiting: int = 0
+    metrics_last_polled: float = 0.0
+    metrics_source: str = "in_flight_estimate"  # "live_prometheus", "stale_prometheus", "in_flight_estimate"
     last_heartbeat: float = Field(default_factory=time.time)
     consecutive_failures: int = 0
     availability: bool = True
@@ -329,8 +334,11 @@ class AttemptRecord(BaseModel):
     cost_state: str = "allocated_estimate"  # "invoiced_real", "allocated_estimate", "unknown_unbilled"
     status: str = "success"  # "success" | "failed"
     error_message: str | None = None
-    execution_mode: str = "simulated"
+    execution_mode: str = "hybrid"
+    observed_origin: str = "unknown"
     is_simulated: bool = False
+    source: str = "unknown"
+    finish_reason: str | None = None
 
 
 class RoutingMetadata(BaseModel):
@@ -346,6 +354,7 @@ class RoutingMetadata(BaseModel):
     actual_cost: float = 0.0
     slo_attained: bool = True
     policy_name: str = "adaptive"
+    policy_version: str = "v4.0"
     scheduler_name: str = "slo_aware"
     attempt_history: list[AttemptRecord] = Field(default_factory=list)
     selected_deployment: str | None = None

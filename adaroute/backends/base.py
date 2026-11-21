@@ -24,6 +24,9 @@ class BackendResult:
     actual_cost: float | None = None
     cost_state: str = "allocated_estimate"  # "invoiced_real", "allocated_estimate", "unknown_unbilled"
     raw_response: dict[str, Any] = field(default_factory=dict)
+    finish_reason: str = "stop"
+    source: str = "unknown"
+    is_simulated: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -37,6 +40,9 @@ class BackendResult:
             "deployment_id": self.deployment_id,
             "actual_cost": self.actual_cost,
             "cost_state": self.cost_state,
+            "finish_reason": self.finish_reason,
+            "source": self.source,
+            "is_simulated": self.is_simulated,
         }
 
     def __getitem__(self, item: str) -> Any:

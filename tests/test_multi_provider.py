@@ -5,8 +5,8 @@ from adaroute.api import app
 
 
 @pytest.mark.asyncio
-async def test_tc_m2_01_local_model_execution():
-    """[TC_M2_01] Milestone M2: Local model backend executes successfully."""
+async def test_TC_M2_05_local_model_execution():
+    """[] Milestone M2: Local model backend executes successfully."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
@@ -26,8 +26,8 @@ async def test_tc_m2_01_local_model_execution():
 
 
 @pytest.mark.asyncio
-async def test_tc_m2_02_alternate_provider_execution():
-    """[TC_M2_02] Milestone M2: Alternate/cloud provider executes successfully when eligible."""
+async def test_TC_M2_06_alternate_provider_execution():
+    """[] Milestone M2: Alternate/cloud provider executes successfully when eligible."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
@@ -55,8 +55,8 @@ async def test_tc_m2_02_alternate_provider_execution():
 
 
 @pytest.mark.asyncio
-async def test_tc_m2_03_transparent_provider_switch_same_client():
-    """[TC_M2_03] Milestone M2: Client uses the identical API payload; gateway switches
+async def test_TC_M2_07_transparent_provider_switch_same_client():
+    """[] Milestone M2: Client uses the identical API payload; gateway switches
 
     provider transparently based on policy/privacy without caller code alteration.
     """

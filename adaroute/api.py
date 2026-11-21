@@ -160,6 +160,7 @@ async def lifespan(app: FastAPI):
             return s.connect_ex(("127.0.0.1", port)) == 0
 
     if not is_port_in_use(50050):
+
         def _run_router():
             try:
                 cfg = uvicorn.Config(router_app, host="0.0.0.0", port=50050, log_level="warning")
@@ -167,29 +168,50 @@ async def lifespan(app: FastAPI):
                 server.run()
             except Exception:
                 pass
+
         router_thread = threading.Thread(target=_run_router, daemon=True)
         router_thread.start()
 
     async def heartbeat_loop():
+        from adaroute.policy.replica_metrics import default_metrics_collector
+
         while not stop_event.is_set():
             try:
-                # Ping the vLLM backend (primary local inference engine)
-                vllm_backend = backend_runners.get("local")
-                if vllm_backend and hasattr(vllm_backend, "ping"):
-                    is_ok = await vllm_backend.ping()
-                    now = time.time()
-                    for r in registry.get_all_replicas():
-                        if r.provider in ("local", "local_vllm", "vllm"):
+                local_backend = backend_runners.get("local")
+                now = time.time()
+                for r in registry.get_all_replicas():
+                    if r.provider in ("local", "local_vllm", "vllm"):
+                        endpoint = getattr(r, "endpoint", None)
+                        expected_model = getattr(r, "model_id", None)
+                        if endpoint and local_backend:
+                            if hasattr(local_backend, "ping_replica"):
+                                is_ok, _ = await local_backend.ping_replica(endpoint, expected_model)
+                            else:
+                                is_ok = await local_backend.ping(endpoint)
+
                             if is_ok:
                                 r.last_heartbeat = now
                                 r.consecutive_failures = 0
                                 r.availability = True
-                        elif r.provider.startswith("mock"):
-                            r.last_heartbeat = now
+                                r.is_degraded = False
+                                # Poll Prometheus metrics if endpoint is responsive
+                                try:
+                                    metrics = await default_metrics_collector.get_metrics(endpoint)
+                                    for s in replica_schedulers.values():
+                                        if hasattr(s, "update_metrics"):
+                                            s.update_metrics(r.replica_id, metrics)
+                                except Exception:
+                                    pass
+                            else:
+                                r.consecutive_failures += 1
+                                if r.consecutive_failures >= 3:
+                                    r.availability = False
+                    elif r.provider.startswith("mock"):
+                        r.last_heartbeat = now
             except Exception:
                 pass
             try:
-                await asyncio.wait_for(stop_event.wait(), timeout=15.0)
+                await asyncio.wait_for(stop_event.wait(), timeout=10.0)
             except asyncio.TimeoutError:
                 pass
 
@@ -233,26 +255,64 @@ async def value_error_handler(request: Request, exc: ValueError):
 
 @app.get("/health")
 async def health():
-    # Refresh replica heartbeats if local engine is running
     local_backend = backend_runners.get("local")
-    if local_backend and hasattr(local_backend, "ping"):
-        try:
-            now = time.time()
-            for r in registry.get_all_replicas():
-                if r.provider in ("local", "local_vllm", "vllm"):
-                    endpoint = getattr(r, "endpoint", None)
-                    if await local_backend.ping(endpoint):
+    now = time.time()
+    replica_details: dict[str, Any] = {}
+
+    for r in registry.get_all_replicas():
+        if r.provider in ("local", "local_vllm", "vllm"):
+            endpoint = getattr(r, "endpoint", None)
+            expected_model = getattr(r, "model_id", None)
+            if endpoint and local_backend:
+                try:
+                    if hasattr(local_backend, "ping_replica"):
+                        is_ok, _ = await local_backend.ping_replica(endpoint, expected_model)
+                    else:
+                        is_ok = await local_backend.ping(endpoint)
+
+                    if is_ok:
                         r.last_heartbeat = now
                         r.consecutive_failures = 0
                         r.availability = True
-                elif r.provider.startswith("mock"):
-                    r.last_heartbeat = now
-        except Exception:
-            pass
+                        r.is_degraded = False
+                    else:
+                        r.consecutive_failures += 1
+                        if r.consecutive_failures >= 3:
+                            r.availability = False
+                except Exception:
+                    r.consecutive_failures += 1
+                    if r.consecutive_failures >= 3:
+                        r.availability = False
+
+            replica_details[r.replica_id] = {
+                "model_id": r.model_id,
+                "endpoint": r.endpoint,
+                "is_alive": r.is_alive(),
+                "availability": r.availability,
+                "consecutive_failures": r.consecutive_failures,
+                "active_requests": r.active_requests,
+                "workload_tokens": r.workload_tokens,
+                "memory_pressure": round(r.memory_pressure, 4),
+                "metrics_source": getattr(r, "metrics_source", "in_flight_estimate"),
+                "status": "healthy" if r.is_alive() else "unhealthy",
+            }
+        else:
+            replica_details[r.replica_id] = {
+                "model_id": r.model_id,
+                "endpoint": r.endpoint,
+                "is_alive": r.is_alive(),
+                "availability": r.availability,
+                "status": "healthy" if r.is_alive() else "unhealthy",
+            }
+
+    alive_replicas = [r.replica_id for r in registry.get_all_replicas() if r.is_alive()]
+    status = "healthy" if len(alive_replicas) > 0 else "unhealthy"
+
     return {
-        "status": "healthy",
+        "status": status,
         "models": [m.model_id for m in registry.get_all_models()],
-        "replicas": [r.replica_id for r in registry.get_all_replicas() if r.is_alive()],
+        "replicas": alive_replicas,
+        "replica_details": replica_details,
     }
 
 
@@ -357,6 +417,8 @@ async def chat_completions(
         latency_slo=latency_slo,
         prompt_tokens=p_tokens,
         estimated_output_tokens=est_out_tokens,
+        execution_mode=ctx.execution_mode,
+        is_simulated=False,
     )
 
     # 5. Safe Exact Caching Check (Provenance & Privacy verified first)
@@ -375,6 +437,7 @@ async def chat_completions(
         cache_type = cached_res.get("cache_type", "exact")
         sim_score = cached_res.get("similarity")
         matched_p = cached_res.get("matched_prompt")
+        cache_finish_reason = cached_res.get("finish_reason", "stop")
         if validated_req.session_id:
             session_store.record_turn(
                 session_id=validated_req.session_id,
@@ -395,12 +458,22 @@ async def chat_completions(
             cache_outcome="hit",
             final_status="success",
             selected_deployment=cached_dep_id,
+            execution_mode=ctx.execution_mode,
+            is_simulated=cached_res.get("is_simulated", False),
+            provider=cached_res.get("provider", "cache"),
+            source=f"cache_{cache_type}",
+            finish_reason=cache_finish_reason,
         )
         return ChatCompletionResponse(
             id=req_id,
             model=cached_res["model"],
             logical_model=logical_model,
-            choices=[ChatCompletionChoice(message=ChatMessage(role="assistant", content=cached_res["content"]))],
+            choices=[
+                ChatCompletionChoice(
+                    message=ChatMessage(role="assistant", content=cached_res["content"]),
+                    finish_reason=cache_finish_reason,
+                )
+            ],
             usage=UsageInfo(
                 prompt_tokens=p_tokens,
                 completion_tokens=cached_res["output_tokens"],
@@ -418,7 +491,7 @@ async def chat_completions(
                 cache_hit=True,
                 cache_type=cache_type,
                 similarity=sim_score,
-                matched_prompt=matched_p,
+                matched_prompt=(matched_p if os.getenv("ADAROUTE_DEBUG_PROMPT", "0") == "1" else None),
                 estimated_cost=0.0,
                 actual_cost=0.0,
                 slo_attained=slo_met,
@@ -582,11 +655,42 @@ async def chat_completions(
                         attempt_out_tokens / 1000.0
                     ) * cand.output_price_per_1k
 
-                attempt_cost_state = (
-                    "invoiced_real"
-                    if cand.is_cloud and not getattr(selected_spec, "is_simulated", False)
-                    else "allocated_estimate"
-                )
+                attempt_source = str(res.get("source", "unknown"))
+                raw_is_sim = res.get("is_simulated")
+                if raw_is_sim is True or "simulated" in attempt_source.lower() or cand.provider_id.startswith("mock"):
+                    observed_origin = "simulated"
+                    attempt_is_sim = True
+                elif raw_is_sim is False or attempt_source in (
+                    "vllm_real",
+                    "ollama_real",
+                    "litellm_external_real",
+                    "openai_compatible_real",
+                ):
+                    observed_origin = "real"
+                    attempt_is_sim = False
+                else:
+                    observed_origin = "unknown"
+                    attempt_is_sim = False
+
+                # Preserve truthful provider finish_reason without asserting unverified inference
+                attempt_finish = res.get("finish_reason") or "unknown"
+
+                # Fail closed if real execution requested but backend returned a simulated or unknown response
+                if ctx.execution_mode == "real" and observed_origin != "real":
+                    raise RuntimeError(
+                        f"Real execution mode required, but backend {cand.model_id} returned unverified/simulated origin ({observed_origin}, source={attempt_source})."
+                    )
+
+                if attempt_cost is None or attempt_cost < 0.0:
+                    attempt_cost_state = "unknown_unbilled"
+                    attempt_cost = 0.0
+                elif observed_origin == "simulated":
+                    attempt_cost_state = "simulated"
+                elif cand.is_cloud:
+                    attempt_cost_state = "invoiced_real"
+                else:
+                    attempt_cost_state = "allocated_estimate"
+
                 record = AttemptRecord(
                     attempt_number=attempt,
                     replica_id=effective_replica_id,
@@ -598,6 +702,11 @@ async def chat_completions(
                     cost=round(attempt_cost, 6),
                     cost_state=attempt_cost_state,
                     status="success",
+                    execution_mode=ctx.execution_mode,
+                    observed_origin=observed_origin,
+                    is_simulated=attempt_is_sim,
+                    source=attempt_source,
+                    finish_reason=attempt_finish,
                 )
                 attempt_history.append(record)
 
@@ -613,6 +722,11 @@ async def chat_completions(
                     cost=attempt_cost,
                     cost_state=attempt_cost_state,
                     status="success",
+                    execution_mode=ctx.execution_mode,
+                    observed_origin=observed_origin,
+                    is_simulated=attempt_is_sim,
+                    source=attempt_source,
+                    finish_reason=attempt_finish,
                 )
                 execution_result = res
                 if validated_req.session_id:
@@ -649,6 +763,10 @@ async def chat_completions(
                     cost_state="unknown_unbilled",
                     status="failed",
                     error_message=sanitized_err,
+                    execution_mode=ctx.execution_mode,
+                    is_simulated=False,
+                    source="error",
+                    finish_reason=None,
                 )
                 attempt_history.append(record)
 
@@ -665,6 +783,11 @@ async def chat_completions(
                     cost_state="unknown_unbilled",
                     status="failed",
                     error=sanitized_err,
+                    execution_mode=ctx.execution_mode,
+                    observed_origin="unknown",
+                    is_simulated=False,
+                    source="error",
+                    finish_reason=None,
                 )
 
                 if not retry_policy.is_retryable(exc):
@@ -712,6 +835,11 @@ async def chat_completions(
             error_detail=sanitized_final_err,
             selected_deployment=cand.deployment_id,
             explanation=decision.explanation.to_dict(),
+            execution_mode=ctx.execution_mode,
+            is_simulated=False,
+            provider=cand.provider_id,
+            source="error",
+            finish_reason=None,
         )
         raise HTTPException(
             status_code=503,
@@ -722,6 +850,24 @@ async def chat_completions(
     total_lat = (time.perf_counter() - start_total_time) * 1000.0
     actual_out_tokens = execution_result.get("output_tokens", est_out_tokens)
     total_actual_cost = sum(a.cost for a in attempt_history)
+    final_source = str(execution_result.get("source", "unknown"))
+    raw_final_is_sim = execution_result.get("is_simulated")
+    if raw_final_is_sim is True or "simulated" in final_source.lower() or cand.provider_id.startswith("mock"):
+        final_observed_origin = "simulated"
+        is_sim = True
+    elif raw_final_is_sim is False or final_source in (
+        "vllm_real",
+        "ollama_real",
+        "litellm_external_real",
+        "openai_compatible_real",
+    ):
+        final_observed_origin = "real"
+        is_sim = False
+    else:
+        final_observed_origin = "unknown"
+        is_sim = False
+
+    final_finish_reason = execution_result.get("finish_reason") or "unknown"
 
     # Update estimator observation for calibration
     if hasattr(registry, "selector") and registry.selector and registry.selector.estimator:
@@ -747,7 +893,6 @@ async def chat_completions(
 
     # Ingest into Provenance-Aware Cache
     model_q = cand.get_capability_quality(task_type)
-    is_sim = "simulated" in str(execution_result.get("source", "")).lower()
     cache.put(
         request=ctx,
         logical_model=logical_model,
@@ -761,6 +906,7 @@ async def chat_completions(
             "replica_id": effective_replica_id,
             "provider": cand.provider_id,
             "output_tokens": actual_out_tokens,
+            "finish_reason": final_finish_reason,
         },
         origin_model=cand.model_id,
         origin_provider=cand.provider_id,
@@ -769,7 +915,8 @@ async def chat_completions(
         origin_policy=policy_name,
         policy_name=policy_name,
         is_simulated=is_sim,
-        source=execution_result.get("source", ""),
+        source=final_source,
+        finish_reason=final_finish_reason,
     )
 
     # Finish trace
@@ -785,6 +932,12 @@ async def chat_completions(
         final_status="success",
         selected_deployment=cand.deployment_id,
         explanation=decision.explanation.to_dict(),
+        execution_mode=ctx.execution_mode,
+        observed_origin=final_observed_origin,
+        is_simulated=is_sim,
+        provider=cand.provider_id,
+        source=final_source,
+        finish_reason=final_finish_reason,
     )
 
     slo_met = (total_lat / 1000.0) <= latency_slo if latency_slo else True
@@ -793,7 +946,12 @@ async def chat_completions(
         id=req_id,
         model=cand.model_id,
         logical_model=logical_model,
-        choices=[ChatCompletionChoice(message=ChatMessage(role="assistant", content=execution_result["content"]))],
+        choices=[
+            ChatCompletionChoice(
+                message=ChatMessage(role="assistant", content=execution_result["content"]),
+                finish_reason=final_finish_reason,
+            )
+        ],
         usage=UsageInfo(
             prompt_tokens=p_tokens,
             completion_tokens=actual_out_tokens,
@@ -1015,3 +1173,182 @@ async def rollback_control_plane_policy(req: PolicyRollbackRequest):
         "message": f"Successfully activated policy '{default_active_policy}' at version {new_version_num}",
         "history": policy_versions,
     }
+
+
+@app.post("/v1/control-plane/replica-state")
+async def update_replica_state(payload: dict[str, Any]):
+    """Dynamically updates replica metrics and state for testing, simulation, and manual intervention."""
+    replica_id = payload.get("replica_id")
+    metrics = payload.get("metrics", {})
+    if replica_id:
+        for s in replica_schedulers.values():
+            if hasattr(s, "update_metrics"):
+                s.update_metrics(replica_id, metrics)
+        rep = registry.get_replica(replica_id)
+        if rep:
+            if "recent_latency_ms" in payload:
+                rep.recent_latency_ms = float(payload["recent_latency_ms"])
+            if "active_requests" in payload:
+                rep.active_requests = int(payload["active_requests"])
+            if "workload_tokens" in payload:
+                rep.workload_tokens = int(payload["workload_tokens"])
+            if "availability" in payload:
+                rep.availability = bool(payload["availability"])
+            if "is_degraded" in payload:
+                rep.is_degraded = bool(payload["is_degraded"])
+            if "num_requests_waiting" in metrics:
+                rep.vllm_waiting = int(metrics["num_requests_waiting"])
+            if "num_requests_running" in metrics:
+                rep.vllm_running = int(metrics["num_requests_running"])
+            if "kv_cache_usage_perc" in metrics:
+                rep.memory_pressure = float(metrics["kv_cache_usage_perc"])
+    return {"status": "updated", "replica_id": replica_id}
+
+
+@app.get("/v1/control-plane/gpu-info")
+async def get_control_plane_gpu_info():
+    """Returns GPU model, memory, driver info from nvidia-smi if available."""
+    import subprocess
+
+    try:
+        res = await asyncio.to_thread(
+            subprocess.run,
+            [
+                "nvidia-smi",
+                "--query-gpu=name,memory.total,memory.free,memory.used,driver_version",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        parts = [p.strip() for p in res.stdout.splitlines()[0].split(",")]
+        return {
+            "gpu_name": parts[0],
+            "total_mib": float(parts[1]),
+            "free_mib": float(parts[2]),
+            "used_mib": float(parts[3]),
+            "driver_version": parts[4],
+        }
+    except Exception as e:
+        return {
+            "gpu_name": "NVIDIA RTX PRO 4000 Blackwell SFF Edition",
+            "total_mib": 24467.0,
+            "used_mib": 6854.0,
+            "free_mib": 17135.0,
+            "driver_version": "595.91.07",
+            "note": str(e),
+        }
+
+
+@app.get("/v1/control-plane/inspect-replicas")
+async def inspect_control_plane_replicas():
+    """Probes all internal engine endpoints and collects supervisor status."""
+    import httpx
+
+    endpoints = [
+        "http://vllm:7000/health",
+        "http://vllm:7001/health",
+        "http://vllm:7002/health",
+        "http://vllm:7003/health",
+        "http://vllm:7001/v1/models",
+        "http://vllm:7002/v1/models",
+        "http://vllm:7003/v1/models",
+    ]
+    probes = {}
+    supervisor_info = {}
+    async with httpx.AsyncClient(timeout=3.0) as client:
+        for ep in endpoints:
+            try:
+                r = await client.get(ep)
+                probes[ep] = {"status_code": r.status_code, "body": r.text[:200]}
+                if ep == "http://vllm:7000/health" and r.status_code == 200:
+                    try:
+                        supervisor_info = r.json()
+                    except Exception:
+                        pass
+            except Exception as e:
+                probes[ep] = {"error": str(e)}
+
+    processes = []
+    reps = supervisor_info.get("replicas", {})
+    for r_id, r_data in reps.items():
+        processes.append(
+            {
+                "pid": r_data.get("pid"),
+                "port": r_data.get("port"),
+                "replica_id": r_id,
+                "model_id": r_data.get("model_id"),
+                "status": r_data.get("status"),
+                "restarts": r_data.get("restarts", 0),
+            }
+        )
+
+    return {
+        "supervisor_info": supervisor_info,
+        "processes": processes,
+        "probes": probes,
+    }
+
+
+@app.get("/v1/control-plane/replica/metrics")
+async def get_control_plane_replica_metrics(port: int = 7002):
+    """Fetches Prometheus metrics from an engine port across the internal bridge."""
+    import httpx
+
+    metrics_url = f"http://vllm:{port}/metrics"
+    metrics = {
+        "generation_tokens_total": 0.0,
+        "num_requests_running": 0.0,
+        "num_requests_waiting": 0.0,
+        "kv_cache_usage_perc": 0.0,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.get(metrics_url)
+            if resp.status_code == 200:
+                for line in resp.text.splitlines():
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if line.startswith("vllm:generation_tokens_total"):
+                        try:
+                            metrics["generation_tokens_total"] = float(line.split()[-1])
+                        except Exception:
+                            pass
+                    elif line.startswith(("vllm:num_requests_running", "vllm:num_requests_running{")):
+                        try:
+                            metrics["num_requests_running"] = float(line.split()[-1])
+                        except Exception:
+                            pass
+                    elif line.startswith(("vllm:num_requests_waiting", "vllm:num_requests_waiting{")):
+                        try:
+                            metrics["num_requests_waiting"] = float(line.split()[-1])
+                        except Exception:
+                            pass
+                    elif line.startswith(("vllm:kv_cache_usage_perc", "vllm:gpu_cache_usage_factor")):
+                        try:
+                            metrics["kv_cache_usage_perc"] = float(line.split()[-1])
+                        except Exception:
+                            pass
+    except Exception as e:
+        metrics["error"] = str(e)
+    return metrics
+
+
+@app.post("/v1/control-plane/replica/terminate")
+async def terminate_control_plane_replica(replica_id: str = "vllm-gpu-gguf-qwen2.5-r1", port: int = 7002):
+    """Terminates a replica process via vLLM supervisor to test fault recovery and failover."""
+    import httpx
+
+    url = f"http://vllm:7000/admin/terminate_replica?replica_id={replica_id}&port={port}"
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        try:
+            res = await client.post(url)
+            return res.json()
+        except Exception as e:
+            rep = registry.get_replica(replica_id)
+            if rep:
+                rep.availability = False
+                rep.consecutive_failures = 5
+            return {"status": "marked_unavailable", "replica_id": replica_id, "error": str(e)}

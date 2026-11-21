@@ -60,8 +60,11 @@ class LedgerEntry(BaseModel):
     cost: float = 0.0
     cost_state: str = "allocated_estimate"  # "invoiced_real", "allocated_estimate", "unknown_unbilled"
     status: str = "success"  # "success", "failed", "rejected", "cached"
-    execution_mode: str = "simulated"  # "real", "simulated", "hybrid", "mock"
+    execution_mode: str = "hybrid"  # "real", "simulated", "hybrid", "mock"
+    observed_origin: str = "unknown"  # "real", "simulated", "unknown"
     is_simulated: bool = False
+    source: str = "unknown"
+    finish_reason: str | None = None
     error: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -104,8 +107,11 @@ class DurableLedger:
         cost: float = 0.0,
         cost_state: str = "allocated_estimate",
         status: str = "success",
-        execution_mode: str = "simulated",
+        execution_mode: str = "hybrid",
+        observed_origin: str = "unknown",
         is_simulated: bool = False,
+        source: str = "unknown",
+        finish_reason: str | None = None,
         error: str | None = None,
         timestamp: float | None = None,
         metadata: dict[str, Any] | None = None,
@@ -125,7 +131,10 @@ class DurableLedger:
             cost_state=cost_state,
             status=status,
             execution_mode=execution_mode,
+            observed_origin=observed_origin,
             is_simulated=is_simulated,
+            source=source,
+            finish_reason=finish_reason,
             error=sanitize_secrets(error) if error else None,
             metadata=metadata or {},
         )
@@ -145,8 +154,11 @@ class DurableLedger:
         cost_state: str = "allocated_estimate",
         status: str = "success",
         error: str | None = None,
-        execution_mode: str = "simulated",
+        execution_mode: str = "hybrid",
+        observed_origin: str = "unknown",
         is_simulated: bool = False,
+        source: str = "unknown",
+        finish_reason: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> LedgerEntry:
         if status == "failed" and (cost_state == "unknown_unbilled" or cost == 0.0):
@@ -169,7 +181,10 @@ class DurableLedger:
             cost_state=cost_state,
             status=status,
             execution_mode=execution_mode,
+            observed_origin=observed_origin,
             is_simulated=is_simulated,
+            source=source,
+            finish_reason=finish_reason,
             error=sanitize_secrets(error) if error else None,
             metadata=metadata or {},
         )

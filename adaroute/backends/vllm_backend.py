@@ -40,14 +40,15 @@ class VLLMBackend(BaseBackend):
     def __init__(
         self,
         base_url: str | None = None,
-        timeout_sec: float = 60.0,
+        timeout_sec: float = 15.0,
         execution_mode: str | None = None,
     ) -> None:
         # Resolve base URL: env > constructor arg > Docker-compose service default
         raw_url = (base_url or os.getenv("VLLM_BASE_URL") or os.getenv("VLLM_HOST") or "http://vllm:7000").rstrip("/")
         # Normalise: always end with /v1
         self.base_url = raw_url if raw_url.endswith("/v1") else f"{raw_url}/v1"
-        self.timeout_sec = timeout_sec
+        env_timeout = os.getenv("VLLM_TIMEOUT_SEC")
+        self.timeout_sec = float(env_timeout) if env_timeout else timeout_sec
         self.execution_mode = (execution_mode or os.getenv("EXECUTION_MODE", "hybrid")).lower()
 
         # Optional bearer token for secured vLLM deployments
@@ -59,18 +60,48 @@ class VLLMBackend(BaseBackend):
 
     async def ping(self, endpoint: str | None = None) -> bool:
         """Returns True when the vLLM server responds to its /v1/models probe."""
+        ok, _ = await self.ping_replica(endpoint=endpoint)
+        return ok
+
+    async def ping_replica(self, endpoint: str | None = None, expected_model: str | None = None) -> tuple[bool, str]:
+        """Independently probes a specific replica endpoint for HTTP readiness and advertised model identity."""
         try:
-            base = endpoint.rstrip("/") if endpoint else self.base_url
-            if not base.endswith("/v1"):
+            base = (endpoint or self.base_url).rstrip("/")
+            if base.endswith("/v1"):
+                clean_root = base[:-3]
+            else:
+                clean_root = base
                 base = f"{base}/v1"
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                res = await client.get(
-                    f"{base}/models",
-                    headers=self._auth_headers(),
-                )
-                return res.status_code == 200
-        except Exception:
-            return False
+
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                # 1. Health check on replica root /health
+                try:
+                    h_res = await client.get(f"{clean_root}/health", headers=self._auth_headers())
+                    if h_res.status_code != 200:
+                        return False, f"health_returned_{h_res.status_code}"
+                except Exception as e:
+                    return False, f"unreachable: {e!s}"
+
+                # 2. Model verification on /v1/models if expected_model is given
+                if expected_model:
+                    try:
+                        m_res = await client.get(f"{base}/models", headers=self._auth_headers())
+                        if m_res.status_code == 200:
+                            data = m_res.json()
+                            served_ids = [item.get("id", "").lower() for item in data.get("data", [])]
+                            exp_clean = expected_model.lower()
+                            # Check exact, clean without repo or quantization, or alias
+                            matched = any(exp_clean in s or s in exp_clean for s in served_ids)
+                            if not matched:
+                                return False, f"model_mismatch: expected '{expected_model}', served {served_ids}"
+                        else:
+                            return False, f"models_returned_{m_res.status_code}"
+                    except Exception as e:
+                        return False, f"models_probe_failed: {e!s}"
+
+                return True, "healthy"
+        except Exception as e:
+            return False, f"probe_failed: {e!s}"
 
     # ------------------------------------------------------------------
     # Main execute
@@ -110,8 +141,9 @@ class VLLMBackend(BaseBackend):
         if request.max_tokens:
             payload["max_tokens"] = request.max_tokens
 
+        timeout_cfg = httpx.Timeout(self.timeout_sec, connect=3.0)
         try:
-            async with httpx.AsyncClient(timeout=self.timeout_sec) as client:
+            async with httpx.AsyncClient(timeout=timeout_cfg) as client:
                 res = await client.post(
                     f"{eff_base}/chat/completions",
                     json=payload,
@@ -123,11 +155,15 @@ class VLLMBackend(BaseBackend):
                     )
 
                 data = res.json()
-                content = data["choices"][0]["message"]["content"]
+                choice = data["choices"][0]
+                content = choice.get("message", {}).get("content", "")
+                raw_finish = choice.get("finish_reason")
                 usage = data.get("usage", {})
                 prompt_tok = usage.get("prompt_tokens", p_tokens)
                 completion_tok = usage.get("completion_tokens", count_tokens(content))
                 lat_ms = (time.perf_counter() - start_time) * 1000.0
+
+                finish_reason = raw_finish or "unknown"
 
                 in_p = getattr(candidate, "input_price_per_1k", 0.0) or getattr(model_spec, "input_price_per_1k", 0.0)
                 out_p = getattr(candidate, "output_price_per_1k", 0.0) or getattr(
@@ -149,6 +185,8 @@ class VLLMBackend(BaseBackend):
                     "actual_cost": cost,
                     "cost_state": "allocated_estimate",
                     "raw_response": data,
+                    "finish_reason": finish_reason,
+                    "is_simulated": False,
                 }
 
         except VLLMBackendUnavailableError:
@@ -199,12 +237,17 @@ class VLLMBackend(BaseBackend):
 
     @staticmethod
     def _resolve_model_name(candidate: Any, model_spec: Any) -> str:
-        return (
-            getattr(candidate, "provider_model_name", None)
-            or getattr(candidate, "model_id", None)
+        name = (
+            getattr(candidate, "model_id", None)
             or (getattr(model_spec, "model_id", None) if model_spec else None)
+            or getattr(candidate, "provider_model_name", None)
             or "unsloth/Qwen3-0.6B-GGUF:Q4_K_M"
         )
+        if name.startswith("openai/"):
+            name = name[len("openai/") :]
+        elif name.startswith("vllm/"):
+            name = name[len("vllm/") :]
+        return name
 
     async def _simulate(
         self,
@@ -227,6 +270,7 @@ class VLLMBackend(BaseBackend):
             f"Processed {getattr(request, 'task_type', 'general')} request "
             f"(privacy={getattr(getattr(request, 'privacy_level', None), 'value', 'public')})."
         )
+        finish_reason = "length" if (request.max_tokens and out_tokens >= request.max_tokens) else "stop"
         return {
             "content": response_content,
             "prompt_tokens": p_tokens,
@@ -240,4 +284,6 @@ class VLLMBackend(BaseBackend):
             "hardware": "simulated_gpu",
             "actual_cost": 0.0,
             "cost_state": "allocated_estimate",
+            "finish_reason": finish_reason,
+            "is_simulated": True,
         }

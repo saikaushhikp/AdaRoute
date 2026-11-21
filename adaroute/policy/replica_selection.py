@@ -55,6 +55,20 @@ class BaseReplicaScheduler(ABC):
         ]
         return healthy
 
+    def update_metrics(self, replica_id: str, metrics: dict[str, float]):
+        """Updates real-time engine telemetry (from Prometheus /metrics)."""
+        import time
+
+        replica = self.registry.get_replica(replica_id)
+        if replica:
+            replica.vllm_running = int(metrics.get("num_requests_running", 0.0))
+            replica.vllm_waiting = int(metrics.get("num_requests_waiting", 0.0))
+            # Use real KV cache usage for memory pressure when available
+            if "kv_cache_usage_perc" in metrics:
+                replica.memory_pressure = float(metrics["kv_cache_usage_perc"])
+            replica.metrics_last_polled = time.time()
+            replica.metrics_source = "live_prometheus" if not metrics.get("is_stale", False) else "stale_prometheus"
+
     def dispatch(self, replica_id: str, prompt_tokens: int, estimated_output_tokens: int):
         """Update replica dynamic state on dispatch (W_q increases)."""
         replica = self.registry.get_replica(replica_id)
@@ -113,7 +127,7 @@ class RoundRobinScheduler(BaseReplicaScheduler):
 
 
 class LeastLoadedScheduler(BaseReplicaScheduler):
-    """Picks the healthy replica with the fewest active requests."""
+    """Picks the healthy replica with the fewest active requests and queue depth."""
 
     def select_replica(
         self,
@@ -126,12 +140,17 @@ class LeastLoadedScheduler(BaseReplicaScheduler):
         if not healthy:
             return None
 
-        healthy.sort(key=lambda r: (r.active_requests, r.workload_tokens))
+        # Prioritize live vLLM engine queue (waiting + running) if available, falling back to in-flight tracking
+        def _load_metric(r: ReplicaState):
+            live_active = getattr(r, "vllm_waiting", 0) + getattr(r, "vllm_running", 0)
+            return (live_active, r.active_requests, r.workload_tokens)
+
+        healthy.sort(key=_load_metric)
         return healthy[0]
 
 
 class SLOAwareScheduler(BaseReplicaScheduler):
-    """Evaluates dynamic workload-weighted load W_q and memory pressure.
+    """Evaluates dynamic workload-weighted load W_q, queue depth, and memory pressure.
 
     W_q = sum(prompt_tokens + estimated_output_tokens).
     Prefers replicas with low W_q and minimal recent latency to meet SLO targets.
@@ -162,6 +181,19 @@ class SLOAwareScheduler(BaseReplicaScheduler):
                 + (r.memory_pressure * 2.0)
                 + (r.active_requests * 1.0)
             )
+
+            # Incorporate live Prometheus engine queues if available
+            live_waiting = getattr(r, "vllm_waiting", 0)
+            live_running = getattr(r, "vllm_running", 0)
+            score += live_waiting * 3.0 + live_running * 1.0
+
+            # Request SLO evaluation: penalize heavily if recent latency approaches or exceeds SLO
+            if request.latency_slo and r.recent_latency_ms > 0:
+                latency_sec = r.recent_latency_ms / 1000.0
+                if latency_sec > request.latency_slo:
+                    score += 20.0
+                elif latency_sec > request.latency_slo * 0.8:
+                    score += 5.0
 
             # Extra penalty if degraded
             if getattr(r, "is_degraded", False):

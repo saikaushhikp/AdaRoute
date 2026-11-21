@@ -5,8 +5,8 @@ from adaroute.workloads.estimator import OutputLengthEstimator
 from adaroute.workloads.generator import WorkloadGenerator
 
 
-def test_tc_m8_01_independent_workload_and_estimator_error_tracking():
-    """[TC_M8_01] Milestone M8: Decoupled ground truth generation allows non-circular estimation error tracking."""
+def test_TC_M8_01_independent_workload_and_estimator_error_tracking():
+    """[] Milestone M8: Decoupled ground truth generation allows non-circular estimation error tracking."""
     generator = WorkloadGenerator(seed=123)
     trace = generator.generate_trace(count=20)
     assert len(trace) == 20
@@ -25,8 +25,8 @@ def test_tc_m8_01_independent_workload_and_estimator_error_tracking():
     assert stats["mae"] > 0.0  # Real non-zero error demonstrating non-circular evaluation
 
 
-def test_tc_m8_02_reproducible_benchmark_execution(tmp_path):
-    """[TC_M8_02] Milestone M8: Fixed seed produces 100% reproducible benchmark results saved to disk."""
+def test_TC_M8_02_reproducible_benchmark_execution(tmp_path):
+    """[] Milestone M8: Fixed seed produces 100% reproducible benchmark results saved to disk."""
     runner1 = BenchmarkRunner(seed=99)
     res1 = runner1.run_all(num_requests=10, output_dir=str(tmp_path / "run1"))
 

@@ -1,8 +1,8 @@
-"""Lightweight vLLM Semantic Router v0.4.0 Decision & Preview Service.
+"""AdaRoute Bundled Heuristic Router Service (vLLM Semantic Router Preview Protocol).
 
-Exposes OpenAI-compatible preview routing endpoint compliant with vllm-sr v0.4.0:
-- POST /api/v1/routing/preview: Evaluates messages and classifies into model tier
-- GET /health: Health check
+Exposes OpenAI-compatible preview routing endpoint compliant with vllm-sr v0.4.0 preview protocol:
+- POST /api/v1/routing/preview: Evaluates messages and classifies into model tier using bundled heuristic
+- GET /health: Health check identifying as bundled heuristic
 - GET /api/v1/models: Virtual route catalog
 """
 
@@ -19,7 +19,7 @@ from adaroute.selection.vllm_router import classify_semantic_intent
 
 logger = logging.getLogger("adaroute.vllm_router_service")
 
-router_app = FastAPI(title="vLLM Semantic Router Daemon", version="0.4.0")
+router_app = FastAPI(title="AdaRoute Bundled Heuristic Router Daemon", version="0.4.0")
 
 
 class PreviewRequest(BaseModel):
@@ -46,7 +46,9 @@ async def routing_preview(req: PreviewRequest):
         "selected_model": target_model,
         "selection_status": "ok",
         "selection_reason": reason,
-        "selection_method": "signal_intent_classifier",
+        "selection_method": "bundled_heuristic_classifier",
+        "router_type": "bundled_heuristic",
+        "service": "adaroute-bundled-heuristic",
         "decision_result": {
             "algorithm": "multi_factor",
             "confidence": conf,
@@ -60,7 +62,8 @@ async def routing_preview(req: PreviewRequest):
 async def health():
     return {
         "status": "healthy",
-        "service": "vllm-semantic-router",
+        "service": "adaroute-bundled-heuristic-router",
+        "router_type": "bundled_heuristic",
         "version": "0.4.0",
         "timestamp": time.time(),
     }

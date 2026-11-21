@@ -78,7 +78,7 @@ def build_session_catalog() -> SystemCatalog:
     return catalog
 
 
-def test_tc_m3_38_session_state_turn_and_cost_accounting():
+def test_TC_M3_21_session_state_turn_and_cost_accounting():
     store = SessionStore()
     sid = f"sess-{uuid.uuid4().hex[:8]}"
     sess = store.get_session(sid, tenant_id="tenant-alpha", initial_budget=0.10)
@@ -102,7 +102,7 @@ def test_tc_m3_38_session_state_turn_and_cost_accounting():
     assert s_after.previous_deployment_id == "dep-fast"
 
 
-def test_tc_m3_39_cross_tenant_session_isolation():
+def test_TC_M3_22_cross_tenant_session_isolation():
     store = SessionStore()
     sid = f"shared-{uuid.uuid4().hex[:8]}"
     # Same session_id under two different tenants
@@ -119,7 +119,7 @@ def test_tc_m3_39_cross_tenant_session_isolation():
     assert round(s2.accumulated_cost, 4) == 0.015
 
 
-def test_tc_m3_40_capability_overrides_session_continuity():
+def test_TC_M3_23_capability_overrides_session_continuity():
     """A required capability switch overrides session continuity soft preference."""
     catalog = build_session_catalog()
     store = SessionStore()
@@ -142,7 +142,7 @@ def test_tc_m3_40_capability_overrides_session_continuity():
     assert decision.selected_candidate.deployment_id == "dep-reason"
 
 
-def test_tc_m3_41_privacy_strictly_overrides_continuity():
+def test_TC_M3_24_privacy_strictly_overrides_continuity():
     """Privacy restrictions strictly override session continuity even if previous model was preferred."""
     catalog = build_session_catalog()
     store = SessionStore()
@@ -165,7 +165,7 @@ def test_tc_m3_41_privacy_strictly_overrides_continuity():
     assert decision.selected_candidate.deployment_id == "dep-fast"
 
 
-def test_tc_m5_08_dead_previous_deployment_failover():
+def test_TC_M5_04_dead_previous_deployment_failover():
     """If the previous deployment is offline or has no healthy replicas, router switches away."""
     catalog = build_session_catalog()
     store = SessionStore()

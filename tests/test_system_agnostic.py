@@ -24,8 +24,8 @@ from adaroute.workloads.estimator import OutputLengthEstimator
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
-def test_tc_m3_11_system_s1_declarative_routing():
-    """[TC_M3_11] System S1: Edge Workstation with Ollama Qwen and Google Gemini."""
+def test_TC_M3_54_system_s1_declarative_routing():
+    """[] System S1: Edge Workstation with Ollama Qwen and Google Gemini."""
     s1_config = FIXTURES_DIR / "system_s1.yaml"
     assert s1_config.exists()
 
@@ -80,8 +80,8 @@ def test_tc_m3_11_system_s1_declarative_routing():
     assert ranked_private[0][0].model_id == "qwen2.5:1.5b"
 
 
-def test_tc_m3_12_system_s2_declarative_routing():
-    """[TC_M3_12] System S2: Enterprise On-Prem Node with Phi4-mini and Cohere Command R."""
+def test_TC_M3_55_system_s2_declarative_routing():
+    """[] System S2: Enterprise On-Prem Node with Phi4-mini and Cohere Command R."""
     s2_config = FIXTURES_DIR / "system_s2.yaml"
     assert s2_config.exists()
 
@@ -128,8 +128,8 @@ def test_tc_m3_12_system_s2_declarative_routing():
     assert ranked_static[0][0].model_id == "phi4-mini:3.8b"
 
 
-def test_tc_m3_13_cost_factors_strictly_preserved_for_telemetry_and_budgets():
-    """[TC_M3_13] Cost factors remain active for budget enforcement and telemetry."""
+def test_TC_M3_56_cost_factors_strictly_preserved_for_telemetry_and_budgets():
+    """[] Cost factors remain active for budget enforcement and telemetry."""
     s1_config = FIXTURES_DIR / "system_s1.yaml"
     registry = ModelRegistry(config_path=s1_config)
     checker = EligibilityChecker(registry)
@@ -156,8 +156,8 @@ def test_tc_m3_13_cost_factors_strictly_preserved_for_telemetry_and_budgets():
     assert "Budget exceeded" in reason
 
 
-def test_tc_m3_14_online_historical_quantile_adaptation():
-    """[TC_M3_14] Estimator updates running observations without future leakage."""
+def test_TC_M3_57_online_historical_quantile_adaptation():
+    """[] Estimator updates running observations without future leakage."""
     estimator = OutputLengthEstimator(
         task_priors={"coding": 200},
         default_prior=80,

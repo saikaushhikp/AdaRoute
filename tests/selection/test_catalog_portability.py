@@ -30,7 +30,7 @@ from adaroute.selection.catalog import (
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"
 
 
-def test_tc_m3_19_empty_catalog_fails_clearly():
+def test_TC_M3_01_empty_catalog_fails_clearly():
     """Empty catalog has zero implicit models and resolver returns empty list."""
     catalog = SystemCatalog(strict_catalog=True)
     resolver = CandidateResolver(catalog)
@@ -40,7 +40,7 @@ def test_tc_m3_19_empty_catalog_fails_clearly():
     assert len(catalog.deployments) == 0
 
 
-def test_tc_m3_20_system_s1_catalog_isolation():
+def test_TC_M3_02_system_s1_catalog_isolation():
     """System S1 loads only S1 models/deployments without legacy defaults."""
     s1_path = FIXTURES_DIR / "system_s1.yaml"
     catalog = SystemCatalog.from_yaml_file(s1_path, strict_catalog=True)
@@ -50,7 +50,7 @@ def test_tc_m3_20_system_s1_catalog_isolation():
     assert "phi4-mini:3.8b" not in catalog.models
 
 
-def test_tc_m3_21_system_s2_catalog_isolation():
+def test_TC_M3_03_system_s2_catalog_isolation():
     """System S2 loads only S2 models/deployments with zero Python changes."""
     s2_path = FIXTURES_DIR / "system_s2.yaml"
     catalog = SystemCatalog.from_yaml_file(s2_path, strict_catalog=True)
@@ -60,7 +60,7 @@ def test_tc_m3_21_system_s2_catalog_isolation():
     assert "gemini/gemini-flash-latest" not in catalog.models
 
 
-def test_tc_m3_22_unknown_provider_reference_fails_validation():
+def test_TC_M3_04_unknown_provider_reference_fails_validation():
     """Referencing an undeclared provider in a deployment raises ValueError."""
     catalog = SystemCatalog(strict_catalog=True)
     catalog.register_model(ModelDefinition(model_id="test-model", context_window=4096))
@@ -73,7 +73,7 @@ def test_tc_m3_22_unknown_provider_reference_fails_validation():
         catalog.register_deployment(dep)
 
 
-def test_tc_m3_23_unknown_model_reference_fails_validation():
+def test_TC_M3_05_unknown_model_reference_fails_validation():
     """Referencing an undeclared model in a deployment raises ValueError."""
     catalog = SystemCatalog(strict_catalog=True)
     catalog.register_provider(ProviderDefinition(provider_id="prov-1", adapter_kind="ollama"))
@@ -86,7 +86,7 @@ def test_tc_m3_23_unknown_model_reference_fails_validation():
         catalog.register_deployment(dep)
 
 
-def test_tc_m3_24_duplicate_ids_fail_validation():
+def test_TC_M3_06_duplicate_ids_fail_validation():
     """Colliding model, deployment, and replica IDs fail with explicit errors."""
     catalog = SystemCatalog(strict_catalog=True)
     p = ProviderDefinition(provider_id="p1", adapter_kind="ollama")
@@ -114,7 +114,7 @@ def test_tc_m3_24_duplicate_ids_fail_validation():
         catalog.register_deployment(dep)
 
 
-def test_tc_m3_25_invalid_quality_or_prices_fail_validation():
+def test_TC_M3_07_invalid_quality_or_prices_fail_validation():
     """Negative prices or quality not in [0, 1] raise ValueError."""
     with pytest.raises(ValueError, match="Quality value"):
         CapabilityProfile(name="coding", quality_value=1.5)
@@ -128,7 +128,7 @@ def test_tc_m3_25_invalid_quality_or_prices_fail_validation():
         )
 
 
-def test_tc_m3_26_secret_in_credential_reference_rejected():
+def test_TC_M3_08_secret_in_credential_reference_rejected():
     """Passing an actual secret key instead of an env var name fails validation."""
     with pytest.raises(ValueError, match="credential_reference must be an environment variable name"):
         ProviderDefinition(

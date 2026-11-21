@@ -26,6 +26,9 @@ class RetryPolicy:
         """Retry transient timeouts, connection drops, 429 rate limits, quota limits, or 5xx failures."""
         if isinstance(exc, (TimeoutError, ConnectionError, asyncio.TimeoutError)):
             return True
+        type_name = exc.__class__.__name__.lower()
+        if any(t in type_name for t in ("unavailable", "timeout", "connect", "network", "retry")):
+            return True
         msg = str(exc).lower()
         retryable_indicators = (
             "500",
@@ -39,6 +42,10 @@ class RetryPolicy:
             "temporarily unavailable",
             "connection refused",
             "connection reset",
+            "connection failed",
+            "connection attempts failed",
+            "failed to connect",
+            "all connection attempts failed",
             "resource_exhausted",
             "quota",
             "exceeded",

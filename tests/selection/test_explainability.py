@@ -70,7 +70,7 @@ def build_explainable_catalog() -> SystemCatalog:
     return catalog
 
 
-def test_tc_m7_08_routing_decision_structure_and_provenance():
+def test_TC_M7_01_routing_decision_structure_and_provenance():
     catalog = build_explainable_catalog()
     selector = UnifiedModelSelector(catalog=catalog)
 
@@ -96,7 +96,7 @@ def test_tc_m7_08_routing_decision_structure_and_provenance():
     assert len(decision.ranked_candidates) == 2
 
 
-def test_tc_m7_09_reproducibility():
+def test_TC_M7_02_reproducibility():
     """Identical snapshots and requests produce the exact same ranking."""
     catalog = build_explainable_catalog()
     selector = UnifiedModelSelector(catalog=catalog)
@@ -117,7 +117,7 @@ def test_tc_m7_09_reproducibility():
     assert d1.selected_candidate.deployment_id == d2.selected_candidate.deployment_id
 
 
-def test_tc_m7_10_secret_scrubbing_in_telemetry():
+def test_TC_M7_03_secret_scrubbing_in_telemetry():
     """Raw API keys or bearer tokens must be scrubbed from all outbox logs and telemetry."""
     dirty_text = "Call to endpoint failed: Authorization header Bearer AIzaSyD9876543210-abcdef was invalid or expired."
     clean_text = sanitize_secrets(dirty_text)

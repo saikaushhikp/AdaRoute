@@ -21,8 +21,8 @@ def policies():
     }
 
 
-def test_tc_m3_01_strongest_distinct_from_cheapest(policies):
-    """[TC_M3_01] Milestone M3: Strongest and Cheapest must NOT be identical stubs.
+def test_TC_M3_45_strongest_distinct_from_cheapest(policies):
+    """[] Milestone M3: Strongest and Cheapest must NOT be identical stubs.
 
     When both local and external are eligible, Strongest picks GPT-4o and Cheapest picks local.
     """
@@ -50,8 +50,8 @@ def test_tc_m3_01_strongest_distinct_from_cheapest(policies):
     assert strong_spec.quality_scores["coding"] > cheap_spec.quality_scores["coding"]
 
 
-def test_tc_m3_02_static_rule_follows_task_mapping(policies):
-    """[TC_M3_02] Milestone M3: StaticRulePolicy routes coding -> external, qa -> local."""
+def test_TC_M3_46_static_rule_follows_task_mapping(policies):
+    """[] Milestone M3: StaticRulePolicy routes coding -> external, qa -> local."""
     req_coding = RequestContext(
         task_type="coding",
         prompt_tokens=100,
@@ -76,8 +76,8 @@ def test_tc_m3_02_static_rule_follows_task_mapping(policies):
     assert spec_qa.model_id == expected_qa
 
 
-def test_tc_m3_03_adaptive_policy_balances_objectives(policies):
-    """[TC_M3_03] Milestone M3: Adaptive policy adapts model selection based on cost weight
+def test_TC_M3_47_adaptive_policy_balances_objectives(policies):
+    """[] Milestone M3: Adaptive policy adapts model selection based on cost weight
 
     versus quality weight.
     """

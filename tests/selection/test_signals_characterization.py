@@ -60,7 +60,7 @@ def create_sample_catalog() -> SystemCatalog:
     return catalog
 
 
-def test_tc_m3_42_capability_resolution_isolation():
+def test_TC_M3_25_capability_resolution_isolation():
     catalog = create_sample_catalog()
     resolver = CandidateResolver(catalog)
 
@@ -75,7 +75,7 @@ def test_tc_m3_42_capability_resolution_isolation():
     assert reasoning_cands[0].model_id == "math-reasoner"
 
 
-def test_tc_m3_43_unknown_capability_fails_closed():
+def test_TC_M3_26_unknown_capability_fails_closed():
     catalog = create_sample_catalog()
     resolver = CandidateResolver(catalog)
     # Unknown capability returns empty list (no silent fallback to general)
@@ -83,7 +83,7 @@ def test_tc_m3_43_unknown_capability_fails_closed():
     assert len(cands) == 0
 
 
-def test_tc_m3_44_concrete_model_id_direct_lookup():
+def test_TC_M3_27_concrete_model_id_direct_lookup():
     catalog = create_sample_catalog()
     resolver = CandidateResolver(catalog)
     # Target concrete model_id directly
@@ -92,7 +92,7 @@ def test_tc_m3_44_concrete_model_id_direct_lookup():
     assert cands[0].model_id == "code-specialist"
 
 
-def test_tc_m3_45_per_capability_quality_differentiation():
+def test_TC_M3_28_per_capability_quality_differentiation():
     catalog = create_sample_catalog()
     m_code = catalog.get_model("code-specialist")
     assert m_code.get_capability_quality("coding") == 0.92
@@ -102,7 +102,7 @@ def test_tc_m3_45_per_capability_quality_differentiation():
     assert cap_reas.supported is False
 
 
-def test_tc_m3_46_deterministic_signal_extraction_code():
+def test_TC_M3_29_deterministic_signal_extraction_code():
     extractor = SignalExtractor()
     prompt = "```python\ndef fib(n):\n    return n if n <= 1 else fib(n-1) + fib(n-2)\n```"
     signals = extractor.extract(prompt, prompt_tokens=25)
@@ -111,7 +111,7 @@ def test_tc_m3_46_deterministic_signal_extraction_code():
     assert signals.prompt_length_bucket == "short"
 
 
-def test_tc_m3_47_deterministic_signal_extraction_reasoning():
+def test_TC_M3_30_deterministic_signal_extraction_reasoning():
     extractor = SignalExtractor()
     prompt = "Prove step-by-step why the square root of 2 is irrational under the following constraint: must use proof by contradiction."
     signals = extractor.extract(prompt, prompt_tokens=30)
@@ -121,7 +121,7 @@ def test_tc_m3_47_deterministic_signal_extraction_reasoning():
     assert "step_by_step_marker" in signals.evidence
 
 
-def test_tc_m3_48_deterministic_signal_structured_output():
+def test_TC_M3_31_deterministic_signal_structured_output():
     extractor = SignalExtractor()
     prompt = "Format your response as a valid JSON object matching the provided schema."
     signals = extractor.extract(prompt, prompt_tokens=15)

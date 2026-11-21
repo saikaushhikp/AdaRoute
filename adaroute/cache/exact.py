@@ -36,6 +36,10 @@ from adaroute.schemas import ChatMessage, PrivacyLevel, RequestContext, normaliz
 
 logger = logging.getLogger("adaroute.cache")
 
+# Canonical provider provenance definitions
+CANONICAL_LOCAL_PROVIDERS = frozenset({"local", "vllm", "local_vllm", "local_ollama", "ollama", "mock-local"})
+CANONICAL_CLOUD_PROVIDERS = frozenset({"gemini", "google", "groq", "cohere", "openai", "litellm", "mock-external"})
+
 
 class ExactCache:
     """Safe Exact-Match Cache supporting Redis and In-Memory storage with provenance isolation."""
@@ -140,8 +144,8 @@ class ExactCache:
         t_id = tenant_id or "user"
         m_alias = logical_model.lower().strip()
         pol = (policy_name or "adaptive").lower().strip()
-        temp = f"{float(temperature):.2f}" if temperature is not None else "0.70"
-        max_tok = str(max_tokens) if max_tokens is not None else "default"
+        temp = float(temperature).hex() if temperature is not None else "0.7_hex"
+        max_tok = str(int(max_tokens)) if max_tokens is not None else "default"
 
         raw_key = (
             f"tenant:{t_id}|user:{u_id}|model:{m_alias}|"
@@ -154,27 +158,33 @@ class ExactCache:
     def _validate_provenance(self, entry: CacheEntry, request: RequestContext) -> bool:
         """Enforces provenance invariants: simulation isolation, privacy containment, and quality floor."""
         # 1. Real vs Simulated isolation (W2-FB001):
-        # A simulated response CANNOT satisfy a real-only request (execution_mode == 'real')
+        # A simulated or unverified response CANNOT satisfy a real-only request (execution_mode == 'real')
         req_mode = getattr(request, "execution_mode", None) or os.getenv("EXECUTION_MODE", "hybrid")
         if str(req_mode).strip().lower() == "real" and (
-            entry.is_simulated or "simulated" in getattr(entry, "source", "").lower()
+            entry.is_simulated
+            or "simulated" in getattr(entry, "source", "").lower()
+            or entry.origin_provider in ("mock", "mock-local", "mock-external", "unknown", "")
+            or not entry.origin_provider
         ):
             return False
 
-        # 2. User private toggle constraint: cloud entries strictly prohibited for user_private requests
+        # 2. User private toggle constraint: cloud and unknown entries strictly prohibited for user_private requests.
+        # Unknown provenance fails closed.
         if request.user_private:
-            if entry.origin_provider not in ("local", "local_ollama", "mock-local") or (
-                entry.origin_privacy == PrivacyLevel.PUBLIC
-                and entry.origin_provider in ("gemini", "groq", "cohere", "mock-external")
+            if (
+                entry.origin_provider not in CANONICAL_LOCAL_PROVIDERS
+                or entry.origin_provider in CANONICAL_CLOUD_PROVIDERS
             ):
                 return False
+            if entry.origin_privacy == PrivacyLevel.PUBLIC and entry.origin_provider in CANONICAL_CLOUD_PROVIDERS:
+                return False
 
-        # 3. Privacy matching
-        if request.privacy_level == PrivacyLevel.INTERNAL_ONLY:
-            if entry.origin_privacy == PrivacyLevel.PUBLIC or entry.origin_provider not in (
-                "local",
-                "local_ollama",
-                "mock-local",
+        # 3. Privacy matching (internal_only, confidential, restricted require local provenance)
+        if request.privacy_level in (PrivacyLevel.INTERNAL_ONLY, PrivacyLevel.CONFIDENTIAL, PrivacyLevel.RESTRICTED):
+            if (
+                entry.origin_privacy == PrivacyLevel.PUBLIC
+                or entry.origin_provider not in CANONICAL_LOCAL_PROVIDERS
+                or entry.origin_provider in CANONICAL_CLOUD_PROVIDERS
             ):
                 return False
 
@@ -246,6 +256,9 @@ class ExactCache:
                 res = dict(entry.response) if isinstance(entry.response, dict) else entry.response
                 if isinstance(res, dict):
                     res.setdefault("cache_type", "exact")
+                    res.setdefault("finish_reason", getattr(entry, "finish_reason", "stop"))
+                    res.setdefault("provider", getattr(entry, "origin_provider", "local"))
+                return res
                 return res
 
         # NOTE: Unsafe secondary query_key fallback index is DISABLED and REMOVED (W2-FB001).
@@ -293,6 +306,7 @@ class ExactCache:
         content_version: str = "v1",
         ttl_seconds: float | None = None,
         query: str | None = None,  # Deprecated / ignored
+        finish_reason: str = "stop",
     ) -> None:
         """Stores response in cache with lossless context key and provenance metadata."""
         if request.no_cache or request.privacy_level in (PrivacyLevel.CONFIDENTIAL, PrivacyLevel.RESTRICTED):
@@ -329,6 +343,7 @@ class ExactCache:
             ttl_seconds=ttl,
             is_simulated=is_simulated,
             source=source,
+            finish_reason=finish_reason,
         )
 
         try:
@@ -349,7 +364,8 @@ class ExactCache:
             m = messages[0]
             effective_prompt = m.get("content") if isinstance(m, dict) else getattr(m, "content", "")
 
-        if effective_prompt and self.semantic_cache and not has_system_or_history:
+        # Standalone requests only: truncated responses (finish_reason='length') must NOT be indexed in semantic cache
+        if effective_prompt and self.semantic_cache and not has_system_or_history and finish_reason != "length":
             try:
                 self.semantic_cache.put(
                     request=request,
@@ -360,6 +376,8 @@ class ExactCache:
                     output_tokens=(response or {}).get("output_tokens", 0),
                     quality_score=origin_quality,
                     is_simulated=is_simulated,
+                    origin_provider=origin_provider,
+                    finish_reason=finish_reason,
                 )
             except Exception as e:
                 logger.debug(f"Semantic cache index failed: {e}")

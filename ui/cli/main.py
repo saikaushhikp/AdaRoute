@@ -173,13 +173,16 @@ class AdaRouteCLI:
             if c_type == "semantic":
                 sim = meta.get("similarity", 0.0)
                 matched = meta.get("matched_prompt", "")
-                cache_badge = f"[bold green]HIT (semantic: {sim*100:.1f}% to '{matched}')[/bold green]"
+                cache_badge = f"[bold green]HIT (semantic: {sim * 100:.1f}% to '{matched}')[/bold green]"
             else:
                 cache_badge = "[bold green]HIT (exact context match)[/bold green]"
         else:
             cache_badge = "[dim]MISS[/dim]"
         table.add_row("Cache Outcome", cache_badge)
-        table.add_row("Privacy Partition", f"user_private={self.config['user_private']} ({'Local isolated' if self.config['user_private'] else 'Public'})")
+        table.add_row(
+            "Privacy Partition",
+            f"user_private={self.config['user_private']} ({'Local isolated' if self.config['user_private'] else 'Public'})",
+        )
 
         table.add_row("Estimated Cost", f"${meta.get('estimated_cost', 0.0):.6f}")
         table.add_row("Actual Cost", f"${meta.get('actual_cost', 0.0):.6f}")
@@ -318,10 +321,14 @@ class AdaRouteCLI:
         elif param in ("private", "user_private"):
             if val in ("on", "true", "yes", "1"):
                 self.config["user_private"] = True
-                console.print("[yellow]User Private toggle ENABLED (local self-hosted models only; isolated private cache)[/yellow]")
+                console.print(
+                    "[yellow]User Private toggle ENABLED (local self-hosted models only; isolated private cache)[/yellow]"
+                )
             else:
                 self.config["user_private"] = False
-                console.print("[green]User Private toggle DISABLED (cloud models eligible; public cache active)[/green]")
+                console.print(
+                    "[green]User Private toggle DISABLED (cloud models eligible; public cache active)[/green]"
+                )
 
         elif param == "cache":
             if val in ("off", "false", "bypass"):
@@ -389,7 +396,9 @@ class AdaRouteCLI:
                         self.config["user_private"] = not self.config["user_private"]
                         if self.config["user_private"]:
                             console.print("User Private mode is now [bold yellow]ENABLED (local only)[/bold yellow]")
-                            console.print("[dim]Note: Local-only execution strictly enforces an isolated private cache partition (public cloud entries excluded).[/dim]")
+                            console.print(
+                                "[dim]Note: Local-only execution strictly enforces an isolated private cache partition (public cloud entries excluded).[/dim]"
+                            )
                         else:
                             console.print("User Private mode is now [bold green]DISABLED (cloud allowed)[/bold green]")
                             console.print("[dim]Note: Cloud execution enabled; public cache partition active.[/dim]")

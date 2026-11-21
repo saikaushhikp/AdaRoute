@@ -1,0 +1,267 @@
+{
+  "summary": {
+    "adaptive": {
+      "total_requests": 5,
+      "completed": 5,
+      "verified_accuracy": 0.8,
+      "avg_latency_ms": 2849.4,
+      "cost_type": "local_gpu_allocation"
+    },
+    "cheapest": {
+      "total_requests": 5,
+      "completed": 5,
+      "verified_accuracy": 0.6,
+      "avg_latency_ms": 857.11,
+      "cost_type": "local_gpu_allocation"
+    },
+    "strongest": {
+      "total_requests": 5,
+      "completed": 5,
+      "verified_accuracy": 0.8,
+      "avg_latency_ms": 2691.76,
+      "cost_type": "local_gpu_allocation"
+    }
+  },
+  "cases": [
+    {
+      "case_id": "math_mult",
+      "prompt": "What is 17 * 23? Output only the final number with no extra text.",
+      "policies": {
+        "adaptive": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 4147.89,
+          "finish_reason": "length",
+          "cost": 6e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": false,
+          "grader_reason": "Extraction failed: Truncated inside <think> reasoning passage without completion",
+          "extracted_final_answer": null,
+          "raw_content_preview": "<think>\nOkay, so I need to calculate 17 multiplied by 23. Let me think about how to do this. Hmm, I remember that multiplying numbers can sometimes be..."
+        },
+        "cheapest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+          "provider": "vllm",
+          "latency_ms": 106.4,
+          "finish_reason": "stop",
+          "cost": 1e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": false,
+          "grader_reason": "Expected 391, got '451'",
+          "extracted_final_answer": "451",
+          "raw_content_preview": "451"
+        },
+        "strongest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 3293.03,
+          "finish_reason": "length",
+          "cost": 6e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": false,
+          "grader_reason": "Extraction failed: Truncated inside <think> reasoning passage without completion",
+          "extracted_final_answer": null,
+          "raw_content_preview": "<think>\nOkay, so I need to calculate 17 multiplied by 23. Let me think about how to do this. Hmm, I remember that multiplying numbers can sometimes be..."
+        }
+      }
+    },
+    {
+      "case_id": "code_func",
+      "prompt": "Write a Python function named `is_even(n)` that returns True if n is even, and False otherwise.",
+      "policies": {
+        "adaptive": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 3136.79,
+          "finish_reason": "stop",
+          "cost": 6e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "grader_reason": "AST contains valid function `is_even(n)` with return statement",
+          "extracted_final_answer": "```python\ndef is_even(n):\n    return n % 2 == 0\n```",
+          "raw_content_preview": "<think>\nOkay, I need to write a Python function called is_even that returns True if n is even and False otherwise. Let me think about how to approach ..."
+        },
+        "cheapest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen2.5-r1",
+          "provider": "vllm",
+          "latency_ms": 3763.33,
+          "finish_reason": "stop",
+          "cost": 6e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "grader_reason": "AST contains valid function `is_even(n)` with return statement",
+          "extracted_final_answer": "```python\ndef is_even(n):\n    \"\"\"\n    Check if the given number n is even.\n\n    Args:\n    n (int): The number to check.\n\n    Returns:\n    bool: True if n is even, False otherwise.\n    \"\"\"\n    return n % 2 == 0\n\n# Test the function with provided data points\nassert is_even(4) == True, \"Test case 1 failed\"\nassert is_even(7) == False, \"Test case 2 failed\"\nassert is_even(0) == True, \"Test case 3 failed\"\nassert is_even(-2) == True, \"Test case 4 failed\"\nassert is_even(15) == True, \"Test case 5 failed\"\nassert is_even(20) == False, \"Test case 6 failed\"\n```\n\nThis Python code snippet defines a function `is_even` that takes an integer `n` as input and returns `True` if `n` is even, and `False` otherwise. The function uses the modulus operator `%` to determine if `n` is divisible by 2 without a remainder, which is equivalent to checking if `n` is even. The provided test cases in the docstring demonstrate the function's correctness across various scenarios.",
+          "raw_content_preview": "```python\ndef is_even(n):\n    \"\"\"\n    Check if the given number n is even.\n\n    Args:\n    n (int): The number to check.\n\n    Returns:\n    bool: True i..."
+        },
+        "strongest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 3175.9,
+          "finish_reason": "stop",
+          "cost": 6e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "grader_reason": "AST contains valid function `is_even(n)` with return statement",
+          "extracted_final_answer": "```python\ndef is_even(n):\n    return n % 2 == 0\n```",
+          "raw_content_preview": "<think>\nOkay, I need to write a Python function called is_even that returns True if n is even and False otherwise. Let me think about how to approach ..."
+        }
+      }
+    },
+    {
+      "case_id": "json_format",
+      "prompt": "Output a valid JSON array containing strings 'apple', 'banana', and 'cherry'. Output only the JSON array.",
+      "policies": {
+        "adaptive": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 2987.77,
+          "finish_reason": "stop",
+          "cost": 6e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "grader_reason": "Valid JSON array matching ['apple', 'banana', 'cherry']",
+          "extracted_final_answer": "```json\n[\n  \"apple\",\n  \"banana\",\n  \"cherry\"\n]\n```",
+          "raw_content_preview": "<think>\nOkay, the user wants me to output a valid JSON array containing the strings 'apple', 'banana', and 'cherry'. And I have to make sure only the ..."
+        },
+        "cheapest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+          "provider": "vllm",
+          "latency_ms": 255.07,
+          "finish_reason": "stop",
+          "cost": 1e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "grader_reason": "Valid JSON array matching ['apple', 'banana', 'cherry']",
+          "extracted_final_answer": "```json\n[\"apple\", \"banana\", \"cherry\"]\n```",
+          "raw_content_preview": "```json\n[\"apple\", \"banana\", \"cherry\"]\n```"
+        },
+        "strongest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 3017.41,
+          "finish_reason": "stop",
+          "cost": 6e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "grader_reason": "Valid JSON array matching ['apple', 'banana', 'cherry']",
+          "extracted_final_answer": "```json\n[\n  \"apple\",\n  \"banana\",\n  \"cherry\"\n]\n```",
+          "raw_content_preview": "<think>\nOkay, the user wants me to output a valid JSON array containing the strings 'apple', 'banana', and 'cherry'. And I have to make sure only the ..."
+        }
+      }
+    },
+    {
+      "case_id": "chem_symbol",
+      "prompt": "What is the chemical symbol for gold? Output only the two-letter symbol.",
+      "policies": {
+        "adaptive": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 1495.24,
+          "finish_reason": "stop",
+          "cost": 3e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "grader_reason": "Found exact chemical symbol Au",
+          "extracted_final_answer": "Au",
+          "raw_content_preview": "<think>\nOkay, so the user is asking for the chemical symbol for gold. Let me think. I remember that gold is a metal, right? And I think its symbol is ..."
+        },
+        "cheapest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+          "provider": "vllm",
+          "latency_ms": 75.17,
+          "finish_reason": "stop",
+          "cost": 0.0,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "grader_reason": "Found exact chemical symbol Au",
+          "extracted_final_answer": "Au",
+          "raw_content_preview": "Au"
+        },
+        "strongest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 1486.47,
+          "finish_reason": "stop",
+          "cost": 3e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "grader_reason": "Found exact chemical symbol Au",
+          "extracted_final_answer": "Au",
+          "raw_content_preview": "<think>\nOkay, so the user is asking for the chemical symbol for gold. Let me think. I remember that gold is a metal, right? And I think its symbol is ..."
+        }
+      }
+    },
+    {
+      "case_id": "logic_syllogism",
+      "prompt": "Premises: All Bloops are Razzies. All Razzies are Lizzies. Question: Are all Bloops definitely Lizzies? Answer with just Yes or No.",
+      "policies": {
+        "adaptive": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 2479.29,
+          "finish_reason": "stop",
+          "cost": 5e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "grader_reason": "Found exact Yes answer",
+          "extracted_final_answer": "Yes.",
+          "raw_content_preview": "<think>\nOkay, let's see. The premises are: All Bloops are Razzies, and All Razzies are Lizzies. The question is whether all Bloops are definitely Lizz..."
+        },
+        "cheapest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen2.5-r2",
+          "provider": "vllm",
+          "latency_ms": 85.58,
+          "finish_reason": "stop",
+          "cost": 1e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": false,
+          "grader_reason": "Expected Yes, got 'No'",
+          "extracted_final_answer": "No",
+          "raw_content_preview": "No"
+        },
+        "strongest": {
+          "status_code": 200,
+          "selected_model": "unsloth/Qwen3-0.6B-GGUF:Q4_K_M",
+          "selected_replica": "vllm-gpu-gguf-qwen3-r1",
+          "provider": "vllm",
+          "latency_ms": 2485.98,
+          "finish_reason": "stop",
+          "cost": 5e-06,
+          "cost_state": "allocated_estimate",
+          "is_correct": true,
+          "grader_reason": "Found exact Yes answer",
+          "extracted_final_answer": "Yes.",
+          "raw_content_preview": "<think>\nOkay, let's see. The premises are: All Bloops are Razzies, and All Razzies are Lizzies. The question is whether all Bloops are definitely Lizz..."
+        }
+      }
+    }
+  ]
+}

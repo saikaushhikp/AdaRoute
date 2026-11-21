@@ -16,7 +16,7 @@ def client():
     return TestClient(app)
 
 
-def test_tc_m12_01_bayesian_estimator_state_endpoint(client):
+def test_TC_M3_40_bayesian_estimator_state_endpoint(client):
     """Verifies that the online Bayesian estimator state endpoint exposes calibrated domains."""
     res = client.get("/v1/estimator/bayesian/state")
     assert res.status_code == 200
@@ -28,7 +28,7 @@ def test_tc_m12_01_bayesian_estimator_state_endpoint(client):
     assert len(data["domains"]["general"]["mu"]) == 4
 
 
-def test_tc_m12_02_control_plane_ledger_calculation(client, tmp_path, monkeypatch):
+def test_TC_M7_04_control_plane_ledger_calculation(client, tmp_path, monkeypatch):
     """Verifies that the control plane ledger calculates attributable savings S_p = B_p - A_p."""
     fake_ledger = tmp_path / "ledger.jsonl"
     lines = [
@@ -86,7 +86,7 @@ def test_tc_m12_02_control_plane_ledger_calculation(client, tmp_path, monkeypatc
     assert body["recent_transactions"][0]["request_id"] == "r2"
 
 
-def test_tc_m12_03_control_plane_policies_and_rollback(client):
+def test_TC_M3_41_control_plane_policies_and_rollback(client):
     """Verifies querying active policy, rolling back dynamically, and version tracking."""
     # 1. Get initial policy state
     res = client.get("/v1/control-plane/policies")
@@ -117,7 +117,7 @@ def test_tc_m12_03_control_plane_policies_and_rollback(client):
     assert rb_v1_data["active_version"] == initial_ver + 2
 
 
-def test_tc_m12_04_control_plane_rollback_invalid_policy(client):
+def test_TC_M3_42_control_plane_rollback_invalid_policy(client):
     """Rejects unknown policies with HTTP 400."""
     res = client.post(
         "/v1/control-plane/rollback",
@@ -127,7 +127,7 @@ def test_tc_m12_04_control_plane_rollback_invalid_policy(client):
     assert "Unknown policy" in res.json()["detail"]
 
 
-def test_tc_m12_05_control_plane_rollback_missing_version(client):
+def test_TC_M3_43_control_plane_rollback_missing_version(client):
     """Rejects non-existent versions with HTTP 404."""
     res = client.post(
         "/v1/control-plane/rollback",

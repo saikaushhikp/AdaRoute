@@ -1,0 +1,50 @@
+python3 results/replica_eval/smoke_check.py
+==============================================================================
+AdaRoute Real GPU Multi-Replica Smoke Check & Fault Injection
+Timestamp: 20261121T112642.041326Z
+Output Directory: /home/rongali/AdaRoute/results/replica_eval/runs/20261121T112642.041326Z
+==============================================================================
+
+[Step 1/5] Inspecting GPU hardware & memory utilization...
+  GPU Name:         NVIDIA RTX PRO 4000 Blackwell SFF Edition
+  Driver Version:   595.91.07
+  Total Memory:     24467.0 MiB
+  Used Memory:      8082.0 MiB
+  Free Memory:      15907.0 MiB
+
+[Step 2/5] Inspecting container processes in adaroute-vllm...
+  Found 3 vLLM server processes:
+    - PID 1474: Port 7001
+    - PID 4228: Port 7002
+    - PID 3749: Port 7003
+
+[Step 3/5] Probing direct internal endpoints from gateway container...
+  http://vllm:7000/health -> HTTP 200
+  http://vllm:7001/health -> HTTP 200
+  http://vllm:7002/health -> HTTP 200
+  http://vllm:7003/health -> HTTP 200
+  http://vllm:7001/v1/models -> HTTP 200
+  http://vllm:7002/v1/models -> HTTP 200
+  http://vllm:7003/v1/models -> HTTP 200
+
+[Step 4/5] Testing round-robin distribution & engine-side Prometheus counters...
+  Initial generation tokens: Port 7002=2816.0, Port 7003=2304.0
+  Call 0: Target=unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M -> Selected Replica=vllm-gpu-gguf-qwen2.5-r1 (status=200)
+  Call 1: Target=unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M -> Selected Replica=vllm-gpu-gguf-qwen2.5-r2 (status=200)
+  Call 2: Target=unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M -> Selected Replica=vllm-gpu-gguf-qwen2.5-r1 (status=200)
+  Call 3: Target=unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M -> Selected Replica=vllm-gpu-gguf-qwen2.5-r2 (status=200)
+  Updated generation tokens: Port 7002=2828.0 (+12.0), Port 7003=2319.0 (+15.0)
+  Gateway replica dispatch counts: r1=2, r2=2
+
+[Step 5/5] Fault Injection: Simulating failure of Replica 1 (Port 7002) and testing failover...
+  Terminating Replica 1 (PID 4228, Port 7002) with SIGTERM to simulate engine crash...
+  Sending request during Replica 1 outage (expecting failover to Replica 2 on Port 7003)...
+  Outage Call Result: Selected Replica=vllm-gpu-gguf-qwen2.5-r2, Success=True
+  PASS: Request cleanly routed to sibling Replica 2 on Port 7003!
+  Waiting for multi-server watchdog to auto-restart Replica 1 on port 7002 (up to 75s)...
+  Replica 1 Health after recovery: HEALTHY (HTTP 200)
+
+==============================================================================
+Multi-Replica Smoke Check Complete: SUCCESS (PASS)
+Artifacts saved to: /home/rongali/AdaRoute/results/replica_eval/runs/20261121T112642.041326Z
+==============================================================================

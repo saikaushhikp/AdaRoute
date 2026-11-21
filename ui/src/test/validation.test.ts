@@ -3,19 +3,19 @@ import { validatePrompt, validateSettings } from '../lib/validation';
 import { DEFAULT_SETTINGS } from '../state/chatState';
 
 describe('Validation Logic', () => {
-  it('[TC_M1_22] validates prompts correctly', () => {
+  it('[TC_M1_26] validates prompts correctly', () => {
     expect(validatePrompt('')).toBe('Prompt cannot be empty.');
     expect(validatePrompt('   ')).toBe('Prompt cannot be empty.');
     expect(validatePrompt('Hello AdaRoute')).toBeNull();
   });
 
-  it('[TC_M1_23] validates default settings as valid', () => {
+  it('[TC_M1_27] validates default settings as valid', () => {
     const result = validateSettings(DEFAULT_SETTINGS);
     expect(result.isValid).toBe(true);
     expect(Object.keys(result.errors).length).toBe(0);
   });
 
-  it('[TC_M1_24] rejects negative budgets', () => {
+  it('[TC_M1_28] rejects negative budgets', () => {
     const result = validateSettings({
       ...DEFAULT_SETTINGS,
       budget: -0.5,
@@ -24,7 +24,7 @@ describe('Validation Logic', () => {
     expect(result.errors.budget).toContain('non-negative');
   });
 
-  it('[TC_M1_25] rejects non-positive latency SLO', () => {
+  it('[TC_M1_29] rejects non-positive latency SLO', () => {
     const result = validateSettings({
       ...DEFAULT_SETTINGS,
       latencySlo: 0,
@@ -33,7 +33,7 @@ describe('Validation Logic', () => {
     expect(result.errors.latencySlo).toContain('greater than 0');
   });
 
-  it('[TC_M1_26] rejects invalid maxTokens', () => {
+  it('[TC_M1_30] rejects invalid maxTokens', () => {
     const result = validateSettings({
       ...DEFAULT_SETTINGS,
       maxTokens: 0,

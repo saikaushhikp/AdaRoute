@@ -69,7 +69,9 @@ def classify_semantic_intent(prompt_text: str, token_count: int = 0) -> tuple[st
 
     # 3. Simple / Fast / Arithmetic / Greetings
     is_arithmetic = bool(re.search(r"^\s*what\s+is\s+[\d\.\s\+\-\*/\^=]+|\b\d+\s*[\+\-\*/]\s*\d+", clean_lower))
-    is_greeting = bool(re.search(r"^\s*(hi|hello|hey|greetings|introduce yourself|who are you|what is your name)\b", clean_lower))
+    is_greeting = bool(
+        re.search(r"^\s*(hi|hello|hey|greetings|introduce yourself|who are you|what is your name)\b", clean_lower)
+    )
     is_short = toks <= 20
 
     if is_arithmetic or is_greeting or is_short:

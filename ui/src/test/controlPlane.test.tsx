@@ -5,7 +5,7 @@ import { ControlPlanePanel } from '../components/ControlPlanePanel';
 import { GatewayClient } from '../lib/gatewayClient';
 
 describe('Auditable Control Plane Component (Week-5 Milestone M12)', () => {
-  it('[TC_M12_06] renders attributable savings metrics and transaction ledger', async () => {
+  it('[TC_M8_17] renders attributable savings metrics and transaction ledger', async () => {
     const mockClient = {
       getLedger: vi.fn().mockResolvedValue({
         summary: {
@@ -86,7 +86,7 @@ describe('Auditable Control Plane Component (Week-5 Milestone M12)', () => {
     });
   });
 
-  it('[TC_M12_07] does not render when isOpen is false', () => {
+  it('[TC_M1_19] does not render when isOpen is false', () => {
     const { container } = render(
       <ControlPlanePanel
         isOpen={false}

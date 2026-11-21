@@ -88,26 +88,25 @@ semantic_router:
 models:
   # -------------------------------------------------------------
   # Local vLLM Models (Self-Hosted, GPU-accelerated, GGUF Q4_K_M)
-  # Served inside the single vLLM container (http://vllm:7000/v1)
+  # Served inside the single vLLM container across distinct internal ports:
+  #   - Port 7001: unsloth/Qwen3-0.6B-GGUF:Q4_K_M
+  #   - Port 7002: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M (Replica 1)
+  #   - Port 7003: unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M (Replica 2)
   # -------------------------------------------------------------
   - model_id: "unsloth/Qwen3-0.6B-GGUF:Q4_K_M"
     logical_aliases: ["general", "reasoning", "summarization", "fast"]
     provider: "vllm"
     execution_type: "local"
     litellm_model: "openai/unsloth/Qwen3-0.6B-GGUF:Q4_K_M"
-    base_url: "http://vllm:7000/v1"
+    base_url: "http://vllm:7001/v1"
     privacy_levels: ["public", "internal_only", "confidential", "restricted"]
     cost_per_1k_input: 0.000010   # GGUF Q4 — very low local compute cost
     cost_per_1k_output: 0.000020
-    quality: 0.44                 # Qwen3-0.6B Q4_K_M quantized (native reasoning)
+    quality: 0.55                 # Qwen3-0.6B Q4_K_M quantized (native reasoning)
     max_context: 32768
     replicas:
       - replica_id: "vllm-gpu-gguf-qwen3-r1"
-        endpoint: "http://vllm:7000"
-        availability: true
-        weight: 1.0
-      - replica_id: "vllm-gpu-gguf-qwen3-r2"
-        endpoint: "http://vllm:7000"
+        endpoint: "http://vllm:7001"
         availability: true
         weight: 1.0
 
@@ -116,15 +115,19 @@ models:
     provider: "vllm"
     execution_type: "local"
     litellm_model: "openai/unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M"
-    base_url: "http://vllm:7000/v1"
+    base_url: "http://vllm:7002/v1"
     privacy_levels: ["public", "internal_only", "confidential", "restricted"]
     cost_per_1k_input: 0.000010   # GGUF Q4 — very low local compute cost
     cost_per_1k_output: 0.000020
     quality: 0.33                 # Qwen2.5-Coder-0.5B: HumanEval 65.9%, MultiPL-E 58.6%
     max_context: 131072           # Native 128k context window
     replicas:
-      - replica_id: "vllm-gpu-gguf-qwen2.5"
-        endpoint: "http://vllm:7000"
+      - replica_id: "vllm-gpu-gguf-qwen2.5-r1"
+        endpoint: "http://vllm:7002"
+        availability: true
+        weight: 1.0
+      - replica_id: "vllm-gpu-gguf-qwen2.5-r2"
+        endpoint: "http://vllm:7003"
         availability: true
         weight: 1.0
 

@@ -26,7 +26,7 @@ from adaroute.selection.constraints import HardConstraintEngine
 from adaroute.selection.estimator import DeploymentOutputEstimator
 
 
-def test_tc_m3_27_deployment_specific_prior():
+def test_TC_M3_09_deployment_specific_prior():
     est = DeploymentOutputEstimator(
         default_prior=80,
         task_priors={"coding": 250},
@@ -40,7 +40,7 @@ def test_tc_m3_27_deployment_specific_prior():
     assert res_gemini.reservation_tokens >= res_gemini.expected_tokens
 
 
-def test_tc_m3_28_prompt_length_bucket_adjustment():
+def test_TC_M3_10_prompt_length_bucket_adjustment():
     est = DeploymentOutputEstimator(default_prior=100)
     # Short prompt (<100 tokens)
     short_res = est.estimate("dep-1", "general", prompt_tokens=30)
@@ -51,7 +51,7 @@ def test_tc_m3_28_prompt_length_bucket_adjustment():
     assert long_res.expected_tokens == 125
 
 
-def test_tc_m3_29_explicit_max_tokens_capping():
+def test_TC_M3_11_explicit_max_tokens_capping():
     est = DeploymentOutputEstimator(default_prior=300)
     # If client requests max_tokens = 60, expected must clamp to 60
     res = est.estimate("dep-1", "general", prompt_tokens=50, max_tokens=60)
@@ -60,7 +60,7 @@ def test_tc_m3_29_explicit_max_tokens_capping():
     assert res.strategy == "explicit_max"
 
 
-def test_tc_m3_30_historical_warmup_and_adaptation():
+def test_TC_M3_12_historical_warmup_and_adaptation():
     est = DeploymentOutputEstimator(default_prior=100, minimum_observations=5, expected_quantile=0.75)
 
     # 4 observations (< minimum_observations 5): should NOT adapt yet
@@ -77,7 +77,7 @@ def test_tc_m3_30_historical_warmup_and_adaptation():
     assert res_after.expected_tokens == 30
 
 
-def test_tc_m3_31_deployment_isolation_in_estimation():
+def test_TC_M3_13_deployment_isolation_in_estimation():
     est = DeploymentOutputEstimator(default_prior=100, minimum_observations=5)
     # Record 10 observations for dep-qwen
     for _ in range(10):
@@ -95,7 +95,7 @@ def test_tc_m3_31_deployment_isolation_in_estimation():
     assert res_other.expected_tokens == 100
 
 
-def test_tc_m3_32_worst_case_cost_and_context_rejection():
+def test_TC_M3_14_worst_case_cost_and_context_rejection():
     """C_max > budget rejects candidate even if C_est <= budget."""
     catalog = SystemCatalog(strict_catalog=True)
     p = ProviderDefinition(provider_id="p1", adapter_kind="mock", execution_type="mock")

@@ -1,0 +1,51 @@
+{
+  "run_id": "benchmark_20261121T112744.199772Z",
+  "timestamp": "20261121T112744.199772Z",
+  "execution_mode": "real",
+  "model_id": "unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M",
+  "schedulers_evaluated": [
+    "round_robin",
+    "least_loaded",
+    "slo_aware"
+  ],
+  "gpu_initial": {
+    "gpu_name": "NVIDIA RTX PRO 4000 Blackwell SFF Edition",
+    "total_mib": 24467.0,
+    "free_mib": 15907.0,
+    "used_mib": 8082.0,
+    "driver_version": "595.91.07"
+  },
+  "gpu_final": {
+    "gpu_name": "NVIDIA RTX PRO 4000 Blackwell SFF Edition",
+    "total_mib": 24467.0,
+    "free_mib": 15907.0,
+    "used_mib": 8082.0,
+    "driver_version": "595.91.07"
+  },
+  "r1_port": 7002,
+  "r2_port": 7003,
+  "r1_metrics_initial": {
+    "generation_tokens_total": 0.0,
+    "num_requests_running": 0.0,
+    "num_requests_waiting": 0.0,
+    "kv_cache_usage_perc": 0.0
+  },
+  "r1_metrics_final": {
+    "generation_tokens_total": 707.0,
+    "num_requests_running": 0.0,
+    "num_requests_waiting": 0.0,
+    "kv_cache_usage_perc": 0.0
+  },
+  "r2_metrics_initial": {
+    "generation_tokens_total": 2343.0,
+    "num_requests_running": 0.0,
+    "num_requests_waiting": 0.0,
+    "kv_cache_usage_perc": 0.0
+  },
+  "r2_metrics_final": {
+    "generation_tokens_total": 2854.0,
+    "num_requests_running": 0.0,
+    "num_requests_waiting": 0.0,
+    "kv_cache_usage_perc": 0.0
+  }
+}

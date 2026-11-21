@@ -29,7 +29,7 @@ from adaroute.selection.objectives import ConfigurableObjectiveEngine
 
 
 @pytest.mark.asyncio
-async def test_tc_m3_62_endpoint_cache_miss_objective_switch_changes_deployment():
+async def test_TC_M3_58_endpoint_cache_miss_objective_switch_changes_deployment():
     """Prove that on a cache miss, changing the selector policy changes the deployment executed,
     and response/telemetry identifies that deployment and its explanation accurately."""
     transport = ASGITransport(app=app)
@@ -85,7 +85,7 @@ async def test_tc_m3_62_endpoint_cache_miss_objective_switch_changes_deployment(
 
 
 @pytest.mark.asyncio
-async def test_tc_m3_50_endpoint_unknown_policy_rejection_and_custom_policy_execution():
+async def test_TC_M3_59_endpoint_unknown_policy_rejection_and_custom_policy_execution():
     """Unsupported policy rejected with HTTP 400 (never silently substituted);
     custom configured policy executes and shapes ranking."""
     transport = ASGITransport(app=app)
@@ -133,7 +133,7 @@ async def test_tc_m3_50_endpoint_unknown_policy_rejection_and_custom_policy_exec
 
 
 @pytest.mark.asyncio
-async def test_tc_m1_27_endpoint_explicit_model_request_preservation_and_rejection():
+async def test_TC_M1_06_endpoint_explicit_model_request_preservation_and_rejection():
     """Explicit model requests are preserved (never rewritten to capability or falling back to general)."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -168,7 +168,7 @@ async def test_tc_m1_27_endpoint_explicit_model_request_preservation_and_rejecti
 
 
 @pytest.mark.asyncio
-async def test_tc_m2_10_endpoint_multiple_deployments_of_same_model_distinguished():
+async def test_TC_M2_09_endpoint_multiple_deployments_of_same_model_distinguished():
     """Multiple deployments of the same model are distinct in candidate resolution,
     cost accounting, and response deployment_id, and Stage 2 schedules replicas belonging to that deployment."""
     rep = ReplicaDefinition("replica-discount-1", endpoint="mock://discount-1", availability=True)
@@ -218,7 +218,7 @@ async def test_tc_m2_10_endpoint_multiple_deployments_of_same_model_distinguishe
 
 
 @pytest.mark.asyncio
-async def test_tc_m3_51_endpoint_privacy_and_user_private_enforcement():
+async def test_TC_M3_60_endpoint_privacy_and_user_private_enforcement():
     """user_private=True excludes all cloud models; restricted privacy fails closed against unauthorized models."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -259,7 +259,7 @@ async def test_tc_m3_51_endpoint_privacy_and_user_private_enforcement():
 
 
 @pytest.mark.asyncio
-async def test_tc_m3_52_endpoint_budget_and_context_window_rejection():
+async def test_TC_M3_61_endpoint_budget_and_context_window_rejection():
     """Hard constraints reject requests exceeding budget or context window."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -293,7 +293,7 @@ async def test_tc_m3_52_endpoint_budget_and_context_window_rejection():
 
 
 @pytest.mark.asyncio
-async def test_tc_m3_53_endpoint_session_budget_admission_and_turn_accounting():
+async def test_TC_M3_62_endpoint_session_budget_admission_and_turn_accounting():
     """Unified session store enforces initial budget admission, remaining budget enforcement,
     and consecutive turn depletion."""
     sid = "test-session-budget-depletion"
@@ -357,7 +357,7 @@ async def test_tc_m3_53_endpoint_session_budget_admission_and_turn_accounting():
 
 
 @pytest.mark.asyncio
-async def test_tc_m4_17_endpoint_cache_hit_session_turn_accounting():
+async def test_TC_M4_45_endpoint_cache_hit_session_turn_accounting():
     """Cache hits advance session turn count while keeping billed cost at 0.0 (budget remaining untouched)."""
     sid = "test-session-cache-hit-accounting"
     session_store.reset_session(sid, "user")
@@ -404,7 +404,7 @@ async def test_tc_m4_17_endpoint_cache_hit_session_turn_accounting():
 
 
 @pytest.mark.asyncio
-async def test_tc_m3_54_endpoint_concurrent_session_thread_safety():
+async def test_TC_M3_63_endpoint_concurrent_session_thread_safety():
     """Concurrent requests targeting the same session handle thread synchronization cleanly."""
     sid = "test-session-concurrent"
     session_store.reset_session(sid, "user")
@@ -435,7 +435,7 @@ async def test_tc_m3_54_endpoint_concurrent_session_thread_safety():
 
 
 @pytest.mark.asyncio
-async def test_tc_m5_09_endpoint_circuit_breaker_canary_probe_non_consumption():
+async def test_TC_M5_08_endpoint_circuit_breaker_canary_probe_non_consumption():
     """Evaluating candidate eligibility does not prematurely consume circuit breaker half-open canary probes."""
     res_id = "deploy-gemini/gemini-flash-latest"
     circuit_breaker.reset()

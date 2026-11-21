@@ -36,6 +36,7 @@ adaroute/policy/__init__.py
 adaroute/policy/eligibility.py
 adaroute/policy/model_selection.py
 adaroute/policy/registry.py
+adaroute/policy/replica_metrics.py
 adaroute/policy/replica_selection.py
 adaroute/resilience/__init__.py
 adaroute/resilience/circuit.py
@@ -54,6 +55,7 @@ adaroute/selection/selector.py
 adaroute/selection/session.py
 adaroute/selection/signals.py
 adaroute/selection/vllm_router.py
+adaroute/services/vllm_router_service.py
 adaroute/telemetry/__init__.py
 adaroute/telemetry/ledger.py
 adaroute/telemetry/tracer.py
@@ -68,6 +70,8 @@ tests/test_budget.py
 tests/test_cache.py
 tests/test_contract.py
 tests/test_control_plane.py
+tests/test_improved_system_2.py
+tests/test_improved_system_cache_and_provenance.py
 tests/test_ledger.py
 tests/test_live_load_test.py
 tests/test_model_selection.py
@@ -75,6 +79,7 @@ tests/test_multi_provider.py
 tests/test_observability.py
 tests/test_policy.py
 tests/test_privacy.py
+tests/test_provenance_and_completion_status.py
 tests/test_replica_scheduling.py
 tests/test_resilience.py
 tests/test_semantic_cache.py

@@ -1,0 +1,42 @@
+docker run --rm --add-host=host.docker.internal:host-gateway -e GATEWAY_URL=http://host.docker.internal:7000 -v "/home/rongali/AdaRoute:/app" -w /app adaroute python -m adaroute.experiments.load_test
+Starting Live Load Test against http://host.docker.internal:7000 (scenario=standard, requests=30, concurrency=5, rps=10.0)...
+{
+  "total_offered": 30,
+  "completed": 30,
+  "failed": 0,
+  "cache_hits": 17,
+  "cache_misses": 13,
+  "duration_sec": 16.01,
+  "effective_rps": 1.87,
+  "p50_latency_ms": 15.15,
+  "p90_latency_ms": 4046.11,
+  "p95_latency_ms": 4282.15,
+  "p99_latency_ms": 15380.77,
+  "mean_latency_ms": 1846.0,
+  "min_latency_ms": 1.86,
+  "max_latency_ms": 15380.77,
+  "total_prompt_tokens": 1404,
+  "total_output_tokens": 6562,
+  "actual_incurred_cost": 0.001129,
+  "frontier_benchmark_cost": 0.10545,
+  "attributable_savings": 0.104321,
+  "savings_percentage": 98.93,
+  "model_distribution": {
+    "groq/qwen/qwen3.8-27b": 4,
+    "cohere/command-r-08-2024": 5,
+    "unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M": 12,
+    "unsloth/Qwen3-0.6B-GGUF:Q4_K_M": 9
+  },
+  "capability_distribution": {
+    "coding": 10,
+    "reasoning": 8,
+    "qa": 5,
+    "general": 2,
+    "fast": 2,
+    "summarization": 2,
+    "complex": 1
+  },
+  "error_details": {},
+  "scenario": "standard"
+}
+Results saved to results/live_load_test_summary.json

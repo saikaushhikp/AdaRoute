@@ -1,0 +1,42 @@
+docker run --rm --add-host=host.docker.internal:host-gateway -e GATEWAY_URL=http://host.docker.internal:7000 -v "/home/rongali/AdaRoute:/app" -w /app adaroute python -m adaroute.experiments.load_test --scenario stress -n 50 -c 12 -r 25.0 --no-cache
+Starting Live Load Test against http://host.docker.internal:7000 (scenario=stress, requests=50, concurrency=12, rps=25.0)...
+{
+  "total_offered": 50,
+  "completed": 50,
+  "failed": 0,
+  "cache_hits": 0,
+  "cache_misses": 50,
+  "duration_sec": 25.95,
+  "effective_rps": 1.93,
+  "p50_latency_ms": 3306.74,
+  "p90_latency_ms": 4092.69,
+  "p95_latency_ms": 4533.17,
+  "p99_latency_ms": 15267.47,
+  "mean_latency_ms": 3702.4,
+  "min_latency_ms": 326.73,
+  "max_latency_ms": 15267.47,
+  "total_prompt_tokens": 2774,
+  "total_output_tokens": 12183,
+  "actual_incurred_cost": 0.001561,
+  "frontier_benchmark_cost": 0.196615,
+  "attributable_savings": 0.195054,
+  "savings_percentage": 99.21,
+  "model_distribution": {
+    "unsloth/Qwen2.5-Coder-0.5B-Instruct-128K-GGUF:Q4_K_M": 25,
+    "groq/qwen/qwen3.8-27b": 1,
+    "unsloth/Qwen3-0.6B-GGUF:Q4_K_M": 22,
+    "cohere/command-r-08-2024": 2
+  },
+  "capability_distribution": {
+    "qa": 9,
+    "coding": 15,
+    "reasoning": 12,
+    "summarization": 4,
+    "fast": 4,
+    "general": 4,
+    "complex": 2
+  },
+  "error_details": {},
+  "scenario": "stress"
+}
+Results saved to results/live_load_test_summary.json

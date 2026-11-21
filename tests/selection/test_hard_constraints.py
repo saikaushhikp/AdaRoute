@@ -104,7 +104,7 @@ def build_test_environment():
     return catalog
 
 
-def test_tc_m3_33_privacy_and_user_private_constraints():
+def test_TC_M3_15_privacy_and_user_private_constraints():
     catalog = build_test_environment()
     engine = HardConstraintEngine(execution_mode="hybrid")
     cand_cloud = CandidateDeployment(
@@ -130,7 +130,7 @@ def test_tc_m3_33_privacy_and_user_private_constraints():
     assert any("User private toggle active" in r for r in dec_priv.rejection_reasons)
 
 
-def test_tc_m2_06_missing_credentials_rejection():
+def test_TC_M2_01_missing_credentials_rejection():
     catalog = build_test_environment()
     engine = HardConstraintEngine(execution_mode="hybrid")
     cand_cloud = CandidateDeployment(
@@ -149,7 +149,7 @@ def test_tc_m2_06_missing_credentials_rejection():
     assert any("Missing credential" in r for r in dec.rejection_reasons)
 
 
-def test_tc_m2_07_real_mode_mock_exclusion():
+def test_TC_M2_02_real_mode_mock_exclusion():
     catalog = build_test_environment()
     engine_real = HardConstraintEngine(execution_mode="real")
     cand_mock = CandidateDeployment(
@@ -166,7 +166,7 @@ def test_tc_m2_07_real_mode_mock_exclusion():
     assert any("Real execution mode active: mock candidate" in r for r in dec.rejection_reasons)
 
 
-def test_tc_m5_05_cooldown_rejection():
+def test_TC_M5_01_cooldown_rejection():
     catalog = build_test_environment()
     engine = HardConstraintEngine(execution_mode="hybrid")
     snap = catalog.get_snapshot("dep-cloud")
@@ -186,7 +186,7 @@ def test_tc_m5_05_cooldown_rejection():
     assert any("Provider cooldown active" in r for r in dec.rejection_reasons)
 
 
-def test_tc_m5_06_local_replica_availability():
+def test_TC_M5_02_local_replica_availability():
     catalog = build_test_environment()
     engine = HardConstraintEngine(execution_mode="hybrid")
     cand_local = CandidateDeployment(
@@ -208,7 +208,7 @@ def test_tc_m5_06_local_replica_availability():
     assert any("No healthy replicas available" in r for r in dec2.rejection_reasons)
 
 
-def test_tc_m5_07_session_budget_remaining():
+def test_TC_M5_03_session_budget_remaining():
     catalog = build_test_environment()
     engine = HardConstraintEngine(execution_mode="hybrid")
     os.environ["MANDATORY_TEST_KEY"] = "mock-key"
@@ -228,7 +228,7 @@ def test_tc_m5_07_session_budget_remaining():
     assert any("Session budget exhausted" in r for r in dec.rejection_reasons)
 
 
-def test_tc_m3_49_quality_floor_constraint_lowered_to_030():
+def test_TC_M3_16_quality_floor_constraint_lowered_to_030():
     """Validates that the medium quality floor is set to 0.30 (lowered from 0.70)."""
     assert HardConstraintEngine.QUALITY_FLOORS["medium"] == 0.30
     assert HardConstraintEngine.QUALITY_FLOORS["low"] == 0.0

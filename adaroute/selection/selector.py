@@ -374,6 +374,9 @@ class UnifiedModelSelector:
                 session_id=eff_session_id,
             )
 
+            router_type = router_res.raw_payload.get("router_type") or (
+                "bundled_heuristic" if "50050" in self.vllm_router_client.router_url else "upstream_preview"
+            )
             router_metadata = {
                 "router_success": router_res.success,
                 "router_status": router_res.selection_status,
@@ -382,6 +385,8 @@ class UnifiedModelSelector:
                 "router_reason": router_res.reason,
                 "router_algorithm": router_res.algorithm,
                 "router_latency_ms": round(router_res.latency_ms, 2),
+                "router_type": router_type,
+                "actual_policy_used": f"vllm_semantic_router_{router_type}",
             }
             if router_res.error:
                 router_metadata["router_error"] = router_res.error
@@ -392,12 +397,12 @@ class UnifiedModelSelector:
                 for c_dep, _ in eligible_candidates:
                     caps = getattr(c_dep.model, "capability_profiles", {}) or getattr(c_dep.model, "capabilities", {})
                     cap_list = list(caps.keys()) if isinstance(caps, dict) else list(caps)
+                    # Strict identity matching: exact deployment_id, exact model_id, exact provider_model_name, or exact capability
                     if (
                         c_dep.deployment_id.lower() == s_clean
                         or c_dep.model_id.lower() == s_clean
+                        or getattr(c_dep, "provider_model_name", "").lower() == s_clean
                         or any(cap.lower() == s_clean for cap in cap_list)
-                        or s_clean in c_dep.deployment_id.lower()
-                        or s_clean in c_dep.model_id.lower()
                     ):
                         matched_cand_dep = c_dep
                         break
@@ -411,7 +416,8 @@ class UnifiedModelSelector:
                     f"vLLM-SR chose '{router_res.selected_model}', mapped to deployment '{matched_cand_dep.deployment_id}'"
                 )
             else:
-                _, fb_intent, fb_conf, fb_reason = classify_semantic_intent(prompt_text, request.prompt_tokens)
+                # _, fb_intent, fb_conf, fb_reason = classify_semantic_intent(prompt_text, request.prompt_tokens)
+                _, fb_intent, _, _ = classify_semantic_intent(prompt_text, request.prompt_tokens)
                 if fb_intent == "fast_qa":
                     # Simple query: sort candidates prioritizing lowest cost & latency (efficiency)
                     ranked_candidates.sort(
@@ -428,9 +434,7 @@ class UnifiedModelSelector:
                     )
                 else:
                     # Complex / reasoning query: prioritize highest quality
-                    ranked_candidates.sort(
-                        key=lambda pair: -pair[0].get_capability_quality(request.task_type)
-                    )
+                    ranked_candidates.sort(key=lambda pair: -pair[0].get_capability_quality(request.task_type))
 
                 if router_res.selected_model:
                     router_metadata["admission_status"] = "rejected_by_hard_constraints"

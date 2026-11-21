@@ -52,6 +52,18 @@ benchmark-live:
 benchmark-live-local:
     python -m adaroute.experiments.load_test --scenario live_benchmark -n 25
 
+# Run the small local-only report evaluation; each invocation writes a new results directory.
+report-eval:
+    python3 results/report_evidence/run_honest_eval.py
+
+# Run replica smoke check verifying 3 engines, direct endpoints, fault injection & recovery
+replica-smoke:
+    python3 results/replica_eval/smoke_check.py
+
+# Run matched-load multi-replica benchmark across round_robin, least_loaded, slo_aware
+replica-benchmark:
+    python3 results/replica_eval/run_matched_load_benchmark.py
+
 ui-build:
     docker build -t adaroute-ui ./ui
 

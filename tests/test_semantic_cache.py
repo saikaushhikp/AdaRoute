@@ -15,7 +15,7 @@ from adaroute.cache.semantic import LocalEmbeddingProvider, SemanticCache
 from adaroute.schemas import PrivacyLevel, RequestContext
 
 
-def test_tc_m10_01_embedding_cosine_similarity_properties():
+def test_TC_M4_30_embedding_cosine_similarity_properties():
     embedder = LocalEmbeddingProvider(dimension=128)
 
     # Identical text -> similarity == 1.0
@@ -35,7 +35,7 @@ def test_tc_m10_01_embedding_cosine_similarity_properties():
     assert sim_unrelated < 0.50
 
 
-def test_tc_m10_02_semantic_cache_hit_on_paraphrase():
+def test_TC_M4_31_semantic_cache_hit_on_paraphrase():
     cache = SemanticCache(similarity_threshold=0.90)
     cache.clear()
 
@@ -68,7 +68,7 @@ def test_tc_m10_02_semantic_cache_hit_on_paraphrase():
     assert hit["similarity"] >= 0.90
 
 
-def test_tc_m10_03_semantic_cache_miss_on_dissimilar_query():
+def test_TC_M4_32_semantic_cache_miss_on_dissimilar_query():
     cache = SemanticCache(similarity_threshold=0.95)
     cache.clear()
 
@@ -96,7 +96,7 @@ def test_tc_m10_03_semantic_cache_miss_on_dissimilar_query():
     assert miss is None
 
 
-def test_tc_m10_04_semantic_cache_privacy_isolation():
+def test_TC_M4_33_semantic_cache_privacy_isolation():
     cache = SemanticCache(similarity_threshold=0.90)
     cache.clear()
 
@@ -128,7 +128,7 @@ def test_tc_m10_04_semantic_cache_privacy_isolation():
     assert res is None
 
 
-def test_tc_m10_05_semantic_cache_tenant_isolation():
+def test_TC_M4_34_semantic_cache_tenant_isolation():
     cache = SemanticCache(similarity_threshold=0.90)
     cache.clear()
 
@@ -159,7 +159,7 @@ def test_tc_m10_05_semantic_cache_tenant_isolation():
     assert res is None
 
 
-def test_tc_m10_06_semantic_cache_quality_floor_guard():
+def test_TC_M4_35_semantic_cache_quality_floor_guard():
     cache = SemanticCache(similarity_threshold=0.90)
     cache.clear()
 
@@ -211,7 +211,7 @@ def test_tc_m10_06_semantic_cache_quality_floor_guard():
     assert hit_sub_floor is None
 
 
-def test_tc_m10_07_semantic_cache_simulation_isolation():
+def test_TC_M4_36_semantic_cache_simulation_isolation():
     cache = SemanticCache(similarity_threshold=0.90)
     cache.clear()
 
@@ -246,7 +246,7 @@ def test_tc_m10_07_semantic_cache_simulation_isolation():
     assert hit is None
 
 
-def test_tc_m10_08_semantic_cache_adversarial_negation_guard():
+def test_TC_M4_37_semantic_cache_adversarial_negation_guard():
     cache = SemanticCache(similarity_threshold=0.80)
     cache.clear()
 
@@ -272,7 +272,7 @@ def test_tc_m10_08_semantic_cache_adversarial_negation_guard():
     assert hit is None, "Negation polarity mismatch must be rejected by semantic guards"
 
 
-def test_tc_m10_09_semantic_cache_adversarial_numeric_guard():
+def test_TC_M4_38_semantic_cache_adversarial_numeric_guard():
     cache = SemanticCache(similarity_threshold=0.80)
     cache.clear()
 
@@ -298,7 +298,7 @@ def test_tc_m10_09_semantic_cache_adversarial_numeric_guard():
     assert hit is None, "Numeric literal mismatch must be rejected by semantic guards"
 
 
-def test_tc_m10_10_semantic_cache_adversarial_format_and_lang_guard():
+def test_TC_M4_39_semantic_cache_adversarial_format_and_lang_guard():
     cache = SemanticCache(similarity_threshold=0.80)
     cache.clear()
 
@@ -323,7 +323,7 @@ def test_tc_m10_10_semantic_cache_adversarial_format_and_lang_guard():
     assert hit_yaml is None, "Conflicting format constraint must be rejected"
 
 
-def test_tc_m10_11_semantic_cache_cross_user_isolation():
+def test_TC_M4_40_semantic_cache_cross_user_isolation():
     cache = SemanticCache(similarity_threshold=0.85)
     cache.clear()
 
@@ -356,7 +356,7 @@ def test_tc_m10_11_semantic_cache_cross_user_isolation():
     assert hit_u2 is None, "Cross-user cache hit strictly forbidden"
 
 
-def test_tc_m10_12_semantic_cache_max_tokens_bound():
+def test_TC_M4_41_semantic_cache_max_tokens_bound():
     cache = SemanticCache(similarity_threshold=0.85)
     cache.clear()
 
@@ -383,7 +383,7 @@ def test_tc_m10_12_semantic_cache_max_tokens_bound():
     assert hit is None, "Cached response exceeding max_tokens must be rejected"
 
 
-def test_tc_m10_13_semantic_cache_redis_vector_search_live():
+def test_TC_M4_42_semantic_cache_redis_vector_search_live():
     """Live verification against Redis Search (redis-stack-server:7.4.0-v8)."""
     import os
 
@@ -421,7 +421,7 @@ def test_tc_m10_13_semantic_cache_redis_vector_search_live():
     assert hit["cache_type"] == "semantic"
 
 
-def test_tc_m10_14_fastembed_real_embedding_paraphrase():
+def test_TC_M4_43_fastembed_real_embedding_paraphrase():
     """Verification using real CPU ONNX FastEmbedProvider (sentence-transformers/all-MiniLM-L6-v2)."""
     from adaroute.cache.semantic import FastEmbedProvider
 
@@ -453,7 +453,7 @@ def test_tc_m10_14_fastembed_real_embedding_paraphrase():
     assert hit["similarity"] >= 0.80
 
 
-def test_tc_m10_15_semantic_cache_failure_and_outage_safety():
+def test_TC_M4_44_semantic_cache_failure_and_outage_safety():
     """Embedding or Redis failures must gracefully yield observable miss without raising exceptions."""
 
     class BrokenEmbedder:
