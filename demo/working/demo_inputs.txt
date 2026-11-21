@@ -1,0 +1,22 @@
+/health
+/set policy cheapest
+Write a python function to compute fibonacci(n).
+/set policy strongest
+Write a python function to compute fibonacci(n).
+/private
+Confidential patient record: calculate average heart rate for patient 991.
+/diag
+/private
+/set cap coding
+/set policy cheapest
+/set scheduler round_robin
+Echo test dispatch alpha
+Echo test dispatch beta
+What is the boiling point of pure water in Celsius?
+What is the boiling point of pure water in Celsius?
+At what temperature in Celsius does pure water boil?
+At what temperature in Celsius does pure ethanol boil?
+/set budget 0.0000001
+Explain quantum computing in detail.
+/set budget 1.0
+/exit

@@ -34,7 +34,9 @@ dist/
 # data/
 # *.jsonl
 Docs/
-# docs/
+demo/*
+!demo/working/
+!demo/working/**
 PLAN_CHAT_INTERFACE.md
 CRITICAL_CONVERSATION.md
 CRITICAL_CRITIQUE.md
